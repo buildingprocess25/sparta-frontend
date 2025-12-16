@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gantt Chart</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="icon" href="/Assets/favicon.ico" type="image/x-icon">
+    <script>
+        // Security Check
+        const isAuthenticated = sessionStorage.getItem('authenticated');
+        const userRole = sessionStorage.getItem('userRole');
+        if (!isAuthenticated) {
+            // Jika belum login, simpan tujuan & alihkan ke halaman login
+            sessionStorage.setItem('redirectTo', window.location.pathname);
+            window.location.href = '/';
+        } else if (userRole == 'KONTRAKTOR') {
+            // Jika sudah login tapi jabatan salah, beri peringatan & alihkan ke homepage
+            alert('Anda tidak memiliki izin untuk mengakses halaman ini.');
+            window.location.href = '/';
+        }
+    </script>
+</head>
+
+<body>
+    <header>
+        <a href="/">
+            <img src="../../Assets/Alfamart-Emblem.png" alt="Alfamart Logo" class="header-logo" />
+        </a>
+        <h1>Gantt Chart</h1>
+        <button id="logout-button-form" class="btn-logout-form">Logout</button>
+    </header>
+    <div class="container">
+        <div class="controls">
+            <div class="control-group">
+                <label>No. Ulok:</label>
+                <select id="ulokSelect" onchange="changeUlok()">
+                    <option value="">--/--</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>Pilih Tahap:</label>
+                <select id="taskSelect">
+                    <option value="">--/--</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>Keterlambatan (hari):</label>
+                <input type="number" id="delayInput" min="0" max="30" value="0">
+            </div>
+            <button class="btn btn-primary" onclick="applyDelay()">Terapkan Keterlambatan</button>
+            <button class="btn btn-primary" onclick="resetChart()">Reset</button>
+        </div>
+        <div class="project-info" id="projectInfo"></div>
+        <div class="api-data" id="apiData"></div>
+        <div class="export-buttons" id="exportButtons" style="display: none;">
+            <button class="btn-export btn-excel" onclick="exportToExcel()">
+                📊 Export to Excel
+            </button>
+        </div>
+        <div class="stats" id="stats"></div>
+        <div class="chart-wrapper">
+            <div class="gantt-chart" id="ganttChart"></div>
+        </div>
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);"></div>
+                <span>Tepat Waktu</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);"></div>
+                <span>Terlambat</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>

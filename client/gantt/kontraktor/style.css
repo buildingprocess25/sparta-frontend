@@ -1,0 +1,722 @@
+        body {
+            font-family: 'Inter', sans-serif;
+            background: white;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: #ffffff;
+            color: #1a202c;
+            text-align: center;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .header-logo {
+            width: 140px;
+            height: auto;
+            position: absolute;
+            left: 25px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.75rem;
+            /* Adjusted font size */
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 2.5rem auto;
+            padding: 1rem;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .controls {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .control-group input,
+        .control-group select {
+            padding: 8px 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .btn {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: rgba(0, 128, 255, 0.73);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: rgba(0, 128, 255, 1);
+            transform: translateY(-2px);
+        }
+
+        .btn-logout-form {
+            position: absolute;
+            right: 25px;
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 0.5rem 1rem;
+            background-color: #e53e3e;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn-logout-form:hover {
+            background-color: #c53030;
+        }
+
+        .chart-wrapper {
+            height: 70vh;
+            max-height: 600px;
+            /* Atau batas pixel tertentu */
+            /* Aktifkan Scrollbar di sini (Vertikal & Horizontal) */
+            overflow: auto;
+            /* Style tambahan agar rapi */
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            background: #fff;
+            position: relative;
+            /* Penting untuk context sticky */
+        }
+
+        .chart-header,
+        .task-row {
+            width: 100%;
+            /* Akan mengikuti width parent (gantt-chart) */
+            min-width: fit-content;
+            /* Penting agar mengikuti konten child */
+        }
+
+        .gantt-chart {
+            display: table;
+            /* Trik agar lebar konten mengikuti isinya */
+            min-width: 100%;
+        }
+
+        .chart-header {
+            display: flex;
+            border-bottom: 1px solid #e9ecef;
+            background: #f8f9fa;
+            /* Menempel di ATAS container .chart-wrapper */
+            position: sticky;
+            top: 0;
+            z-index: 30;
+        }
+
+        .task-column {
+            min-width: 250px;
+            width: 250px;
+            padding: 10px 15px;
+            font-weight: bold;
+            background: #f8f9fa;
+            /* Warna sama dengan header */
+            border-right: 1px solid #dee2e6;
+            border-bottom: 1px solid #dee2e6;
+            /* Menempel di KIRI dan ATAS */
+            position: sticky;
+            left: 0;
+            top: 0;
+            z-index: 40;
+        }
+
+        .timeline-column {
+            display: flex;
+        }
+
+        .day-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #f8f9fa;
+            border-right: 1px solid #dee2e6;
+            font-size: 10px;
+            color: #495057;
+            box-sizing: border-box;
+            /* Agar padding tidak menambah width */
+            flex-shrink: 0;
+            /* Mencegah kolom mengecil */
+        }
+
+        .day-header span.d-date {
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .day-header span.d-month {
+            font-size: 9px;
+            color: #868e96;
+        }
+
+        .month {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            background: rgba(254, 53, 53, 1);
+            color: white;
+            font-weight: 600;
+            border-left: 1px solid rgba(255, 255, 255, 0.2);
+            min-width: 100px;
+        }
+
+        .chart-body {
+            position: relative;
+            /* PENTING: Menjadi acuan koordinat garis */
+            overflow-x: auto;
+            overflow-y: visible;
+            overflow: visible;
+        }
+
+        .task-row {
+            display: flex;
+            border-bottom: 1px solid #e9ecef;
+            min-height: 50px;
+            /* Tinggi baris */
+            background: #fff;
+            align-items: stretch;
+        }
+
+        .task-row:hover {
+            background: #f8f9fa;
+        }
+
+        .task-name {
+            min-width: 250px;
+            width: 250px;
+            padding: 0 15px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #495057;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border-right: 1px solid #e9ecef;
+            /* Menempel di KIRI container */
+            position: sticky;
+            left: 0;
+            z-index: 20;
+            /* Di atas bar, tapi di bawah header */
+            background: #fff;
+        }
+
+        .task-duration {
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .timeline {
+            position: relative;
+            display: block;
+            flex-grow: 1;
+            overflow: hidden;
+        }
+
+        .grid-line {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            border-right: 1px dashed #f1f3f5;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .bar {
+            position: absolute;
+            height: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+            cursor: pointer;
+            z-index: 10;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            /* Tambahkan bayangan sedikit agar terlihat */
+        }
+
+        .bar:hover {
+            transform: translateY(-50%) scale(1.02);
+            /* Tetap pertahankan translateY(-50%) */
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+            z-index: 20;
+        }
+
+        .bar.on-time {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .bar.delayed {
+            background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);
+        }
+
+        .bar.completed {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .dependency-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            /* Agar klik tembus ke bar di bawahnya */
+            z-index: 1;
+            /* Di bawah bar chart (bar biasanya z-index 10 atau 20) */
+        }
+
+        .dependency-line {
+            fill: none;
+            stroke: #3d9bffff;
+            stroke-width: 2px;
+            stroke-linecap: round;
+            transition: all 0.3s;
+        }
+
+        .dependency-line:hover {
+            stroke: #228be6;
+            stroke-width: 3px;
+            z-index: 100;
+        }
+
+        .legend {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .legend-color {
+            width: 30px;
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        .stats {
+            padding: 20px 30px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid #e9ecef;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #6c757d;
+            font-size: 14px;
+        }
+
+        .project-info {
+            padding: 20px 30px;
+            background: rgba(254, 53, 53, 1);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .api-data {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            display: block;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .api-card {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .api-card-title {
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #1a202c;
+        }
+
+        .api-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 6px 0;
+            font-size: 14px;
+            border-bottom: 1px dashed #edf2f7;
+        }
+
+        .api-row:last-child {
+            border-bottom: none;
+        }
+
+        .api-key {
+            color: #4a5568;
+            font-weight: 600;
+        }
+
+        .api-value {
+            color: #1a202c;
+            text-align: right;
+            word-break: break-word;
+        }
+
+        .api-badge-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .api-badge {
+            background: rgba(0, 128, 255, 0.08);
+            color: #004085;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .api-card.api-error {
+            border-color: #feb2b2;
+            background: #fff5f5;
+        }
+
+        .task-input-card {
+            max-width: 100%;
+        }
+
+        .task-input-container {
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 10px 0;
+        }
+
+        .task-input-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            border-bottom: 1px solid #e9ecef;
+            gap: 15px;
+        }
+
+        .task-input-row:last-child {
+            border-bottom: none;
+        }
+
+        .task-input-row:hover {
+            background: #f8f9fa;
+        }
+
+        .task-input-label {
+            flex: 1;
+            font-weight: 600;
+            color: #1a202c;
+            font-size: 14px;
+        }
+
+        .task-input-fields {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .input-group label {
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 14px;
+        }
+
+        .task-day-input {
+            width: 70px;
+            padding: 6px 10px;
+            border: 2px solid #cbd5e0;
+            border-radius: 6px;
+            font-size: 14px;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .task-day-input:focus {
+            outline: none;
+            border-color: rgba(0, 128, 255, 0.73);
+            box-shadow: 0 0 0 3px rgba(0, 128, 255, 0.1);
+        }
+
+        .input-separator {
+            color: #718096;
+            font-size: 12px;
+            font-style: italic;
+        }
+
+        .task-input-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px dashed #cbd5e0;
+        }
+
+        .btn-apply-schedule,
+        .btn-reset-schedule,
+        .btn-publish {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px; /* Sudut lebih membulat */
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Transisi halus */
+            position: relative;
+            overflow: hidden;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px; /* Jarak antara teks dan ikon jika ada */
+        }
+
+        .btn-apply-schedule:hover,
+        .btn-reset-schedule:hover,
+        .btn-publish:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
+        }
+
+        .btn-apply-schedule:active,
+        .btn-reset-schedule:active,
+        .btn-publish:active {
+            transform: translateY(1px); /* Turun sedikit seolah ditekan */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) inset; /* Bayangan ke dalam */
+        }
+
+        .btn-apply-schedule {
+            background: linear-gradient(135deg, #007bff 0%, #0062cc 100%);
+            color: white;
+        }
+
+        .btn-apply-schedule:hover {
+            background: linear-gradient(135deg, #0069d9 0%, #0056b3 100%);
+            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.4); /* Glow Biru */
+        }
+
+        .btn-reset-schedule {
+            background: linear-gradient(135deg, #ff0000ff 0%, #cc0000ff 100%);
+            color: white;
+        }
+
+        .btn-reset-schedule:hover {
+            background: linear-gradient(135deg, #d90000ff 0%, #b30000ff 100%);
+            box-shadow: 0 4px 15px rgba(255, 0, 0, 0.4); /* Glow Biru */
+        }
+
+        .btn-publish {
+            background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+            color: white;
+            width: 100%; /* Agar tombol kunci memenuhi lebar di barisnya */
+        }
+
+        .btn-publish:hover {
+            background: linear-gradient(135deg, #218838 0%, #1e7e34 100%);
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4); /* Glow Hijau */
+        }
+
+        .project-detail {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .project-label {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .project-value {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .export-buttons {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-export {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .btn-pdf {
+            background: rgba(0, 128, 255, 0.73);
+            color: white;
+        }
+
+        .btn-pdf:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-excel {
+            background: rgba(0, 128, 255, 0.73);
+            color: white;
+        }
+
+        .btn-excel:hover {
+            transform: translateY(-2px);
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .controls,
+            .export-buttons,
+            .btn {
+                display: none !important;
+            }
+
+            .container {
+                max-width: 1400px;
+                margin: 2.5rem auto;
+                padding: 1rem;
+                background: white;
+                border-radius: 15px;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+                overflow: visible !important;
+            }
+
+            .chart-wrapper {
+                overflow: visible !important;
+            }
+
+            .bar:hover {
+                transform: none;
+                box-shadow: none;
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                margin: 1rem;
+                padding: 1.5rem;
+                max-width: 100%;
+            }
+
+            header {
+                flex-direction: column;
+                padding: 1.5rem;
+                height: auto;
+            }
+
+            header h1 {
+                font-size: 1.5rem;
+                margin-top: 1rem;
+                text-align: center;
+            }
+
+            .header-logo {
+                position: static;
+                transform: none;
+                margin: 0 auto;
+                width: 120px;
+                left: auto;
+            }
+        }
