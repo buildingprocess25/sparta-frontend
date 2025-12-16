@@ -1,5 +1,5 @@
 // ==================== API CONFIGURATION ====================
-const API_BASE_URL = "https://gantt-chart-bnm.onrender.com/api";
+const API_BASE_URL = "https://sparta-backend.onrender.com/api";
 const ENDPOINTS = {
     ulokList: `${API_BASE_URL}/get_all_ulok_rab`,
     ganttData: `${API_BASE_URL}/get_gantt_data`,
