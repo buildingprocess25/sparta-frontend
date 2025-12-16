@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const userEmail = localStorage.getItem('userEmail');
     if (!userEmail) {
         alert("Anda belum login atau sesi telah habis.");
-        window.location.href = 'auth/pic/login.html'; 
+        window.location.href = 'pic/login.html'; 
         return;
     }
     const apiUrl = `https://sparta-backend.onrender.com/api/user_info_by_email?email=${userEmail}`;
