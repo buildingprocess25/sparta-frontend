@@ -6,27 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gantt Chart</title>
     <link rel="stylesheet" href="style.css" />
-    <link rel="icon" href="/Assets/favicon.ico" type="image/x-icon">
-    <script>
-        // Security Check
-        const isAuthenticated = sessionStorage.getItem('authenticated');
-        const userRole = sessionStorage.getItem('userRole');
-        if (!isAuthenticated) {
-            // Jika belum login, simpan tujuan & alihkan ke halaman login
-            sessionStorage.setItem('redirectTo', window.location.pathname);
-            window.location.href = '/';
-        } else if (userRole == 'KONTRAKTOR') {
-            // Jika sudah login tapi jabatan salah, beri peringatan & alihkan ke homepage
-            alert('Anda tidak memiliki izin untuk mengakses halaman ini.');
-            window.location.href = '/';
-        }
-    </script>
+    <link rel="icon" href="../../assets/favicon.ico" type="image/x-icon">
 </head>
-
 <body>
     <header>
         <a href="/">
-            <img src="../../Assets/Alfamart-Emblem.png" alt="Alfamart Logo" class="header-logo" />
+            <img src="../../assets/Alfamart-Emblem.png" alt="Alfamart Logo" class="header-logo" />
         </a>
         <h1>Gantt Chart</h1>
         <button id="logout-button-form" class="btn-logout-form">Logout</button>

@@ -12,6 +12,14 @@ let ganttApiData = null;
 let ganttApiError = null;
 let isLoadingGanttData = false;
 
+// ==================== LOGIN CHECK ====================
+const isAuthenticated = sessionStorage.getItem('authenticated');
+        const userRole = sessionStorage.getItem('userRole');
+        if (!isAuthenticated) {
+            // Jika belum login, simpan tujuan & alihkan ke halaman login
+            sessionStorage.setItem('redirectTo', window.location.pathname);
+            window.location.href = '/';
+        }
 // ==================== TASK TEMPLATES ====================
 const taskTemplateME = [
     { id: 1, name: 'Instalasi', start: 1, duration: 10, dependencies: [] },
