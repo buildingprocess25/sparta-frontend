@@ -16,7 +16,7 @@ let isProjectLocked = false; // Track status dikunci/belum
 
 // ==================== TASK TEMPLATES ====================
 const taskTemplateME = [
-    { id: 1, name: 'Instalasi', start: -1, duration: 0, dependencies: [] },
+    { id: 1, name: 'Instalasi', start: 0, duration: 0, dependencies: [] },
     { id: 2, name: 'Fixture', start: 0, duration: 0, dependencies: [] },
     { id: 3, name: 'Pekerjaan Tambahan', start: 0, duration: 0, dependencies: [] },
     { id: 4, name: 'Pekerjaan SBO', start: 0, duration: 0, dependencies: [] },
