@@ -180,27 +180,40 @@ async function loadDataAndInit() {
         const userEmail = sessionStorage.getItem('loggedInUserEmail');
         const urlWithParam = `${ENDPOINTS.ulokList}?email=${encodeURIComponent(userEmail)}`;
         const response = await fetch(urlWithParam);
-        
         if (!response.ok) {
             const errData = await response.json().catch(() => ({}));
             throw new Error(errData.message || `HTTP Error: ${response.status}`);
         }
 
         const apiData = await response.json();
-
         if (!Array.isArray(apiData)) {
             throw new Error("Format data API tidak valid (harus array)");
         }
 
         projects = apiData.map(item => parseProjectFromLabel(item.label, item.value));
-        
         if (projects.length === 0) {
             showErrorMessage("Tidak ada data proyek ditemukan untuk email ini.");
             return;
         }
-
         initChart();
 
+        projects.forEach(project => {
+            const option = document.createElement('option');
+            option.value = project.ulok;
+            option.textContent = project.label;
+            ulokSelect.appendChild(option);
+        });
+
+        const savedUlok = localStorage.getItem('lastSelectedUlok');
+        if (savedUlok) {
+            const optionExists = Array.from(ulokSelect.options).some(opt => opt.value === savedUlok);
+            if (optionExists) {
+                ulokSelect.value = savedUlok;
+                ulokSelect.dispatchEvent(new Event('change')); 
+            } else {
+                localStorage.removeItem('lastSelectedUlok');
+            }
+        }
     } catch (error) {
         console.error("❌ Error loading data:", error);
         showErrorMessage(`Gagal memuat data: ${error.message}`);
@@ -550,14 +563,13 @@ async function saveProjectSchedule(statusType = "Active") {
         }
 
         // === SUKSES ===
-        if (isLocking) {
-            alert("✅ Sukses! Jadwal telah DIKUNCI.");
-            isProjectLocked = true; // Update state lokal jadi terkunci
-        } else {
-            // Jika hanya Active (Terapkan Jadwal), beri notif kecil atau alert
-            alert("✅ Data tersimpan sebagai 'Active'.");
-            isProjectLocked = false;
-        }
+        const status = data.status ? String(data.status).toLowerCase() : '';
+        alert(`✅ Berhasil menyimpan jadwal sebagai "${statusType}".`);
+            if (data.is_locked === true || status === 'terkunci' || status === 'locked' || status === 'Terkunci') {
+                isProjectLocked = true;
+            } else {
+                isProjectLocked = false;
+            }
 
         // Render ulang UI sesuai status baru
         renderApiData(); 
