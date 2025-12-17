@@ -282,22 +282,40 @@ async function fetchGanttDataForSelection(selectedValue) {
 
         ganttApiData = data;
 
-        const rawStatus = data.Status || data.status || data.status_jadwal || '';
-        const normalizedStatus = String(rawStatus).trim().toLowerCase();
-
-        if (normalizedStatus === 'terkunci' || normalizedStatus === 'locked' || normalizedStatus === 'published' || data.is_locked === true) {
-            isProjectLocked = true;
-            console.log("🔒 Status Proyek: TERKUNCI (Loaded from DB)");
-        } else {
-            isProjectLocked = false;
-            console.log("🔓 Status Proyek: ACTIVE");
-        }
-
+        // Update project info dari RAB jika ada
         if (currentProject && data?.rab) {
             updateProjectFromRab(data.rab);
         }
 
-        if (data.existing_tasks && Array.isArray(data.existing_tasks) && data.existing_tasks.length > 0) {
+        // ==================== CEK GANTT_DATA ====================
+        if (data.gantt_data && typeof data.gantt_data === 'object') {
+            console.log("📊 gantt_data ditemukan di response");
+            
+            const ganttData = data.gantt_data;
+            const ganttStatus = String(ganttData.Status || '').trim().toLowerCase();
+
+            // Cek Status di gantt_data
+            if (ganttStatus === 'terkunci' || ganttStatus === 'locked' || ganttStatus === 'published') {
+                isProjectLocked = true;
+                hasUserInput = true;
+                console.log("🔒 Status Gantt: TERKUNCI");
+                
+                // Parse data kategori dari gantt_data untuk chart
+                parseGanttDataToTasks(ganttData, selectedValue);
+                
+            } else {
+                // Status Active - tampilkan data di input form
+                isProjectLocked = false;
+                console.log("🔓 Status Gantt: ACTIVE - Menampilkan data di form input");
+                
+                // Parse data kategori dari gantt_data ke input form
+                parseGanttDataToTasks(ganttData, selectedValue);
+                hasUserInput = true;
+            }
+
+        } else if (data.existing_tasks && Array.isArray(data.existing_tasks) && data.existing_tasks.length > 0) {
+            // Fallback ke existing_tasks jika gantt_data tidak ada
+            console.log("📋 Menggunakan existing_tasks");
             
             currentTasks = data.existing_tasks.map(t => ({
                 id: t.id,
@@ -310,6 +328,7 @@ async function fetchGanttDataForSelection(selectedValue) {
             
             projectTasks[selectedValue] = currentTasks;
             hasUserInput = true;
+            isProjectLocked = false;
 
         } else {
             throw new Error("DATA_EMPTY"); 
@@ -345,6 +364,65 @@ async function fetchGanttDataForSelection(selectedValue) {
         }
         updateStats();
     }
+}
+
+// ==================== PARSE GANTT_DATA TO TASKS ====================
+function parseGanttDataToTasks(ganttData, selectedValue) {
+    if (!currentProject || !ganttData) return;
+
+    // Ambil tanggal proyek dari gantt_data atau gunakan default
+    const projectStartDate = new Date(currentProject.startDate);
+    
+    // Tentukan template berdasarkan lingkup pekerjaan
+    const template = currentProject.work === 'ME' 
+        ? JSON.parse(JSON.stringify(taskTemplateME)) 
+        : JSON.parse(JSON.stringify(taskTemplateSipil));
+
+    // Parse setiap kategori dari gantt_data
+    template.forEach((task, index) => {
+        const kategoriNum = index + 1;
+        const kategoriKey = `Kategori_${kategoriNum}`;
+        const mulaiKey = `Hari_Mulai_Kategori_${kategoriNum}`;
+        const selesaiKey = `Hari_Selesai_Kategori_${kategoriNum}`;
+
+        const kategoriName = ganttData[kategoriKey];
+        const hariMulai = ganttData[mulaiKey];
+        const hariSelesai = ganttData[selesaiKey];
+
+        // Jika kategori kosong, skip
+        if (!kategoriName || !hariMulai || !hariSelesai) {
+            task.start = 0;
+            task.duration = 0;
+            task.inputData = { startDay: 0, endDay: 0 };
+            return;
+        }
+
+        // Konversi tanggal ke hari relatif dari project start
+        const startDate = new Date(hariMulai);
+        const endDate = new Date(hariSelesai);
+
+        // Hitung selisih hari dari project start date
+        const diffStartMs = startDate - projectStartDate;
+        const diffEndMs = endDate - projectStartDate;
+
+        const startDay = Math.floor(diffStartMs / (1000 * 60 * 60 * 24)) + 1; // H1, H2, dst
+        const endDay = Math.floor(diffEndMs / (1000 * 60 * 60 * 24)) + 1;
+
+        // Hitung durasi
+        const duration = endDay - startDay + 1;
+
+        task.start = startDay > 0 ? startDay : 0;
+        task.duration = duration > 0 ? duration : 0;
+        task.inputData = { 
+            startDay: startDay > 0 ? startDay : 0, 
+            endDay: endDay > 0 ? endDay : 0 
+        };
+
+        console.log(`📅 ${task.name}: H${startDay} - H${endDay} (${duration} hari)`);
+    });
+
+    currentTasks = template;
+    projectTasks[selectedValue] = currentTasks;
 }
 
 function renderApiData() {
