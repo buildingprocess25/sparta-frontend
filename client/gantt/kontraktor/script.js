@@ -17,28 +17,28 @@ let isProjectLocked = false; // Track status dikunci/belum
 // ==================== TASK TEMPLATES ====================
 const taskTemplateME = [
     { id: 1, name: 'Instalasi', start: 0, duration: 0, dependencies: [] },
-    { id: 2, name: 'Fixture', start: 0, duration: 0, dependencies: [1] },
-    { id: 3, name: 'Pekerjaan Tambahan', start: 0, duration: 0, dependencies: [1] },
-    { id: 4, name: 'Pekerjaan SBO', start: 0, duration: 0, dependencies: [2, 3] },
+    { id: 2, name: 'Fixture', start: 0, duration: 0, dependencies: [] },
+    { id: 3, name: 'Pekerjaan Tambahan', start: 0, duration: 0, dependencies: [] },
+    { id: 4, name: 'Pekerjaan SBO', start: 0, duration: 0, dependencies: [] },
 ];
 
 const taskTemplateSipil = [
     { id: 1, name: 'Pekerjaan Persiapan', start: 0, duration: 0, dependencies: [] },
-    { id: 2, name: 'Pekerjaan Bobokan/Bongkaran', start: 0, duration: 0, dependencies: [1] },
-    { id: 3, name: 'Pekerjaan Tanah', start: 0, duration: 0, dependencies: [2] },
-    { id: 4, name: 'Pekerjaan Pondasi & Beton', start: 0, duration: 0, dependencies: [3] },
-    { id: 5, name: 'Pekerjaan Pasangan', start: 0, duration: 0, dependencies: [4] },
-    { id: 6, name: 'Pekerjaan Besi', start: 0, duration: 0, dependencies: [5] },
-    { id: 7, name: 'Pekerjaan Keramik', start: 0, duration: 0, dependencies: [6] },
-    { id: 8, name: 'Pekerjaan Plumbing', start: 0, duration: 0, dependencies: [7] },
-    { id: 9, name: 'Pekerjaan Sanitary & Acecories', start: 0, duration: 0, dependencies: [8] },
-    { id: 10, name: 'Pekerjaan Janitor', start: 0, duration: 0, dependencies: [9] },
-    { id: 11, name: 'Pekerjaan Atap', start: 0, duration: 0, dependencies: [10] },
-    { id: 12, name: 'Pekerjaan Kusen, Pintu, dan Kaca', start: 0, duration: 0, dependencies: [11] },
-    { id: 13, name: 'Pekerjaan Finishing', start: 0, duration: 0, dependencies: [10] },
-    { id: 14, name: 'Pekerjaan Beanspot', start: 0, duration: 0, dependencies: [13] },
-    { id: 15, name: 'Pekerjaan Tambahan', start: 0, duration: 0, dependencies: [13] },
-    { id: 16, name: 'Pekerjaan SBO', start: 0, duration: 0, dependencies: [14, 15] },
+    { id: 2, name: 'Pekerjaan Bobokan/Bongkaran', start: 0, duration: 0, dependencies: [] },
+    { id: 3, name: 'Pekerjaan Tanah', start: 0, duration: 0, dependencies: [] },
+    { id: 4, name: 'Pekerjaan Pondasi & Beton', start: 0, duration: 0, dependencies: [] },
+    { id: 5, name: 'Pekerjaan Pasangan', start: 0, duration: 0, dependencies: [] },
+    { id: 6, name: 'Pekerjaan Besi', start: 0, duration: 0, dependencies: [] },
+    { id: 7, name: 'Pekerjaan Keramik', start: 0, duration: 0, dependencies: [] },
+    { id: 8, name: 'Pekerjaan Plumbing', start: 0, duration: 0, dependencies: [] },
+    { id: 9, name: 'Pekerjaan Sanitary & Acecories', start: 0, duration: 0, dependencies: [] },
+    { id: 10, name: 'Pekerjaan Janitor', start: 0, duration: 0, dependencies: [] },
+    { id: 11, name: 'Pekerjaan Atap', start: 0, duration: 0, dependencies: [] },
+    { id: 12, name: 'Pekerjaan Kusen, Pintu, dan Kaca', start: 0, duration: 0, dependencies: [] },
+    { id: 13, name: 'Pekerjaan Finishing', start: 0, duration: 0, dependencies: [] },
+    { id: 14, name: 'Pekerjaan Beanspot', start: 0, duration: 0, dependencies: [] },
+    { id: 15, name: 'Pekerjaan Tambahan', start: 0, duration: 0, dependencies: [] },
+    { id: 16, name: 'Pekerjaan SBO', start: 0, duration: 0, dependencies: [] },
 ];
 
 let currentTasks = [];
@@ -218,13 +218,41 @@ function initChart() {
         } else {
             projectTasks[project.ulok] = JSON.parse(JSON.stringify(taskTemplateSipil));
         }
-
         const option = document.createElement('option');
         option.value = project.ulok;
         option.textContent = `${project.ulok} | ${project.store} (${project.work})`;
         ulokSelect.appendChild(option);
     });
-
+    ulokSelect.addEventListener('change', (e) => {
+        const selectedUlok = e.target.value;
+        if (selectedUlok) {
+            localStorage.setItem('lastSelectedUlok', selectedUlok);
+        } else {
+            localStorage.removeItem('lastSelectedUlok');
+        }
+        if (!selectedUlok) {
+            showSelectProjectMessage();
+            return;
+        }
+        currentProject = projects.find(p => p.ulok === selectedUlok);
+        if (projectTasks[selectedUlok]) {
+            currentTasks = projectTasks[selectedUlok];
+        }
+        hasUserInput = false;
+        isProjectLocked = false;
+        fetchGanttDataForSelection(selectedUlok);
+        renderProjectInfo();
+        updateStats();
+        document.getElementById('exportButtons').style.display = 'block';
+    });
+    const savedUlok = localStorage.getItem('lastSelectedUlok');
+    if (savedUlok) {
+        const projectExists = projects.some(p => p.ulok === savedUlok);
+        if (projectExists) {
+            ulokSelect.value = savedUlok;
+            ulokSelect.dispatchEvent(new Event('change')); 
+        }
+    }
     showSelectProjectMessage();
 }
 
