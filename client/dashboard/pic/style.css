@@ -63,6 +63,7 @@
     background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
     color: white;
     border-bottom: 1px solid var(--border-color);
+    position: relative;
 }
 
 .header-logo-container {
@@ -184,20 +185,44 @@ body {
 
 .btn-logout-form {
     position: absolute;
-    right: 25px;
+    right: 30px;
     top: 50%;
     transform: translateY(-50%);
-    padding: 0.5rem 1rem;
-    background-color: #e53e3e;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.4);
     color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 0.9rem;
+    padding: 0.6rem 1.2rem;
+    border-radius: 50px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem;
     font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(4px); /* Efek blur di belakang tombol */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .btn-logout-form:hover {
-    background-color: #c53030;
+    background: #ffffff;
+    color: #b91c1c;
+    transform: translateY(-50%) scale(1.05);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+    border-color: #ffffff;
+}
+
+.btn-logout-form:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+@media (max-width: 768px) {
+    .btn-logout-form {
+        padding: 0.5rem;
+        right: 15px;
+    }
+    .btn-logout-form span { 
+        display: none;
+    }
 }

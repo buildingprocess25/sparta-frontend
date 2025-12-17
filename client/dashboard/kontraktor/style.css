@@ -183,7 +183,7 @@ body {
 }
 
 .btn-logout-form {
-    position: flex;
+    position: absolute;
     right: 25px;
     top: 10%;
     transform: translateY(-50%);
