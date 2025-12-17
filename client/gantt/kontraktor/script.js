@@ -14,13 +14,6 @@ let isLoadingGanttData = false;
 let hasUserInput = false; // Track apakah user sudah input jadwal
 let isProjectLocked = false; // Track status dikunci/belum
 
-// ==================== LOGIN CHECK ====================
-const isAuthenticated = sessionStorage.getItem('authenticated');
-        const userRole = sessionStorage.getItem('userRole');
-        if (!isAuthenticated) {
-            sessionStorage.setItem('redirectTo', window.location.pathname);
-            window.location.href = '../../auth/kontraktor/login.html';
-        }
 // ==================== TASK TEMPLATES ====================
 const taskTemplateME = [
     { id: 1, name: 'Instalasi', start: 0, duration: 0, dependencies: [] },
@@ -185,7 +178,6 @@ async function loadDataAndInit() {
     try {
         showLoadingMessage();
         const userEmail = sessionStorage.getItem('loggedInUserEmail');
-
         const urlWithParam = `${ENDPOINTS.ulokList}?email=${encodeURIComponent(userEmail)}`;
         const response = await fetch(urlWithParam);
         
