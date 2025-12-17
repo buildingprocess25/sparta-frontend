@@ -282,7 +282,21 @@ async function fetchGanttDataForSelection(selectedValue) {
 
         ganttApiData = data;
 
+<<<<<<< HEAD
         // Update project info dari RAB jika ada
+=======
+        const rawStatus = data.Status || data.status || data.status_jadwal || '';
+        const normalizedStatus = String(rawStatus).trim().toLowerCase();
+
+        if (normalizedStatus === 'Terkunci' || normalizedStatus === 'locked' || normalizedStatus === 'published' || data.is_locked === true) {
+            isProjectLocked = true;
+            console.log("🔒 Status Proyek: TERKUNCI (Loaded from DB)");
+        } else {
+            isProjectLocked = false;
+            console.log("🔓 Status Proyek: ACTIVE");
+        }
+
+>>>>>>> 3f4de5782033e9cbdaaef3480ab73c3e1b70a552
         if (currentProject && data?.rab) {
             updateProjectFromRab(data.rab);
         }
