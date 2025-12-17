@@ -52,12 +52,6 @@ let currentTasks = [];
 const totalDaysME = 100;
 const totalDaysSipil = 205;
 
-// ==================== INITIALIZATION ====================
-document.getElementById('logout-button-form').addEventListener('click', () => {
-    sessionStorage.clear();
-    window.location.href = 'https://gantt-chart-bnm.vercel.app';
-});
-
 // ==================== HELPER FUNCTIONS ====================
 function formatDateID(date) {
     const options = { day: 'numeric', month: 'short', year: 'numeric' };
