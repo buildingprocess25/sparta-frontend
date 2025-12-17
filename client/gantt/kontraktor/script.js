@@ -184,13 +184,7 @@ function parseProjectFromLabel(label, value) {
 async function loadDataAndInit() {
     try {
         showLoadingMessage();
-        const userEmail = sessionStorage.getItem('loggedInUserEmail'); 
-
-        if (!userEmail) {
-            console.warn("⚠️ Email tidak ditemukan di session.");
-            window.location.href = 'https://gantt-chart-bnm.vercel.app'; 
-            return;
-        }
+        const userEmail = sessionStorage.getItem('loggedInUserEmail');
 
         const urlWithParam = `${ENDPOINTS.ulokList}?email=${encodeURIComponent(userEmail)}`;
         const response = await fetch(urlWithParam);
