@@ -377,11 +377,11 @@ function parseGanttDataToTasks(ganttData, selectedValue) {
 
     // ==================== CARI TANGGAL PALING AWAL ====================
     let earliestDate = null;
-    
+
     for (let i = 1; i <= template.length + 5; i++) {
         const mulaiKey = `Hari_Mulai_Kategori_${i}`;
         const hariMulai = ganttData[mulaiKey];
-        
+
         if (hariMulai && hariMulai.trim() !== '') {
             const dateObj = new Date(hariMulai);
             if (!isNaN(dateObj.getTime())) {
@@ -400,7 +400,7 @@ function parseGanttDataToTasks(ganttData, selectedValue) {
     // Set project start date ke tanggal paling awal
     const projectStartDate = earliestDate;
     currentProject.startDate = projectStartDate.toISOString().split('T')[0];
-    
+
     console.log(`📆 Project Start Date (dari gantt_data): ${currentProject.startDate}`);
 
     // ==================== PARSE SETIAP KATEGORI ====================
@@ -415,7 +415,7 @@ function parseGanttDataToTasks(ganttData, selectedValue) {
         const hariSelesai = ganttData[selesaiKey];
 
         // Jika kategori kosong atau tanggal kosong, skip
-        if (!kategoriName || !hariMulai || !hariSelesai || 
+        if (!kategoriName || !hariMulai || !hariSelesai ||
             hariMulai.trim() === '' || hariSelesai.trim() === '') {
             task.start = 0;
             task.duration = 0;
@@ -458,7 +458,7 @@ function parseGanttDataToTasks(ganttData, selectedValue) {
 
     currentTasks = template;
     projectTasks[selectedValue] = currentTasks;
-    
+
     console.log(`✅ Total tasks parsed: ${currentTasks.filter(t => t.duration > 0).length}`);
 }
 
@@ -874,7 +874,7 @@ function renderChart() {
         const tStart = new Date(projectStartDate);
         tStart.setDate(projectStartDate.getDate() + (task.start - 1));
         const tEnd = new Date(tStart);
-        tEnd.setDate(tStart.getDate() + task.duration);
+        tEnd.setDate(tStart.getDate() + task.duration - 1); // Fix: -1 agar tanggal akhir benar
 
         html += '<div class="task-row">';
         html += `<div class="task-name">
