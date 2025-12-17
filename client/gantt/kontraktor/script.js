@@ -285,7 +285,7 @@ async function fetchGanttDataForSelection(selectedValue) {
         const rawStatus = data.Status || data.status || data.status_jadwal || '';
         const normalizedStatus = String(rawStatus).trim().toLowerCase();
 
-        if (normalizedStatus === 'terkunci' || normalizedStatus === 'locked' || normalizedStatus === 'published' || data.is_locked === true) {
+        if (normalizedStatus === 'Terkunci' || normalizedStatus === 'locked' || normalizedStatus === 'published' || data.is_locked === true) {
             isProjectLocked = true;
             console.log("🔒 Status Proyek: TERKUNCI (Loaded from DB)");
         } else {
