@@ -370,15 +370,40 @@ async function fetchGanttDataForSelection(selectedValue) {
 function parseGanttDataToTasks(ganttData, selectedValue) {
     if (!currentProject || !ganttData) return;
 
-    // Ambil tanggal proyek dari gantt_data atau gunakan default
-    const projectStartDate = new Date(currentProject.startDate);
-
     // Tentukan template berdasarkan lingkup pekerjaan
     const template = currentProject.work === 'ME'
         ? JSON.parse(JSON.stringify(taskTemplateME))
         : JSON.parse(JSON.stringify(taskTemplateSipil));
 
-    // Parse setiap kategori dari gantt_data
+    // ==================== CARI TANGGAL PALING AWAL ====================
+    let earliestDate = null;
+    
+    for (let i = 1; i <= template.length + 5; i++) {
+        const mulaiKey = `Hari_Mulai_Kategori_${i}`;
+        const hariMulai = ganttData[mulaiKey];
+        
+        if (hariMulai && hariMulai.trim() !== '') {
+            const dateObj = new Date(hariMulai);
+            if (!isNaN(dateObj.getTime())) {
+                if (!earliestDate || dateObj < earliestDate) {
+                    earliestDate = dateObj;
+                }
+            }
+        }
+    }
+
+    // Jika tidak ada tanggal valid, gunakan tanggal hari ini
+    if (!earliestDate) {
+        earliestDate = new Date();
+    }
+
+    // Set project start date ke tanggal paling awal
+    const projectStartDate = earliestDate;
+    currentProject.startDate = projectStartDate.toISOString().split('T')[0];
+    
+    console.log(`📆 Project Start Date (dari gantt_data): ${currentProject.startDate}`);
+
+    // ==================== PARSE SETIAP KATEGORI ====================
     template.forEach((task, index) => {
         const kategoriNum = index + 1;
         const kategoriKey = `Kategori_${kategoriNum}`;
@@ -389,40 +414,52 @@ function parseGanttDataToTasks(ganttData, selectedValue) {
         const hariMulai = ganttData[mulaiKey];
         const hariSelesai = ganttData[selesaiKey];
 
-        // Jika kategori kosong, skip
-        if (!kategoriName || !hariMulai || !hariSelesai) {
+        // Jika kategori kosong atau tanggal kosong, skip
+        if (!kategoriName || !hariMulai || !hariSelesai || 
+            hariMulai.trim() === '' || hariSelesai.trim() === '') {
             task.start = 0;
             task.duration = 0;
             task.inputData = { startDay: 0, endDay: 0 };
             return;
         }
 
-        // Konversi tanggal ke hari relatif dari project start
+        // Konversi tanggal ke Date object
         const startDate = new Date(hariMulai);
         const endDate = new Date(hariSelesai);
 
+        // Validasi tanggal
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+            task.start = 0;
+            task.duration = 0;
+            task.inputData = { startDay: 0, endDay: 0 };
+            return;
+        }
+
         // Hitung selisih hari dari project start date
+        const msPerDay = 1000 * 60 * 60 * 24;
         const diffStartMs = startDate - projectStartDate;
         const diffEndMs = endDate - projectStartDate;
 
-        const startDay = Math.floor(diffStartMs / (1000 * 60 * 60 * 24)) + 1; // H1, H2, dst
-        const endDay = Math.floor(diffEndMs / (1000 * 60 * 60 * 24)) + 1;
+        const startDay = Math.round(diffStartMs / msPerDay) + 1; // H1, H2, dst
+        const endDay = Math.round(diffEndMs / msPerDay) + 1;
 
         // Hitung durasi
         const duration = endDay - startDay + 1;
 
-        task.start = startDay > 0 ? startDay : 0;
-        task.duration = duration > 0 ? duration : 0;
+        task.start = startDay > 0 ? startDay : 1;
+        task.duration = duration > 0 ? duration : 1;
         task.inputData = {
-            startDay: startDay > 0 ? startDay : 0,
-            endDay: endDay > 0 ? endDay : 0
+            startDay: startDay > 0 ? startDay : 1,
+            endDay: endDay > 0 ? endDay : 1
         };
 
-        console.log(`📅 ${task.name}: H${startDay} - H${endDay} (${duration} hari)`);
+        console.log(`📅 ${task.name}: H${task.start} - H${task.inputData.endDay} (${task.duration} hari) | ${hariMulai} ~ ${hariSelesai}`);
     });
 
     currentTasks = template;
     projectTasks[selectedValue] = currentTasks;
+    
+    console.log(`✅ Total tasks parsed: ${currentTasks.filter(t => t.duration > 0).length}`);
 }
 
 function renderApiData() {
