@@ -399,6 +399,7 @@ function parseGanttDataToTasks(ganttData, selectedValue) {
         const kategoriKey = `Kategori_${i}`;
         const mulaiKey = `Hari_Mulai_Kategori_${i}`;
         const selesaiKey = `Hari_Selesai_Kategori_${i}`;
+        const keterlambatanKey = `Keterlambatan_Kategori_${i}`;
 
         if (!ganttData.hasOwnProperty(kategoriKey)) {
             break;
@@ -407,6 +408,7 @@ function parseGanttDataToTasks(ganttData, selectedValue) {
         const kategoriName = ganttData[kategoriKey];
         const hariMulai = ganttData[mulaiKey];
         const hariSelesai = ganttData[selesaiKey];
+        const keterlambatan = parseInt(ganttData[keterlambatanKey]) || 0;
 
         if (kategoriName) {
             let sDate = null;
@@ -423,7 +425,8 @@ function parseGanttDataToTasks(ganttData, selectedValue) {
                 id: i,
                 name: kategoriName,
                 rawStart: sDate,
-                rawEnd: hariSelesai ? new Date(hariSelesai) : null
+                rawEnd: hariSelesai ? new Date(hariSelesai) : null,
+                keterlambatan: keterlambatan
             });
         }
         i++;
@@ -458,6 +461,7 @@ function parseGanttDataToTasks(ganttData, selectedValue) {
             start: startDay > 0 ? startDay : 0,
             duration: duration > 0 ? duration : 0,
             dependencies: [],
+            keterlambatan: item.keterlambatan || 0,
             inputData: {
                 startDay: startDay > 0 ? startDay : 0,
                 endDay: endDay > 0 ? endDay : 0
@@ -877,6 +881,7 @@ function renderChart() {
 
         const leftPos = (task.start - 1) * DAY_WIDTH;
         const widthPos = task.duration * DAY_WIDTH;
+        const keterlambatan = task.keterlambatan || 0;
 
         // Tgl asli
         const tStart = new Date(projectStartDate);
@@ -884,17 +889,37 @@ function renderChart() {
         const tEnd = new Date(tStart);
         tEnd.setDate(tStart.getDate() + task.duration - 1); // Fix: -1 agar tanggal akhir benar
 
+        // Hitung posisi bar keterlambatan (setelah bar utama)
+        const delayLeftPos = leftPos + widthPos;
+        const delayWidthPos = keterlambatan * DAY_WIDTH;
+
+        // Tanggal akhir dengan keterlambatan
+        const tEndWithDelay = new Date(tEnd);
+        tEndWithDelay.setDate(tEnd.getDate() + keterlambatan);
+
         html += '<div class="task-row">';
         html += `<div class="task-name">
             <span>${task.name}</span>
-            <span class="task-duration">Durasi: ${task.duration} hari</span>
+            <span class="task-duration">Durasi: ${task.duration} hari${keterlambatan > 0 ? ` <span style="color: #e53e3e;">(+${keterlambatan} hari delay)</span>` : ''}</span>
         </div>`;
         html += `<div class="timeline" style="width: ${totalChartWidth}px;">`;
+
+        // Bar utama (hijau/on-time)
         html += `<div class="bar on-time" data-task-id="${task.id}" 
                 style="left: ${leftPos}px; width: ${widthPos}px;" 
                 title="${task.name}: ${formatDateID(tStart)} - ${formatDateID(tEnd)}">
             ${task.duration}h
         </div>`;
+
+        // Bar keterlambatan (merah) - hanya tampil jika ada keterlambatan
+        if (keterlambatan > 0) {
+            html += `<div class="bar delayed" data-task-id="${task.id}-delay" 
+                    style="left: ${delayLeftPos}px; width: ${delayWidthPos}px; background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);" 
+                    title="Keterlambatan ${task.name}: +${keterlambatan} hari (s/d ${formatDateID(tEndWithDelay)})">
+                +${keterlambatan}h
+            </div>`;
+        }
+
         html += '</div></div>';
     });
     html += '</div>';
