@@ -178,8 +178,8 @@ function parseProjectFromLabel(label, value) {
 async function loadDataAndInit() {
     try {
         showLoadingMessage();
-        const userEmail = sessionStorage.getItem('loggedInUserEmail');
-        const urlWithParam = `${ENDPOINTS.ulokList}?email=${encodeURIComponent(userEmail)}`;
+        const userCabang = sessionStorage.getItem('loggedInUserCabang');
+        const urlWithParam = `${ENDPOINTS.ulokList}?cabang=${encodeURIComponent(userCabang)}`;
         const response = await fetch(urlWithParam);
         if (!response.ok) {
             const errData = await response.json().catch(() => ({}));
