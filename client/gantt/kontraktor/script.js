@@ -264,7 +264,7 @@ async function fetchGanttDataForSelection(selectedValue) {
 
     // 2. Ekstrak parameter ULOK dan LINGKUP
     const { ulok, lingkup } = extractUlokAndLingkup(selectedValue);
-    
+
     // Set loading state
     isLoadingGanttData = true;
     ganttApiError = null;
@@ -293,7 +293,6 @@ async function fetchGanttDataForSelection(selectedValue) {
             updateProjectFromRab(data.rab);
         }
 
-<<<<<<< HEAD
         // ==================== SIMPAN FILTERED CATEGORIES ====================
         if (data.filtered_categories && Array.isArray(data.filtered_categories)) {
             filteredCategories = data.filtered_categories;
@@ -306,13 +305,6 @@ async function fetchGanttDataForSelection(selectedValue) {
         if (data.gantt_data && typeof data.gantt_data === 'object') {
             console.log("📊 gantt_data ditemukan di response");
 
-=======
-        // 4. VALIDASI KETAT: HANYA TERIMA KEY 'gantt_data'
-        // Kita hapus logika fallback ke 'existing_tasks' sesuai permintaan Anda.
-        if (data && data.gantt_data && typeof data.gantt_data === 'object') {
-            console.log("📊 Data 'gantt_data' ditemukan.");
-            
->>>>>>> 00217df47b227fd09cd49e44e11af7e914b794e4
             const ganttData = data.gantt_data;
             const ganttStatus = String(ganttData.Status || '').trim().toLowerCase();
 
@@ -327,9 +319,9 @@ async function fetchGanttDataForSelection(selectedValue) {
 
             // Parsing data menggunakan fungsi dinamis Anda
             parseGanttDataToTasks(ganttData, selectedValue);
-            
+
             // Tandai bahwa data sudah masuk
-            hasUserInput = true; 
+            hasUserInput = true;
 
         } else {
             // Jika 'gantt_data' tidak ada, anggap error. Jangan ambil data lain.
@@ -338,7 +330,6 @@ async function fetchGanttDataForSelection(selectedValue) {
         }
 
     } catch (error) {
-<<<<<<< HEAD
         console.warn('⚠️ Menggunakan template default:', error.message);
         ganttApiError = null;
 
@@ -370,26 +361,14 @@ async function fetchGanttDataForSelection(selectedValue) {
 
             isProjectLocked = false;
         }
-=======
-        console.error('❌ Error fetchGanttDataForSelection:', error.message);
-        
-        // Tampilkan pesan error ke variabel global agar muncul di UI
-        ganttApiError = error.message;
-        
-        // Reset data tugas karena gagal mengambil data yang valid
-        currentTasks = []; 
-        projectTasks[selectedValue] = [];
-        hasUserInput = false;
-        isProjectLocked = false;
->>>>>>> 00217df47b227fd09cd49e44e11af7e914b794e4
 
     } finally {
         // Matikan loading state
         isLoadingGanttData = false;
-        
+
         // Render ulang UI
         renderProjectInfo();
-        renderApiData(); 
+        renderApiData();
 
         // Tampilkan Chart atau Pesan Error
         if (hasUserInput && currentTasks.length > 0) {
@@ -422,7 +401,7 @@ function parseGanttDataToTasks(ganttData, selectedValue) {
         const selesaiKey = `Hari_Selesai_Kategori_${i}`;
 
         if (!ganttData.hasOwnProperty(kategoriKey)) {
-            break; 
+            break;
         }
 
         const kategoriName = ganttData[kategoriKey];
@@ -439,7 +418,7 @@ function parseGanttDataToTasks(ganttData, selectedValue) {
                     }
                 }
             }
-            
+
             tempTaskList.push({
                 id: i,
                 name: kategoriName,
@@ -487,7 +466,7 @@ function parseGanttDataToTasks(ganttData, selectedValue) {
     });
     currentTasks = dynamicTasks;
     projectTasks[selectedValue] = currentTasks;
-    
+
     console.log(`✅ Data API berhasil diparsing: ${currentTasks.length} tahapan ditemukan.`);
 }
 
