@@ -14,6 +14,7 @@ let isLoadingGanttData = false;
 let hasUserInput = false; // Track apakah user sudah input jadwal
 let isProjectLocked = false; // Track status dikunci/belum
 let filteredCategories = null;
+let rawGanttData = null; // Store raw gantt_data for delay values
 
 // ==================== TASK TEMPLATES ====================
 const taskTemplateME = [
@@ -121,6 +122,7 @@ function showSelectProjectMessage() {
     hasUserInput = false;
     isProjectLocked = false;
     filteredCategories = null;
+    rawGanttData = null;
     renderApiData();
 }
 
@@ -299,6 +301,7 @@ async function fetchGanttDataForSelection(selectedValue) {
             console.log("📊 gantt_data ditemukan di response");
 
             const ganttData = data.gantt_data;
+            rawGanttData = ganttData; // Store for delay reference
             const ganttStatus = String(ganttData.Status || '').trim().toLowerCase();
 
             // Cek Status di gantt_data
@@ -344,6 +347,7 @@ async function fetchGanttDataForSelection(selectedValue) {
     } catch (error) {
         console.warn('⚠️ Menggunakan template default:', error.message);
         ganttApiError = null;
+        rawGanttData = null; // Reset raw data on error
 
         if (currentProject) {
             let templateTasks;
@@ -374,7 +378,7 @@ async function fetchGanttDataForSelection(selectedValue) {
             isProjectLocked = false;
         }
 
-    }   finally {
+    } finally {
         isLoadingGanttData = false;
         renderProjectInfo();
 
@@ -402,7 +406,7 @@ function parseGanttDataToTasks(ganttData, selectedValue) {
         const mulaiKey = `Hari_Mulai_Kategori_${i}`;
         const selesaiKey = `Hari_Selesai_Kategori_${i}`;
         if (!ganttData.hasOwnProperty(kategoriKey)) {
-            break; 
+            break;
         }
 
         const kategoriName = ganttData[kategoriKey];
@@ -418,7 +422,7 @@ function parseGanttDataToTasks(ganttData, selectedValue) {
                     }
                 }
             }
-            
+
             tempTaskList.push({
                 id: i,
                 name: kategoriName,
@@ -454,7 +458,7 @@ function parseGanttDataToTasks(ganttData, selectedValue) {
             name: item.name,
             start: startDay > 0 ? startDay : 0,
             duration: duration > 0 ? duration : 0,
-            dependencies: [], 
+            dependencies: [],
             inputData: {
                 startDay: startDay > 0 ? startDay : 0,
                 endDay: endDay > 0 ? endDay : 0
@@ -463,7 +467,7 @@ function parseGanttDataToTasks(ganttData, selectedValue) {
     });
     currentTasks = dynamicTasks;
     projectTasks[selectedValue] = currentTasks;
-    
+
     console.log(`✅ Data API berhasil diparsing: ${currentTasks.length} tahapan ditemukan.`);
 }
 
@@ -476,41 +480,55 @@ function renderApiData() {
         return;
     }
 
-    if (isProjectLocked) {
+    // Jika project terkunci, tampilkan form input keterlambatan
+    if (isProjectLocked && rawGanttData) {
         container.innerHTML = `
-            <div class="api-card locked" style="border: 2px solid #48bb78; background: #f0fff4; padding: 15px; border-radius: 8px;">
-                    <h3 style="color: #2f855a; margin:0;">✅ Jadwal Terkunci</h3>
-                    <p style="margin:5px 0 0 0; color: #276749;">Data tidak dapat diubah.</p>
+            <div class="api-card locked" style="border: 2px solid #48bb78; background: #f0fff4; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                <h3 style="color: #2f855a; margin:0;">✅ Jadwal Terkunci</h3>
+                <p style="margin:5px 0 0 0; color: #276749;">Jadwal sudah dikunci. Anda dapat menginput keterlambatan di bawah.</p>
+            </div>
+            <div class="delay-control-card">
+                <div class="delay-title">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Input Keterlambatan (Delay)
+                </div>
+                <div class="delay-form-row">
+                    <div class="form-group" style="flex: 2;">
+                        <label>Pilih Tahapan Pekerjaan</label>
+                        <select id="delayTaskSelect" class="form-control">
+                            <option value="">-- Pilih Tahapan --</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label>Jml Hari (Delay)</label>
+                        <input type="number" id="delayDaysInput" class="form-control" placeholder="0" min="0">
+                    </div>
+                    <button onclick="handleDelayUpdate('apply')" class="btn-delay-action btn-apply">
+                        Terapkan
+                    </button>
+                    <button onclick="handleDelayUpdate('reset')" class="btn-delay-action btn-reset">
+                        Hapus
+                    </button>
+                </div>
+            </div>
+        `;
+        populateTaskOptionsFromGanttData();
+        return;
+    }
+
+    // Jika belum terkunci, tampilkan pesan
+    if (!isProjectLocked && rawGanttData) {
+        container.innerHTML = `
+            <div class="api-card warning" style="border: 2px solid #ed8936; background: #fffaf0; padding: 20px; border-radius: 8px; text-align: center;">
+                <div style="font-size: 36px; margin-bottom: 10px;">🔓</div>
+                <h3 style="color: #c05621; margin:0 0 10px 0;">Gantt Chart Belum Dikunci</h3>
+                <p style="margin:0; color: #9c4221;">Jadwal pengerjaan belum dikunci oleh Kontraktor.<br>Silakan tunggu hingga kontraktor mengunci jadwal untuk dapat menginput keterlambatan.</p>
             </div>`;
         return;
     }
-    container.innerHTML = `
-        <div class="delay-control-card">
-            <div class="delay-title">
-                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                Input Keterlambatan (Delay)
-            </div>
-            <div class="delay-form-row">
-                <div class="form-group" style="flex: 2;">
-                    <label>Pilih Tahapan Pekerjaan</label>
-                    <select id="delayTaskSelect" class="form-control">
-                        <option value="">-- Pilih Tahapan --</option>
-                    </select>
-                </div>
-                <div class="form-group" style="flex: 1;">
-                    <label>Jml Hari (Delay)</label>
-                    <input type="number" id="delayDaysInput" class="form-control" placeholder="0" min="0">
-                </div>
-                <button onclick="handleDelayUpdate('apply')" class="btn-delay-action btn-apply">
-                    Terapkan
-                </button>
-                <button onclick="handleDelayUpdate('reset')" class="btn-delay-action btn-reset">
-                    Hapus
-                </button>
-            </div>
-        </div>
-    `;
-    populateTaskOptions();
+
+    // Default: tidak ada data
+    container.innerHTML = '';
 }
 
 function populateTaskOptions() {
@@ -520,9 +538,54 @@ function populateTaskOptions() {
 
     currentTasks.forEach(task => {
         const option = document.createElement('option');
-        option.value = task.name; 
+        option.value = task.name;
         option.textContent = task.name;
         select.appendChild(option);
+    });
+}
+
+// Populate dropdown dari gantt_data dengan nilai keterlambatan
+function populateTaskOptionsFromGanttData() {
+    const select = document.getElementById('delayTaskSelect');
+    if (!select || !rawGanttData) return;
+    select.innerHTML = '<option value="">-- Pilih Tahapan --</option>';
+
+    // Loop melalui kategori di gantt_data
+    let i = 1;
+    while (true) {
+        const kategoriKey = `Kategori_${i}`;
+        const keterlambatanKey = `Keterlambatan_Kategori_${i}`;
+
+        if (!rawGanttData.hasOwnProperty(kategoriKey)) break;
+
+        const kategoriName = rawGanttData[kategoriKey];
+        const keterlambatan = rawGanttData[keterlambatanKey] || '0';
+
+        // Hanya tambahkan jika kategori tidak kosong
+        if (kategoriName && kategoriName.trim() !== '') {
+            const option = document.createElement('option');
+            option.value = kategoriName;
+            option.dataset.kategoriIndex = i; // Store index for reference
+            option.dataset.keterlambatan = keterlambatan;
+
+            // Format: "Nama Kategori (Keterlambatan: X hari)"
+            const delayText = keterlambatan !== '0' && keterlambatan !== ''
+                ? ` (Keterlambatan: ${keterlambatan} hari)`
+                : ' (Keterlambatan: 0 hari)';
+            option.textContent = kategoriName + delayText;
+
+            select.appendChild(option);
+        }
+        i++;
+    }
+
+    // Add event listener to auto-fill delay input when selecting
+    select.addEventListener('change', function () {
+        const selectedOption = this.options[this.selectedIndex];
+        const delayInput = document.getElementById('delayDaysInput');
+        if (selectedOption && selectedOption.dataset.keterlambatan && delayInput) {
+            delayInput.value = selectedOption.dataset.keterlambatan || '0';
+        }
     });
 }
 async function handleDelayUpdate(action) {
@@ -530,14 +593,14 @@ async function handleDelayUpdate(action) {
 
     const taskSelect = document.getElementById('delayTaskSelect');
     const daysInput = document.getElementById('delayDaysInput');
-    
+
     const taskName = taskSelect.value;
     let days = parseInt(daysInput.value);
     if (!taskName) return alert("Harap pilih tahapan pekerjaan.");
-    
+
     if (action === 'reset') {
-        if(!confirm(`Hapus keterlambatan untuk tahapan "${taskName}"?`)) return;
-        days = 0; 
+        if (!confirm(`Hapus keterlambatan untuk tahapan "${taskName}"?`)) return;
+        days = 0;
     } else {
         if (isNaN(days) || days < 0) return alert("Harap masukkan jumlah hari yang valid.");
     }
@@ -549,7 +612,7 @@ async function handleDelayUpdate(action) {
 
     try {
         const payload = {
-            ulok_id: currentProject.ulok, 
+            ulok_id: currentProject.ulok,
             task_name: taskName,
             delay_days: days,
             action: action
@@ -571,7 +634,7 @@ async function handleDelayUpdate(action) {
             alert(action === 'reset' ? "Keterlambatan dihapus!" : "Keterlambatan berhasil diterapkan!");
             daysInput.value = '';
             taskSelect.value = '';
-            changeUlok(); 
+            changeUlok();
         } else {
             throw new Error(result.message || "Gagal menyimpan data");
         }
@@ -579,7 +642,7 @@ async function handleDelayUpdate(action) {
         console.error("Error updating delay:", error);
         alert("Terjadi kesalahan: " + error.message);
     } finally {
-        if(btnApply) {
+        if (btnApply) {
             btnApply.innerText = originalText;
             btnApply.disabled = false;
         }
