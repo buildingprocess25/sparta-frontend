@@ -754,23 +754,21 @@ function applyTaskSchedule(silentMode = false) {
 }
 
 function resetTaskSchedule() {
-    if (!currentProject) return;
-
-    // Reset data di memori
-    if (currentProject.work === 'ME') {
-        currentTasks = JSON.parse(JSON.stringify(taskTemplateME));
-    } else {
-        currentTasks = JSON.parse(JSON.stringify(taskTemplateSipil));
-    }
-
-    projectTasks[currentProject.ulok] = currentTasks;
+    if (!currentProject || !currentTasks) return;
+    currentTasks.forEach(task => {
+        task.start = 0;
+        task.duration = 0;
+        task.inputData = {
+            startDay: 0,
+            endDay: 0
+        };
+    });
     hasUserInput = false;
-
-    // Render ulang form menjadi 0 semua
     renderApiData();
-    showPleaseInputMessage(); // Hapus chart, minta input
-    updateStats();
-    document.getElementById('exportButtons').style.display = 'none';
+    showPleaseInputMessage();
+    if (typeof updateStats === 'function') {
+        updateStats();
+    }
 }
 
 // ==================== HELPER API DATA (RAB) ====================
