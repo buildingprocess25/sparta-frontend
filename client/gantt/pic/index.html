@@ -3,43 +3,62 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Gantt Chart</title>
+        <title>Gantt Chart Monitoring</title>
         <link rel="stylesheet" href="style.css" />
         <link rel="icon" href="../../assets/favicon.ico" type="image/x-icon">
-        <script>
-            
-        </script>
     </head>
     <body>
         <header>
             <a href="/">
                 <img src="../../assets/Alfamart-Emblem.png" alt="Alfamart Logo" class="header-logo" />
             </a>
-            <h1>Gantt Chart</h1>
+            <h1>Gantt Chart Monitoring</h1>
             <a href="../../dashboard/kontraktor/index.html" class="btn-back-header">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="19" y1="12" x2="5" y2="12"></line>
-                <polyline points="12 19 5 12 12 5"></polyline>
-            </svg>
-            <span>Kembali</span>
-        </a>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                <span>Kembali</span>
+            </a>
         </header>
         <div class="container">
             <div class="controls">
                 <div class="control-group">
-                    <label>No. Ulok:</label>
-                    <select id="ulokSelect" onchange="changeUlok()">
-                        <option value="">--/--</option>
-                    </select>
+                    <label for="ulokSelect">Pilih Proyek:</label>
+                    <div class="select-wrapper">
+                        <select id="ulokSelect" onchange="handleProjectSelect()">
+                            <option value="">-- Pilih Proyek --</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="delayControls" style="display: none; gap: 15px; align-items: center; flex-wrap: wrap;">
+                    <div class="separator"></div>
+                    <div class="control-group">
+                        <label for="taskDelaySelect">Tahapan:</label>
+                        <select id="taskDelaySelect">
+                            <option value="">-- Pilih Tahapan --</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="delayInput">Keterlambatan (Hari):</label>
+                        <input type="number" id="delayInput" placeholder="0" min="0" style="width: 80px;">
+                    </div>
+                    <div class="button-group">
+                        <button class="btn btn-warning" onclick="applyDelay()">
+                            <span class="icon">⚠️</span> Terapkan Keterlambatan
+                        </button>
+                        <button class="btn btn-danger" onclick="removeDelay()">
+                            <span class="icon">🗑️</span> Hapus Keterlambatan
+                        </button>
+                    </div>
+                </div>
+                <div class="export-buttons" id="exportButtons" style="display: none; margin-left: auto;">
+                    <button class="btn btn-export btn-excel" onclick="exportToExcel()">
+                        Export Excel
+                    </button>
                 </div>
             </div>
             <div class="project-info" id="projectInfo"></div>
-            <div class="api-data" id="apiData"></div>
-            <div class="export-buttons" id="exportButtons" style="display: none;">
-                <button class="btn-export btn-excel" onclick="exportToExcel()">
-                    Export to Excel
-                </button>
-            </div>
             <div class="stats" id="stats"></div>
             <div class="chart-wrapper">
                 <div class="gantt-chart" id="ganttChart"></div>
@@ -50,12 +69,11 @@
                     <span>Tepat Waktu</span>
                 </div>
                 <div class="legend-item">
-                    <div class="legend-color" style="background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);"></div>
-                    <span>Terlambat</span>
+                    <div class="legend-color" style="background: linear-gradient(135deg, #f2994a 0%, #f2c94c 100%);"></div>
+                    <span>Mengalami Keterlambatan</span>
                 </div>
             </div>
         </div>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
         <script src="script.js"></script>
     </body>
