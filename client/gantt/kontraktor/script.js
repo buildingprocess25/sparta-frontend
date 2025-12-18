@@ -1,5 +1,5 @@
 if (!sessionStorage.getItem('loggedInUserCabang')) {
-    window.location.replace('../../auth/kontraktor/index.html');
+    window.location.replace('../../auth/kontraktor/login.html');
 }
 
 const API_BASE_URL = "https://sparta-backend.onrender.com/api";
