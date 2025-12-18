@@ -38,9 +38,9 @@ const taskTemplateSipil = [
     { id: 12, name: 'Pekerjaan Kusen, Pintu, dan Kaca', start: 0, duration: 0, dependencies: [] },
     { id: 13, name: 'Pekerjaan Finishing', start: 0, duration: 0, dependencies: [] },
     { id: 14, name: 'Pekerjaan Beanspot', start: 0, duration: 0, dependencies: [] },
-    { id: 14, name: 'Pekerjaan Beanspot', start: 0, duration: 0, dependencies: [] },
-    { id: 15, name: 'Pekerjaan Tambahan', start: 0, duration: 0, dependencies: [] },
-    { id: 16, name: 'Pekerjaan SBO', start: 0, duration: 0, dependencies: [] },
+    { id: 15, name: 'Pekerjaan Area Terbuka', start: 0, duration: 0, dependencies: [] },
+    { id: 16, name: 'Pekerjaan Tambahan', start: 0, duration: 0, dependencies: [] },
+    { id: 17, name: 'Pekerjaan SBO', start: 0, duration: 0, dependencies: [] },
 ];
 
 let currentTasks = [];
