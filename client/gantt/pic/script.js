@@ -595,6 +595,9 @@ async function handleDelayUpdate(action) {
     const daysInput = document.getElementById('delayDaysInput');
 
     const taskName = taskSelect.value;
+    const selectedOption = taskSelect.options[taskSelect.selectedIndex];
+    const kategoriIndex = selectedOption?.dataset?.kategoriIndex || null;
+
     let days = parseInt(daysInput.value);
     if (!taskName) return alert("Harap pilih tahapan pekerjaan.");
 
@@ -606,19 +609,54 @@ async function handleDelayUpdate(action) {
     }
 
     const btnApply = document.querySelector('.btn-apply');
-    const originalText = btnApply.innerText;
-    btnApply.innerText = "Processing...";
-    btnApply.disabled = true;
+    const btnReset = document.querySelector('.btn-reset');
+    const originalApplyText = btnApply?.innerText;
+    const originalResetText = btnReset?.innerText;
+
+    if (action === 'apply' && btnApply) {
+        btnApply.innerText = "Processing...";
+        btnApply.disabled = true;
+    } else if (action === 'reset' && btnReset) {
+        btnReset.innerText = "Processing...";
+        btnReset.disabled = true;
+    }
 
     try {
+        // Build payload dengan data dari rawGanttData yang sudah ada
         const payload = {
-            ulok_id: currentProject.ulok,
-            task_name: taskName,
-            delay_days: days,
-            action: action
+            "Nomor Ulok": currentProject.ulokClean || currentProject.ulok.split('-').slice(0, -1).join('-'),
+            "Lingkup_Pekerjaan": currentProject.work.toUpperCase(),
+            "Status": "Terkunci", // Tetap terkunci karena hanya update keterlambatan
+            "Email_Pembuat": rawGanttData?.Email_Pembuat || sessionStorage.getItem('loggedInUserEmail') || "user@unknown.com",
+            "Proyek": rawGanttData?.Proyek || currentProject.projectType || "Reguler",
+            "Alamat": rawGanttData?.Alamat || currentProject.alamat || "-",
+            "Cabang": rawGanttData?.Cabang || "HEAD OFFICE",
+            "Nama_Toko": rawGanttData?.Nama_Toko || currentProject.store || "-",
+            "Nama_Kontraktor": rawGanttData?.Nama_Kontraktor || "PT KONTRAKTOR",
         };
 
-        console.log("Sending data:", payload);
+        // Copy semua kategori dari rawGanttData
+        if (rawGanttData) {
+            let i = 1;
+            while (true) {
+                const kategoriKey = `Kategori_${i}`;
+                if (!rawGanttData.hasOwnProperty(kategoriKey)) break;
+
+                payload[`Kategori_${i}`] = rawGanttData[kategoriKey] || "";
+                payload[`Hari_Mulai_Kategori_${i}`] = rawGanttData[`Hari_Mulai_Kategori_${i}`] || "";
+                payload[`Hari_Selesai_Kategori_${i}`] = rawGanttData[`Hari_Selesai_Kategori_${i}`] || "";
+
+                // Update keterlambatan untuk kategori yang dipilih
+                if (kategoriIndex && parseInt(kategoriIndex) === i) {
+                    payload[`Keterlambatan_Kategori_${i}`] = String(days);
+                } else {
+                    payload[`Keterlambatan_Kategori_${i}`] = rawGanttData[`Keterlambatan_Kategori_${i}`] || "0";
+                }
+                i++;
+            }
+        }
+
+        console.log("📤 Sending delay update:", payload);
 
         const response = await fetch(ENDPOINTS.insertData, {
             method: 'POST',
@@ -631,20 +669,25 @@ async function handleDelayUpdate(action) {
         const result = await response.json();
 
         if (response.ok) {
-            alert(action === 'reset' ? "Keterlambatan dihapus!" : "Keterlambatan berhasil diterapkan!");
+            alert(action === 'reset' ? "✅ Keterlambatan dihapus!" : "✅ Keterlambatan berhasil diterapkan!");
             daysInput.value = '';
             taskSelect.value = '';
-            changeUlok();
+            // Refresh data
+            fetchGanttDataForSelection(currentProject.ulok);
         } else {
             throw new Error(result.message || "Gagal menyimpan data");
         }
     } catch (error) {
-        console.error("Error updating delay:", error);
+        console.error("❌ Error updating delay:", error);
         alert("Terjadi kesalahan: " + error.message);
     } finally {
         if (btnApply) {
-            btnApply.innerText = originalText;
+            btnApply.innerText = originalApplyText || "Terapkan";
             btnApply.disabled = false;
+        }
+        if (btnReset) {
+            btnReset.innerText = originalResetText || "Hapus";
+            btnReset.disabled = false;
         }
     }
 }
