@@ -13,6 +13,7 @@ let ganttApiError = null;
 let isLoadingGanttData = false;
 let hasUserInput = false; // Track apakah user sudah input jadwal
 let isProjectLocked = false; // Track status dikunci/belum
+let filteredCategories = null;
 
 // ==================== TASK TEMPLATES ====================
 const taskTemplateME = [
@@ -119,6 +120,7 @@ function showSelectProjectMessage() {
     ganttApiError = null;
     hasUserInput = false;
     isProjectLocked = false;
+    filteredCategories = null;
     renderApiData();
 }
 
@@ -284,6 +286,14 @@ async function fetchGanttDataForSelection(selectedValue) {
             updateProjectFromRab(data.rab);
         }
 
+        // ==================== SIMPAN FILTERED CATEGORIES ====================
+        if (data.filtered_categories && Array.isArray(data.filtered_categories)) {
+            filteredCategories = data.filtered_categories;
+            console.log("📂 Filtered Categories:", filteredCategories);
+        } else {
+            filteredCategories = null;
+        }
+
         // ==================== CEK GANTT_DATA ====================
         if (data.gantt_data && typeof data.gantt_data === 'object') {
             console.log("📊 gantt_data ditemukan di response");
@@ -332,13 +342,38 @@ async function fetchGanttDataForSelection(selectedValue) {
         }
 
     } catch (error) {
-        console.error('❌ Gagal memuat gantt_data:', error.message);
-        ganttApiError = error.message;
-        currentTasks = []; 
-        projectTasks[selectedValue] = [];
-        hasUserInput = false;
-        isProjectLocked = false;
-        
+        console.warn('⚠️ Menggunakan template default:', error.message);
+        ganttApiError = null;
+
+        if (currentProject) {
+            let templateTasks;
+            if (currentProject.work === 'ME') {
+                templateTasks = JSON.parse(JSON.stringify(taskTemplateME));
+            } else {
+                templateTasks = JSON.parse(JSON.stringify(taskTemplateSipil));
+            }
+
+            // Filter tasks berdasarkan filtered_categories jika ada
+            if (filteredCategories && Array.isArray(filteredCategories) && filteredCategories.length > 0) {
+                currentTasks = templateTasks.filter(task => {
+                    return filteredCategories.some(cat =>
+                        task.name.toUpperCase().includes(cat.toUpperCase()) ||
+                        cat.toUpperCase().includes(task.name.toUpperCase())
+                    );
+                });
+                // Re-assign ID agar berurutan
+                currentTasks = currentTasks.map((task, idx) => ({ ...task, id: idx + 1 }));
+                console.log(`📋 Tasks filtered: ${currentTasks.length} dari ${templateTasks.length}`);
+            } else {
+                currentTasks = templateTasks;
+            }
+
+            projectTasks[selectedValue] = currentTasks;
+            hasUserInput = false;
+
+            isProjectLocked = false;
+        }
+
     }   finally {
         isLoadingGanttData = false;
         renderProjectInfo();
