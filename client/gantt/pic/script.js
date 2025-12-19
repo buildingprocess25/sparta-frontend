@@ -30,7 +30,7 @@ const taskTemplateME = [
 
 const taskTemplateSipil = [
     { id: 1, name: 'Pekerjaan Persiapan', start: 0, duration: 0, dependencies: [] },
-    { id: 2, name: 'Pekerjaan Bobokan/Bongkaran', start: 0, duration: 0, dependencies: [] },
+    { id: 2, name: 'Pekerjaan Bobokan/Bongkaran', start: 0, duration: 0, dependencies: [1,3] },
     { id: 3, name: 'Pekerjaan Tanah', start: 0, duration: 0, dependencies: [] },
     { id: 4, name: 'Pekerjaan Pondasi & Beton', start: 0, duration: 0, dependencies: [] },
     { id: 5, name: 'Pekerjaan Pasangan', start: 0, duration: 0, dependencies: [] },
