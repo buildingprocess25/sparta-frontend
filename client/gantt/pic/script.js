@@ -306,10 +306,7 @@ async function fetchGanttDataForSelection(selectedValue) {
 
             const ganttData = data.gantt_data;
             rawGanttData = ganttData; // Store for delay reference
-            const rawStatus = ganttData.Status || ganttData.status || ''; 
-            const ganttStatus = String(rawStatus).trim().toLowerCase();
-
-            console.log("🔍 Debug Status API:", rawStatus);
+            const ganttStatus = String(ganttData.Status || '').trim().toLowerCase();
 
             // Cek Status di gantt_data
             if (ganttStatus === 'terkunci') {
