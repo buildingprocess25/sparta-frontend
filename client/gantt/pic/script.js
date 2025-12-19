@@ -306,10 +306,10 @@ async function fetchGanttDataForSelection(selectedValue) {
 
             const ganttData = data.gantt_data;
             rawGanttData = ganttData; // Store for delay reference
-            const ganttStatus = String(ganttData.Status || '');
+            const ganttStatus = String(ganttData.Status || '').trim().toLowerCase();
 
             // Cek Status di gantt_data
-            if (ganttStatus === 'Terkunci' || ganttStatus === 'locked' || ganttStatus === 'TERKUNCI') {
+            if (ganttStatus === 'Terkunci' || ganttStatus === 'locked' || ganttStatus === 'published') {
                 isProjectLocked = true;
                 hasUserInput = true;
                 console.log("🔒 Status Gantt: TERKUNCI");
