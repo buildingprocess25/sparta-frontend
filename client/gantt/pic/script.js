@@ -309,7 +309,7 @@ async function fetchGanttDataForSelection(selectedValue) {
             const ganttStatus = String(ganttData.Status || '').trim().toLowerCase();
 
             // Cek Status di gantt_data
-            if (ganttStatus === 'terkunci' || ganttStatus === 'locked' || ganttStatus === 'published') {
+            if (ganttStatus === 'Terkunci' || ganttStatus === 'locked' || ganttStatus === 'published') {
                 isProjectLocked = true;
                 hasUserInput = true;
                 console.log("🔒 Status Gantt: TERKUNCI");
