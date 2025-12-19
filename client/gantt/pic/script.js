@@ -309,7 +309,7 @@ async function fetchGanttDataForSelection(selectedValue) {
             const ganttStatus = String(ganttData.Status || '').trim().toLowerCase();
 
             // Cek Status di gantt_data
-            if (ganttStatus === 'Terkunci' || ganttStatus === 'locked' || ganttStatus === 'published') {
+            if (ganttStatus === 'terkunci' || ganttStatus === 'locked' || ganttStatus === 'published') {
                 isProjectLocked = true;
                 hasUserInput = true;
                 console.log("🔒 Status Gantt: TERKUNCI");
@@ -511,8 +511,11 @@ function renderApiData() {
                         <label>Jml Hari (Delay)</label>
                         <input type="number" id="delayDaysInput" class="form-control" placeholder="0" min="0">
                     </div>
-                    <button onclick="saveDelay(${task.id})" class="btn-terapkan-delay">
+                    <button onclick="handleDelayUpdate('apply')" class="btn-apply">
                         Terapkan
+                    </button>
+                    <button onclick="handleDelayUpdate('reset')" class="btn-reset">
+                        Hapus
                     </button>
                 </div>
             </div>
