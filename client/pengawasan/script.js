@@ -326,40 +326,6 @@ const tanggalSpkInput = document.getElementById("tanggal_spk");
             submitBtn.disabled = false;
         }
     });
-    logoutLink.addEventListener("click", function (e) {
-        e.preventDefault();
-        sessionStorage.removeItem("authToken");
-        window.location.href = "https://frontend-form-virid.vercel.app/login-input_pic.html";
-    });
-    window.closePopup = closePopup;
-    (async function checkAuth() {
-        const token = sessionStorage.getItem("authToken");
-        const loginPage = "https://frontend-form-virid.vercel.app/login-input_pic.html";
-        if (!token) {
-            window.location.replace(loginPage);
-            return;
-        }
-        try {
-            const response = await fetch(
-                `${SCRIPT_URL}?form=login&action=verifyToken&token=${token}`
-            );
-            if (!response.ok)
-                throw new Error("Server tidak merespon dengan baik.");
-            const result = await response.json();
-            if (result.status !== "success") {
-                sessionStorage.removeItem("authToken");
-                alert(result.message || "Sesi tidak valid, harap login kembali.");
-                window.location.replace(loginPage);
-                return;
-            }
-            initializePage(result.data);
-        } catch (error) {
-            console.error("Authentication check failed:", error);
-            sessionStorage.removeItem("authToken");
-            alert("Gagal memverifikasi sesi. Harap login kembali.");
-            window.location.replace(loginPage);
-        }
-    })();
     function checkSessionTime() {
         try {
             const startHour = 6;
@@ -372,7 +338,7 @@ const tanggalSpkInput = document.getElementById("tanggal_spk");
                 if (token) {
                 sessionStorage.removeItem("authToken");
                 alert("Sesi Anda telah berakhir karena di luar jam operasional (06:00 - 18:00 WIB).");
-                window.location.href = "https://frontend-form-virid.vercel.app/login-input_pic.html";
+                window.location.href = "https://sparta-alfamart.vercel.app";
                 }
             }
         } catch (err) {
