@@ -1,6 +1,5 @@
 const API_PROXY_URL = "https://sparta-backend-5hdj.onrender.com/api/form";
 const GAS_LOGIN_VERIFY_URL = "https://sparta-backend-m3ms.onrender.com/api/form?form=login_perpanjanganspk&action=verifyToken";
-const LOGIN_PAGE_URL = "https://frontend-form-virid.vercel.app/login-perpanjanganspk.html";
 
 let currentUser = null;
 let ulokData = []; 
