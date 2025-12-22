@@ -1,0 +1,313 @@
+body {
+        font-family: Cambria, Cochin, Georgia, Times, "Times New Roman", serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 0;
+      }
+
+      header {
+        background-color: #ce1e10;
+        color: white;
+        padding: 15px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      header h1 {
+        margin: 0;
+        flex-grow: 1;
+        text-align: center;
+        padding-left: 90px; 
+      }
+
+      .logout-btn {
+        background-color: white;
+        color: #ce1e10;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+        font-family: ui-sans-serif, system-ui, Arial, sans-serif;
+        transition: background-color 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .logout-btn:hover {
+        background-color: #ffebeb;
+      }
+
+      .container {
+        max-width: 800px;
+        margin: 20px auto;
+        background-color: white;
+        padding: 30px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        border-radius: 10px;
+      }
+
+      .form-container {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .form-container label {
+        font-weight: bold;
+        margin-bottom: 5px;
+        margin-top: 15px;
+      }
+
+      .form-container input,
+      .form-container select,
+      .form-container textarea {
+        padding: 10px;
+        margin-bottom: 15px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-family: Cambria;
+      }
+      
+      .form-container input[readonly] {
+          background-color: #e9ecef;
+          cursor: not-allowed;
+          color: #495057;
+      }
+
+      #alasan-container {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      .alasan-item {
+        display: flex;
+        align-items: center;
+        background-color: #f1f3f5;
+        border: 1px solid #dee2e6;
+        padding: 5px 5px 5px 15px;
+        border-radius: 25px;
+        transition: background-color 0.3s;
+      }
+
+      .alasan-item input {
+        border: none;
+        background: transparent;
+        flex-grow: 1;
+        outline: none;
+        margin: 0;
+        padding: 5px;
+        font-size: 16px;
+      }
+      
+      .alasan-item input.locked {
+        cursor: pointer;
+      }
+      
+      .alasan-item.locked-item {
+        background-color: #e9ecef;
+        border-color: #ced4da;
+      }
+      .alasan-item.locked-item:hover {
+        background-color: #dee2e6;
+      }
+      
+      .remove-alasan-btn {
+        background-color: #ced4da;
+        color: #495057;
+        border: none;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-left: 10px;
+        transition: background-color 0.3s;
+      }
+
+      .remove-alasan-btn:hover {
+        background-color: #adb5bd;
+        color: white;
+      }
+
+      #tambah-alasan-btn {
+        background-color: #007bff;
+        color: white;
+        padding: 10px 15px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-top: 5px;
+        transition: background-color 0.3s;
+        align-self: flex-start;
+      }
+
+      #tambah-alasan-btn:hover {
+        background-color: #0056b3;
+      }
+
+      .input-hari-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .input-hari-container input {
+        width: 100px;
+        margin-bottom: 0;
+        text-align: center;
+      }
+
+      .button-group {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+      }
+
+      #submit-btn {
+        background-color: #ce1e10;
+        color: white;
+        padding: 12px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+      }
+
+      #submit-btn:hover {
+        background-color: #ef190a;
+      }
+
+      #submit-btn:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+      }
+
+      .spinner-dots {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+      }
+
+      .spinner-dots .dot {
+          width: 8px;
+          height: 8px;
+          margin: 0 3px;
+          background-color: white;
+          border-radius: 50%;
+          animation: bounce 1.4s infinite ease-in-out both;
+      }
+
+      .spinner-dots .dot:nth-child(1) { animation-delay: -0.32s; }
+      .spinner-dots .dot:nth-child(2) { animation-delay: -0.16s; }
+
+      @keyframes bounce {
+        0%, 80%, 100% { transform: scale(0); }
+        40% { transform: scale(1.0); }
+      }
+
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.6);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+      }
+      
+      .modal-overlay.show {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .modal-content {
+        background-color: white;
+        padding: 40px;
+        border-radius: 15px;
+        box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
+        text-align: center;
+        max-width: 400px;
+        width: 90%;
+        transform: scale(0.9);
+        transition: transform 0.3s ease;
+      }
+
+      .modal-overlay.show .modal-content {
+        transform: scale(1);
+      }
+      
+      .modal-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background-color: #28a745;
+        color: white;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 40px;
+        font-weight: bold;
+        margin-bottom: 20px;
+      }
+      
+      .modal-content h2 {
+        color: #333;
+        margin-top: 0;
+        margin-bottom: 15px;
+      }
+      
+      .modal-content p {
+        font-size: 1.1em;
+        line-height: 1.6;
+        color: #555;
+      }
+      
+      #buat-laporan-baru-btn {
+        background-color: #28a745;
+        color: white;
+        padding: 12px 20px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+        width: 100%;
+        margin-top: 30px;
+        font-size: 1em;
+        font-weight: bold;
+      }
+      
+      #buat-laporan-baru-btn:hover {
+        background-color: #218838;
+      }
+
+      @media (max-width: 600px) {
+          header {
+              flex-direction: column;
+              gap: 15px;
+          }
+          header h1 {
+              padding-left: 0;
+          }
+          .logout-btn {
+              width: 100%;
+              justify-content: center;
+          }
+      }

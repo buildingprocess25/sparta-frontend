@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Laporan Progress Pengawasan H28</title>
+    <style>
+      body {
+        font-family: Cambria;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 0;
+      }
+
+      header {
+        background-color: #ce1e10;
+        color: white;
+        text-align: center;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 800px;
+        margin: 20px auto;
+        background-color: white;
+        padding: 30px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        border-radius: 10px;
+      }
+
+      .form-container {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .form-container label {
+        font-weight: bold;
+        margin-bottom: 5px;
+        margin-top: 15px;
+      }
+
+      .form-container input,
+      .form-container select,
+      .form-container textarea {
+        padding: 10px;
+        margin-bottom: 15px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+      }
+
+      .button-group {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+      }
+
+      .form-container button {
+        background-color: #ce1e10;
+        color: white;
+        padding: 12px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+        flex: 1;
+      }
+
+      .form-container button:hover {
+        background-color: #ef190a;
+      }
+
+      .popup {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: #ffffff;
+        padding: 30px;
+        box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.3);
+        border-radius: 10px;
+        color: #ef190a;
+        text-align: center;
+      }
+
+      .popup p {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 15px;
+      }
+
+      .popup.show {
+        display: block;
+      }
+
+      .popup button {
+        background-color: #ef190a;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        cursor: pointer;
+      }
+
+      .popup button:hover {
+        background-color: #d50e08;
+      }
+
+      #compress {
+        background-color: #ffb700;
+        color: black;
+      }
+
+      #compress:hover {
+        background-color: #e6a800;
+      }
+
+      .file-info {
+        font-size: 12px;
+        color: #666;
+        margin-top: -10px;
+        margin-bottom: 15px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Laporan Progress Pengawasan H28</h1>
+    </header>
+
+    <div class="container">
+      <form id="laporan-form" class="form-container">
+        <label for="kode_ulok">Kode Ulok:</label>
+        <select id="kode_ulok" name="kode_ulok" required>
+          <option value="">-- Pilih Kode Ulok --</option>
+        </select>
+
+        <label for="status_lokasi">Status Lokasi:</label>
+        <input
+          type="text"
+          id="status_lokasi"
+          name="status_lokasi"
+          placeholder="Non Ruko Non Urugan 35 hr"
+          disabled
+        />
+        <input
+          type="hidden"
+          id="status_lokasi"
+          name="status_lokasi"
+          value="non_ruko_non_urugan_35hr"
+        />
+
+        <label for="pek_kusen"
+          >I. PEK. KUSEN, PINTU, KACA, AKSESORIS TOKO:</label
+        >
+        <input
+          type="file"
+          id="pek_kusen"
+          name="pek_kusen"
+          accept="image/*"
+          required
+        />
+        <small class="file-info">Maksimal ukuran file: 2 MB</small>
+
+        <label for="status_progress1">Status Progress:</label>
+        <select name="status_progress" id="status_progress1" required>
+          <option value="">-- Pilih Status Progress --</option>
+          <option value="tepat_waktu">Tepat Waktu</option>
+          <option value="terlambat">Terlambat</option>
+        </select>
+
+        <label for="catatan1">Catatan:</label>
+        <textarea
+          name="catatan"
+          id="catatan1"
+          rows="4"
+          placeholder="Masukkan Catatan"
+          required
+        ></textarea>
+
+        <label for="pek_area">II. PEK. AREA TERBUKA:</label>
+        <input
+          type="file"
+          id="pek_area"
+          name="pek_area"
+          accept="image/*"
+          required
+        />
+        <small class="file-info">Maksimal ukuran file: 2 MB</small>
+
+        <label for="status_progress2">Status Progress:</label>
+        <select name="status_progress" id="status_progress2" required>
+          <option value="">-- Pilih Status Progress --</option>
+          <option value="tepat_waktu">Tepat Waktu</option>
+          <option value="terlambat">Terlambat</option>
+        </select>
+
+        <label for="catatan2">Catatan:</label>
+        <textarea
+          name="catatan"
+          id="catatan2"
+          rows="4"
+          placeholder="Masukkan Catatan"
+          required
+        ></textarea>
+
+        <label for="pengawasan">III. PENGAWASAN ME:</label>
+        <input
+          type="file"
+          id="pengawasan"
+          name="pengawasan"
+          accept="image/*"
+          required
+        />
+        <small class="file-info">Maksimal ukuran file: 2 MB</small>
+
+        <label for="status_progress3">Status Progress:</label>
+        <select name="status_progress" id="status_progress3" required>
+          <option value="">-- Pilih Status Progress --</option>
+          <option value="tepat_waktu">Tepat Waktu</option>
+          <option value="terlambat">Terlambat</option>
+        </select>
+
+        <label for="catatan3">Catatan:</label>
+        <textarea
+          name="catatan"
+          id="catatan3"
+          rows="4"
+          placeholder="Masukkan Catatan"
+          required
+        ></textarea>
+
+        <label for="berkas_pengawasan"
+          >IV. BERKAS PENGAWASAN (MEMO PENGAWASAN/INSTRUKSI LAPANGAN/OPNAME
+          PEKERJAAN)</label
+        >
+        <input
+          type="file"
+          id="berkas_pengawasan"
+          name="berkas_pengawasan"
+          accept="image/*"
+          required
+        />
+        <small class="file-info">Maksimal ukuran file: 2 MB</small>
+
+        <div class="button-group">
+          <button type="submit">Simpan</button>
+        </div>
+
+        <div class="button-group">
+          <button
+            type="button"
+            id="compress"
+            onclick="window.open('https://compressprojectv2.vercel.app/', '_blank')"
+          >
+            Kompres Foto Disini
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <div class="popup" id="popup">
+      <p>Data Berhasil Terkirim</p>
+      <button onclick="closePopup()">Tutup</button>
+    </div>
+
+    <script>
+      const SCRIPT_URL = "https://backend-form-y8wo.onrender.com/api/form";
+      const GET_URL = "https://backend-form-y8wo.onrender.com/api/form";
+
+      const form = document.getElementById("laporan-form");
+      const submitButton = form.querySelector("button[type='submit']");
+      const messageDiv = document.getElementById("popup");
+
+      async function loadKodeUlok() {
+        let email = getParameterByName("assigned_email");
+        if (!email) {
+          email = getParameterByName("email");
+        }
+
+        const res = await fetch(
+          `https://backend-form-y8wo.onrender.com/api/form?form=h2&email=${encodeURIComponent(
+            email
+          )}`
+        );
+        const result = await res.json();
+        const select = document.getElementById("kode_ulok");
+        result.data.forEach((kode) => {
+          const opt = document.createElement("option");
+          opt.value = kode;
+          opt.textContent = kode;
+          select.appendChild(opt);
+        });
+      }
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        submitButton.disabled = true;
+        showPopup("Mengirim data...");
+
+        const formData = new FormData(form);
+        const convertToBase64 = (file) =>
+          new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result.split(",")[1]);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+
+        try {
+          const base64_1 = await convertToBase64(formData.get("pek_kusen"));
+          const base64_2 = await convertToBase64(formData.get("pek_area"));
+          const base64_3 = await convertToBase64(formData.get("pengawasan"));
+          const base64_4 = await convertToBase64(
+            formData.get("berkas_pengawasan")
+          );
+
+          const statusProgress = formData.getAll("status_progress");
+          const catatan = formData.getAll("catatan");
+
+          const payload = {
+            form: "h28",
+            kode_ulok: formData.get("kode_ulok"),
+            status_lokasi: formData.get("status_lokasi"),
+            kategori_lokasi: formData.get("status_lokasi"),
+            cabang: getParameterByName("assigned_cabang"),
+            pic_nama: getParameterByName("assigned_nama"),
+            pic_building_support: getParameterByName("assigned_email"),
+            status_progress1: statusProgress[0],
+            catatan1: catatan[0],
+            status_progress2: statusProgress[1],
+            catatan2: catatan[1],
+            status_progress3: statusProgress[2],
+            catatan3: catatan[2],
+            image1: base64_1,
+            image2: base64_2,
+            image3: base64_3,
+            image4: base64_4,
+          };
+
+          const response = await fetch(SCRIPT_URL, {
+            method: "POST",
+            body: JSON.stringify(payload),
+            headers: { "Content-Type": "application/json" },
+          });
+
+          const result = await response.json();
+          if (result.status === "success") {
+            showPopup("Data berhasil dikirim!");
+            document.getElementById("preview-pek_kusen")?.remove();
+            document.getElementById("preview-pek_area")?.remove();
+            document.getElementById("preview-pengawasan")?.remove();
+            document.getElementById("preview-berkas_pengawasan")?.remove();
+            form.reset();
+          } else {
+            showPopup("Gagal kirim: " + result.message);
+          }
+        } catch (err) {
+          console.error(err);
+          showPopup("Error: " + err.message);
+        } finally {
+          submitButton.disabled = false;
+        }
+      });
+
+      // Validasi ukuran file
+      const MAX_SIZE_BYTES = 2 * 1024 * 1024;
+
+      function setupFileInput(inputId, label) {
+        const input = document.getElementById(inputId);
+        const previewId = `preview-${inputId}`;
+
+        input.addEventListener("change", function () {
+          const oldPreview = document.getElementById(previewId);
+          if (oldPreview) {
+            oldPreview.remove();
+          }
+
+          const file = this.files[0];
+          if (file) {
+            // Validasi ukuran file
+            if (file.size > MAX_SIZE_BYTES) {
+              alert(
+                `Ukuran file "${label}" melebihi 2 MB. Silakan kompres terlebih dahulu.`
+              );
+              this.value = ""; // Reset input
+              return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+              const previewImage = document.createElement("img");
+              previewImage.id = previewId;
+              previewImage.src = e.target.result;
+
+              previewImage.style.maxWidth = "250px";
+              previewImage.style.maxHeight = "250px";
+              previewImage.style.marginTop = "10px";
+              previewImage.style.borderRadius = "5px";
+
+              const fileInfo = input.nextElementSibling;
+              fileInfo.insertAdjacentElement("afterend", previewImage);
+            };
+            reader.readAsDataURL(file);
+          }
+        });
+      }
+      setupFileInput("pek_kusen", "PEK. KUSEN, PINTU, KACA, AKSESORIS TOKO");
+      setupFileInput("pek_area", "PEK. AREA TERBUKA");
+      setupFileInput("pengawasan", "PENGAWASAN ME");
+      setupFileInput("berkas_pengawasan", "BERKAS PENGAWASAN");
+
+      function showPopup(msg) {
+        messageDiv.querySelector("p").textContent = msg;
+        messageDiv.classList.add("show");
+      }
+
+      function closePopup() {
+        messageDiv.classList.remove("show");
+      }
+
+      function getParameterByName(name) {
+        return new URLSearchParams(window.location.search).get(name) || "";
+      }
+
+      window.addEventListener("DOMContentLoaded", loadKodeUlok);
+
+      function checkSessionTime() {
+        try {
+          const startHour = 6;
+          const endHour = 18;
+
+          const now = new Date();
+          const options = { timeZone: "Asia/Jakarta", hour: '2-digit', hour12: false };
+          const currentHour = parseInt(new Intl.DateTimeFormat('en-US', options).format(now));
+
+          if (currentHour < startHour || currentHour >= endHour) {
+            
+            const token = sessionStorage.getItem("authToken");
+            
+            if (token) {
+              sessionStorage.removeItem("authToken");
+              alert("Sesi Anda telah berakhir karena di luar jam operasional (06:00 - 18:00 WIB).");
+              
+              window.location.href = "https://frontend-form-virid.vercel.app/login-input_pic.html";
+            }
+          }
+        } catch (err) {
+          console.error("Gagal menjalankan pengecekan jam sesi:", err);
+        }
+      }
+      checkSessionTime();
+      setInterval(checkSessionTime, 300000);
+    </script>
+  </body>
+</html>

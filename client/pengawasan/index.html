@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Pengawasan</title>
+        <link rel="stylesheet" href="styles.css">
+    </head>
+    <body>
+        <header>
+            <h1>Form Input PIC Pengawasan</h1>
+        </header>
+        <div class="container">
+            <div class="error-message" id="error-message"></div>
+            <div class="success-message" id="success-message"></div>
+            <form id="pic-form" class="form-container">
+                <label for="cabang">Cabang:</label>
+                <select id="cabang" name="cabang" required>
+                    <option value="">-- Pilih Cabang --</option>
+                </select>
+                <label for="kode_ulok">Kode Ulok:</label>
+                <select id="kode_ulok" name="kode_ulok" required>
+                    <option value="">-- Pilih Kode Ulok --</option>
+                </select>
+                <label for="nama_toko">Nama Toko:</label>
+                <input type="text" id="nama_toko" name="nama_toko" placeholder="Akan terisi otomatis berdasarkan kode ulok..." readonly class="input-readonly" required />
+                <label for="kategori_lokasi">Kategori Lokasi:</label>
+                <input type="text" id="kategori_lokasi" name="kategori_lokasi" placeholder="Akan terisi otomatis berdasarkan kode ulok..." readonly class="input-readonly" required />
+                <label for="tanggal_spk">Tanggal Mulai SPK:</label>
+                <input type="date" id="tanggal_spk" name="tanggal_spk" readonly class="input-readonly" required />
+                <label for="spk_url">Link SPK:</label>
+                <input type="text" id="spk_url" name="spk_url" placeholder="Link SPK akan terisi otomatis berdasarkan kode ulok..." readonly class="input-readonly"/>
+                <div class="status-indicator" id="spk-status"></div>
+                <label for="rab_url">
+                    Link File (RAB, Penawaran & Gambar Sipil & Me):
+                </label>
+                <input type="text" id="rab_url" name="rab_url" placeholder="Link RAB akan terisi otomatis berdasarkan kode ulok..." readonly class="input-readonly"/>
+                <div class="status-indicator" id="rab-status"></div>
+                <label for="pic_building_support">PIC Building Support:</label>
+                <select name="pic_building_support" id="pic_building_support" required>
+                <option value="">-- Pilih PIC Building Support --</option>
+                </select>
+                <div class="loading" id="loading">
+                    Sedang memproses data dan mengirim email...
+                </div>
+                <div class="button-group">
+                <button type="submit" id="submit-btn">Simpan</button>
+                </div>
+            </form>
+            <div class="logout-container">
+                <a href="#" id="logout-link">&larr; Logout</a>
+            </div>
+        </div>
+        <div class="popup" id="popup">
+            <div class="popup-content">
+                <p id="popup-message"></p>
+                <button onclick="closePopup()">Tutup</button>
+            </div>
+        </div>
+        <script src="script.js"></script>
+    </body>
+</html>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tambah Surat Perintah Kerja</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+      <h1>Form Pertambahan Hari SPK</h1>
+      <button id="logoutBtn" class="logout-btn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+          <path fill-rule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0v2z"/>
+          <path fill-rule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"/>
+        </svg>
+        Logout
+      </button>
+    </header>
+
+    <div id="form-wrapper" class="container">
+      <form id="pertambahan-spk-form" class="form-container">
+        <label for="nomor_ulok">Nomor Ulok:</label>
+        <select id="nomor_ulok" name="nomor_ulok" required>
+            <option value="" disabled selected>Memuat data Ulok...</option>
+        </select>
+
+        <label for="pertambahan_hari">Pertambahan Hari Dari Tanggal SPK:</label>
+        <div class="input-hari-container">
+          <input type="number" id="pertambahan_hari" name="pertambahan_hari" min="1" max="99" oninput="this.value=this.value.slice(0,2)" placeholder="00" required />
+          <span>hari</span>
+        </div>
+        
+        <label for="tanggal_spk_akhir">Tanggal SPK Akhir:</label>
+        <input type="text" id="tanggal_spk_akhir" name="tanggal_spk_akhir" readonly>
+
+        <label for="tanggal_spk_akhir_baru">Tanggal SPK Akhir (Setelah Perpanjangan):</label>
+        <input type="text" id="tanggal_spk_akhir_baru" name="tanggal_spk_akhir_baru" readonly>
+        <label for="alasan_spk">Alasan Pertambahan SPK:</label>
+        <div id="alasan-container"></div>
+        <button type="button" id="tambah-alasan-btn">+ Tambahkan Alasan Lainnya</button>
+        <textarea name="alasan_spk" id="alasan_spk_hidden" required style="display: none"></textarea>
+
+        <label for="lampiran_pdf" style="margin-top: 20px;">Lampiran Pendukung (PDF):</label>
+        <div style="font-size: 12px; color: #666; margin-bottom: 5px;">Maksimal ukuran file 5MB.</div>
+        <input type="file" id="lampiran_pdf" name="lampiran_pdf" accept="application/pdf" />
+        
+        <div class="button-group">
+            <button type="submit" id="submit-btn">
+                <span id="btn-text">Simpan & Kirim Permintaan</span>
+                <span id="btn-spinner" style="display: none;">
+                    <span>Mengirim</span>
+                    <span class="spinner-dots">
+                        <span class="dot"></span>
+                        <span class="dot"></span>
+                        <span class="dot"></span>
+                    </span>
+                </span>
+            </button>
+        </div>
+      </form>
+    </div>
+
+    <div id="success-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-icon">✓</div>
+            <h2>Berhasil Terkirim</h2>
+            <p id="modal-message">Permintaan perpanjangan SPK berhasil dikirim.</p>
+            <button type="button" id="buat-laporan-baru-btn">Buat Laporan Baru</button>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

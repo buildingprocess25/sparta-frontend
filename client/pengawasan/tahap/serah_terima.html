@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SERAH TERIMA PEKERJAAN RENOVASI / PEMBANGUNAN TOKO</title>
+    <style>
+      body {
+        font-family: Cambria;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 0;
+      }
+
+      header {
+        background-color: #ce1e10;
+        color: white;
+        text-align: center;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 800px;
+        margin: 20px auto;
+        background-color: white;
+        padding: 30px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        border-radius: 10px;
+      }
+
+      .form-container {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .form-container label {
+        font-weight: bold;
+        margin-bottom: 5px;
+        margin-top: 15px;
+      }
+
+      .form-container input,
+      .form-container select {
+        padding: 10px;
+        margin-bottom: 15px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+      }
+
+      .kelompok {
+        margin-bottom: 40px;
+        padding: 15px;
+        background-color: #fff6f6;
+        border-left: 4px solid #ce1e10;
+        border-radius: 6px;
+      }
+
+      .kelompok h2 {
+        color: #ce1e10;
+        font-size: 20px;
+        margin-bottom: 20px;
+        border-bottom: 1px dashed #ccc;
+        padding-bottom: 5px;
+        cursor: pointer;
+        position: relative;
+      }
+
+      .kelompok h2::after {
+        content: "▼";
+        position: absolute;
+        right: 10px;
+        font-size: 14px;
+        transition: transform 0.3s;
+      }
+
+      .kelompok.collapsed h2::after {
+        transform: rotate(-90deg);
+      }
+
+      .kelompok.collapsed .pekerjaan-item {
+        display: none;
+      }
+
+      .pekerjaan-item {
+        margin-bottom: 20px;
+        background-color: #ffffff;
+        border: 1px solid #eee;
+        border-radius: 6px;
+        padding: 15px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      }
+
+      .judul-area {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 10px;
+      }
+
+      .judul-area .no {
+        font-weight: bold;
+        color: #d60000;
+      }
+
+      .judul-area .area {
+        font-style: italic;
+        color: #555;
+      }
+
+      .input-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 15px 30px;
+      }
+
+      .input-grid label {
+        display: block;
+        font-weight: bold;
+        font-size: 13px;
+        margin-bottom: 5px;
+        color: #333;
+      }
+
+      .input-grid select,
+      .input-grid input[type="file"] {
+        width: 100%;
+        padding: 8px;
+        font-size: 13px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+      }
+
+      #status-container {
+        margin-bottom: 20px;
+      }
+      #status-container input[type="date"],
+      #status-container input[type="text"] {
+        padding: 10px;
+        font-size: 14px;
+      }
+
+      .button-group {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+      }
+
+      .form-container button {
+        background-color: #ce1e10;
+        color: white;
+        padding: 12px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+        flex: 1;
+      }
+
+      .form-container button:hover {
+        background-color: #ef190a;
+      }
+
+      .popup {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: #ffffff;
+        padding: 30px;
+        box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.3);
+        border-radius: 10px;
+        color: #ef190a;
+        text-align: center;
+        z-index: 1000;
+      }
+
+      .popup p {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 15px;
+      }
+
+      .popup.show {
+        display: block;
+      }
+
+      .popup button {
+        background-color: #ef190a;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        cursor: pointer;
+      }
+
+      .popup button:hover {
+        background-color: #d50e08;
+      }
+
+      .file-info {
+        font-size: 12px;
+        color: #666;
+        margin-top: -10px;
+        margin-bottom: 15px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>SERAH TERIMA PEKERJAAN RENOVASI / PEMBANGUNAN TOKO</h1>
+    </header>
+
+    <div class="container">
+      <form id="laporan-form" class="form-container" novalidate>
+        <label for="kode_ulok">Kode Ulok:</label>
+        <select id="kode_ulok" name="kode_ulok" required>
+          <option value="">-- Pilih Kode Ulok --</option>
+        </select>
+
+        <label for="lokasi">Lokasi:</label>
+        <input
+          type="text"
+          id="lokasi"
+          name="lokasi"
+          placeholder="Akan terisi otomatis berdasarkan kode ulok..."
+          required
+          readonly
+        />
+
+        <label for="cabang">Cabang:</label>
+        <input type="text" id="cabang" name="cabang" readonly required />
+
+        <div id="pekerjaan-sections"></div>
+
+        <div class="input-grid" id="status-container">
+          <div>
+            <label for="tanggal_serah">Tanggal Serah Terima Berikutnya</label>
+            <input
+              type="date"
+              id="tanggal_serah"
+              name="tanggal_serah"
+              disabled
+            />
+          </div>
+          <div>
+            <label for="status_serah">Status Serah Terima</label>
+            <input type="text" id="status_serah" name="status_serah" readonly />
+          </div>
+        </div>
+
+        <div class="button-group">
+          <button type="submit">Simpan</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="popup" id="popup">
+      <p>Data Berhasil Terkirim</p>
+      <button onclick="closePopup()">Tutup</button>
+    </div>
+
+    <div class="popup" id="error-popup">
+      <p id="error-message" style="font-weight: bold">
+        Pesan error akan muncul di sini.
+      </p>
+      <a
+        id="error-link"
+        href="#"
+        target="_blank"
+        style="
+          background-color: #ffb700;
+          color: black;
+          padding: 10px 15px;
+          text-decoration: none;
+          border-radius: 5px;
+          margin: 10px 0;
+          display: inline-block;
+        "
+        >Kompres Foto di Sini</a
+      >
+      <br />
+      <button id="close-error-popup" style="margin-top: 15px">Tutup</button>
+    </div>
+
+    <script>
+      // Variabel untuk validasi ukuran file
+      const MAX_SIZE_BYTES = 2 * 1024 * 1024; // Batas 2 MB
+      const COMPRESS_URL = "https://compressprojectv2.vercel.app/";
+
+      let ulokDataStore = [];
+      const pekerjaanData = [
+        {
+          judul: "I. BAHU JALAN",
+          items: [{ kode: "I.a", area: "Paving / cor rabat beton" }],
+        },
+        {
+          judul: "II. SALURAN & DRAINASE",
+          items: [
+            { kode: "II.a", area: "Decker Beton" },
+            { kode: "II.b", area: "Pondasi Saluran" },
+            { kode: "II.c", area: "Sumur resapan" },
+          ],
+        },
+        {
+          judul: "III. AREA PARKIR",
+          items: [
+            { kode: "III.a", area: "Paving / cor rabat beton" },
+            { kode: "III.b", area: "Gutter" },
+            {
+              kode: "III.c",
+              area: "Perkerasan tanah / pemadatan tanah bawah perkerasan",
+            },
+            { kode: "III.d", area: "Instalasi Pole sign" },
+            { kode: "III.e", area: "Septicktank" },
+          ],
+        },
+        {
+          judul: "IV. TERAS LUAS",
+          items: [
+            { kode: "IV.a", area: "Keramik" },
+            { kode: "IV.b", area: "Plafon" },
+            { kode: "IV.c", area: "Kremona Lisplang" },
+            {
+              kode: "IV.d",
+              area: "Plat penutup talang / Perforated / Jilumesh",
+            },
+            { kode: "IV.e", area: "Finishing cat" },
+            { kode: "IV.f", area: "Pipa PVC instalasi air hujan" },
+            { kode: "IV.g", area: "Instalasi lampu & Stop kontak" },
+          ],
+        },
+        {
+          judul: "V. TERAS DALAM",
+          items: [
+            { kode: "V.a", area: "Keramik" },
+            { kode: "V.b", area: "Plafon" },
+            { kode: "V.c", area: "Finishing cat" },
+            { kode: "V.d", area: "Pintu Folding gate + Cat" },
+            { kode: "V.e", area: "Kusen Allumunium & Pintu Swing kaca." },
+            { kode: "V.f", area: "Instalasi Panel Listrik" },
+            { kode: "V.g", area: "Instalasi lampu dan Stop kontak" },
+            { kode: "V.h", area: "Manhole Plafon" },
+            {
+              kode: "V.i",
+              area: "Kremona Besi Double CNP diatas Folding gate",
+            },
+          ],
+        },
+        {
+          judul: "VI. AREA SALES",
+          items: [
+            { kode: "VI.a", area: "Keramik" },
+            { kode: "VI.b", area: "Plafon" },
+            { kode: "VI.c", area: "Finishing cat" },
+            { kode: "VI.d", area: "Instalasi lampu dan Stop kontak" },
+            { kode: "VI.e", area: "Instalasi peresapan air AC" },
+          ],
+        },
+        {
+          judul: "VII. AREA CHILLER",
+          items: [{ kode: "VII.a", area: "Kerapihan Area Chiller" }],
+        },
+        {
+          judul: "VIII. AREA SELASAR BELAKANG AREA SALES",
+          items: [
+            { kode: "VIII.a", area: "Keramik" },
+            {
+              kode: "VIII.b",
+              area: "Pintu P1 & P2 ( Engsel, stoper dan handle )",
+            },
+            { kode: "VIII.c", area: "Besi Hollow untuk Rak Galon" },
+            { kode: "VIII.d", area: "Manhole Plafon" },
+          ],
+        },
+        {
+          judul: "IX. AREA KM/WC + JANITOR",
+          items: [
+            { kode: "IX.a", area: "Keramik lantai & Dinding" },
+            { kode: "IX.b", area: "Pintu Spanrel Alumunium + handle pintu" },
+            { kode: "IX.c", area: "Kran air" },
+            { kode: "IX.d", area: "Floor Drain model terpasang mati" },
+            { kode: "IX.e", area: "Gantungan baju dan tempat sabun" },
+            { kode: "IX.f", area: "Closet" },
+          ],
+        },
+        {
+          judul: "X. AREA GUDANG",
+          items: [
+            { kode: "X.a", area: "Keramik" },
+            { kode: "X.b", area: "Plafon" },
+            { kode: "X.c", area: "Finishing cat" },
+            { kode: "X.d", area: "Pintu Ruang Chiller" },
+            { kode: "X.e", area: "Partisi Gudang, Ruang kerja." },
+            { kode: "X.f", area: "Instalasi lampu dan Stop kontak" },
+            { kode: "X.g", area: "Cor Brankas" },
+          ],
+        },
+        {
+          judul: "XI. AREA LUAR TERBUKA (SELAIN AREA PARKIR)",
+          items: [
+            { kode: "XI.a", area: "Dinding (plester aci)" },
+            { kode: "XI.b", area: "Finishing cat / Nodrop" },
+            {
+              kode: "XI.c",
+              area: "Pondasi ( dimensi, perbandingan campuran spesi dan tidak ada yang berongga ) ",
+            },
+            {
+              kode: "XI.d",
+              area: "Penyelesaian bangunan tetangga/perbatasan dengan bangunan tetangga",
+            },
+          ],
+        },
+        {
+          judul: "XII. AREA ATAP",
+          items: [
+            { kode: "XII.a", area: "Rangka Atap Baja ringan" },
+            { kode: "XII.b", area: "Atap Spandek" },
+            { kode: "XII.c", area: "Talang Zincallum" },
+            { kode: "XII.d", area: "Dag beton tempat torn dan outdoor AC" },
+            { kode: "XII.e", area: "Waterproofing dak beton sikatop 107" },
+            { kode: "XII.f", area: "Flashing Zincallum" },
+            { kode: "XII.g", area: "Pintu besi Manhole Dag" },
+          ],
+        },
+        {
+          judul: "XIII. LANTAI 2",
+          items: [
+            { kode: "XIII.a", area: "Keramik" },
+            { kode: "XIII.b", area: "Plafon" },
+            { kode: "XIII.c", area: "Finishing cat" },
+            { kode: "XIII.d", area: "Dag beton" },
+            { kode: "XIII.e", area: "Waterproofing dak beton sikatop 107" },
+            { kode: "XIII.f", area: "Pintu besi" },
+            { kode: "XIII.g", area: "Tangga besi double CNP" },
+            { kode: "XIII.h", area: "Manhole ke atap Lt.1" },
+            { kode: "XIII.i", area: "Cor Brankas" },
+            { kode: "XIII.j", area: "Perbaikan Dag beton" },
+          ],
+        },
+        {
+          judul: "XIV. ATAP LANTAI 2",
+          items: [
+            { kode: "XIV.a", area: "Rangka Atap" },
+            { kode: "XIV.b", area: "Atap Spandek" },
+            { kode: "XIV.c", area: "Talang Zincallum" },
+            { kode: "XIV.d", area: "Flashing Zincallum" },
+          ],
+        },
+        {
+          judul: "XV. LANTAI 3",
+          items: [{ kode: "XV.a", area: "Pekerjaan di Lantai 3" }],
+        },
+        {
+          judul: "XVI. ATAP LANTAI 3",
+          items: [{ kode: "XVI.a", area: "Pekerjaan atap di lantai 3" }],
+        },
+      ];
+
+      const container = document.getElementById("pekerjaan-sections");
+
+      pekerjaanData.forEach((kelompok) => {
+        const section = document.createElement("section");
+        section.classList.add("kelompok", "collapsed");
+
+        const title = document.createElement("h2");
+        title.textContent = kelompok.judul;
+        title.addEventListener("click", () => {
+          const isCurrentlyOpen = !section.classList.contains("collapsed");
+
+          document.querySelectorAll(".kelompok").forEach((s) => {
+            s.classList.add("collapsed");
+          });
+
+          if (!isCurrentlyOpen) {
+            section.classList.remove("collapsed");
+
+            title.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        });
+        section.appendChild(title);
+
+        kelompok.items.forEach((item) => {
+          const div = document.createElement("div");
+          div.className = "pekerjaan-item";
+          div.innerHTML = `
+                  <div class="judul-area">
+                    <div class="no">${item.kode}</div>
+                    <div class="area">${item.area}</div>
+                  </div>
+                  <div class="input-grid">
+                    <div>
+                      <label>ADA / TIDAK</label>
+                      <select name="${item.kode}_ada" required>
+                        <option value="">--</option>
+                        <option value="ada">ADA</option>
+                        <option value="tidak">TIDAK ADA</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label>SESUAI DESIGN STANDART</label>
+                      <select name="${item.kode}_desain" required>
+                        <option value="">--</option>
+                        <option value="sesuai">SESUAI</option>
+                        <option value="tidak">TIDAK SESUAI</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label>KUALITAS / KERAPIHAN PEKERJAAN</label>
+                      <select name="${item.kode}_kualitas" required>
+                        <option value="">--</option>
+                        <option value="baik">BAIK</option>
+                        <option value="tidak">TIDAK BAIK</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label>SPESIFIKASI MATERIAL</label>
+                      <select name="${item.kode}_material" required>
+                        <option value="">--</option>
+                        <option value="sesuai">SESUAI</option>
+                        <option value="tidak">TIDAK SESUAI</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label>DITERIMA / TIDAK</label>
+                      <select name="${item.kode}_diterima" required>
+                        <option value="">--</option>
+                        <option value="diterima">DITERIMA</option>
+                        <option value="tidak">TIDAK DITERIMA</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label>UPLOAD FOTO</label>
+                      <input type="file" name="${item.kode}_foto" accept="image/*" required />
+                      <small class="file-info">Maksimal ukuran file: 2 MB</small>
+                    </div>
+                  </div>
+                `;
+
+          div.setAttribute("data-item-kode", item.kode);
+          div.setAttribute("data-item-area", item.area);
+          section.appendChild(div);
+        });
+
+        container.appendChild(section);
+      });
+
+      // Logic evaluasi kondisi (ubah warna dan enable/disable)
+      function updateItemState(itemDiv) {
+        const selectAda = itemDiv.querySelector('select[name$="_ada"]');
+        const otherSelects = itemDiv.querySelectorAll(
+          'select:not([name$="_ada"])'
+        );
+        const fileInput = itemDiv.querySelector('input[type="file"]');
+
+        const val = (selectAda?.value || "").toLowerCase();
+
+        if (val === "tidak") {
+          otherSelects.forEach((el) => {
+            el.value = "";
+            el.disabled = true;
+        });
+        
+        if (fileInput) {
+            fileInput.value = "";
+            fileInput.disabled = true;
+        }
+        } else if (val === "ada") {
+          otherSelects.forEach((el) => (el.disabled = false));
+          if (fileInput) fileInput.disabled = false;
+        } else {
+          otherSelects.forEach((el) => (el.disabled = true));
+          if (fileInput) fileInput.disabled = true;
+        }
+      }
+
+      function updateSectionColor(section) {
+        const itemDivs = section.querySelectorAll(".pekerjaan-item");
+        let semuaDiisi = true;
+        let adaYangBuruk = false;
+
+        itemDivs.forEach((item) => {
+          const selectAda = item.querySelector('select[name$="_ada"]');
+          const val = (selectAda?.value || "").toLowerCase();
+
+          if (val === "") {
+            semuaDiisi = false;
+          }
+
+          if (val === "ada") {
+            const otherSelects = item.querySelectorAll(
+              'select:not([name$="_ada"])'
+            );
+            otherSelects.forEach((s) => {
+              const v = s.value.toLowerCase();
+              if (v === "") {
+                semuaDiisi = false;
+              }
+
+              if (
+                [
+                  "tidak",
+                  "tidak sesuai",
+                  "tidak baik",
+                  "tidak diterima",
+                ].includes(v)
+              ) {
+                adaYangBuruk = true;
+              }
+            });
+
+            const fileInput = item.querySelector('input[type="file"]');
+            if (fileInput && !fileInput.disabled && fileInput.files.length === 0) {
+              semuaDiisi = false;
+            }
+          }
+        });
+
+        const title = section.querySelector("h2");
+
+        if (!semuaDiisi) {
+          title.style.backgroundColor = "";
+          title.style.borderLeft = "";
+          title.style.color = "";
+        } else if (adaYangBuruk) {
+          title.style.backgroundColor = "#fff3cd";
+          title.style.borderLeft = "5px solid #ffc107";
+          title.style.color = "#856404";
+        } else {
+          title.style.backgroundColor = "#d4edda";
+          title.style.borderLeft = "5px solid #28a745";
+          title.style.color = "#155724";
+        }
+      }
+
+      document.querySelectorAll(".kelompok").forEach((section) => {
+        const itemDivs = section.querySelectorAll(".pekerjaan-item");
+
+        itemDivs.forEach((itemDiv) => {
+          const selects = itemDiv.querySelectorAll("select");
+          selects.forEach((select) => {
+            select.addEventListener("change", () => {
+              updateItemState(itemDiv);
+              updateSectionColor(section);
+              checkFinalStatus();
+              saveFormToLocalStorage();
+            });
+          });
+
+          updateItemState(itemDiv);
+        });
+
+        updateSectionColor(section);
+      });
+
+      function checkFinalStatus() {
+        const allSections = document.querySelectorAll(".kelompok");
+        let semuaDiisi = true;
+        let adaYangBuruk = false;
+
+        allSections.forEach((section) => {
+          const items = section.querySelectorAll(".pekerjaan-item");
+
+          items.forEach((item) => {
+            const selectAda = item.querySelector('select[name$="_ada"]');
+            const val = (selectAda?.value || "").toLowerCase();
+
+            if (val === "") {
+              semuaDiisi = false;
+              return;
+            }
+
+            if (val === "ada") {
+              const selects = item.querySelectorAll(
+                'select:not([name$="_ada"])'
+              );
+              selects.forEach((s) => {
+                const v = s.value.toLowerCase();
+                
+                if (v === "") {
+                  semuaDiisi = false;
+                }
+
+                if (
+                  [
+                    "tidak",
+                    "tidak sesuai",
+                    "tidak baik",
+                    "tidak diterima",
+                  ].includes(v)
+                ) {
+                  adaYangBuruk = true;
+                }
+              });
+
+              const fileInput = item.querySelector('input[type="file"]');
+              if (fileInput && !fileInput.disabled && fileInput.files.length === 0) {
+                semuaDiisi = false;
+              }
+            }
+          });
+        });
+
+        const statusField = document.getElementById("status_serah");
+        const tanggalField = document.getElementById("tanggal_serah");
+
+        if (!semuaDiisi) {
+          statusField.value = "";
+          tanggalField.disabled = true;
+        } else if (adaYangBuruk) {
+          statusField.value = "TIDAK DITERIMA";
+          tanggalField.disabled = false;
+        } else {
+          statusField.value = "DITERIMA";
+          tanggalField.disabled = true;
+          tanggalField.value = "";
+        }
+      }
+
+      const SCRIPT_URL =
+        "https://backend-form-y8wo.onrender.com/api/form?form=serah_terima";
+      const GET_URL = "https://backend-form-y8wo.onrender.com/api/form";
+
+      const form = document.getElementById("laporan-form");
+      const submitButton = form.querySelector("button[type='submit']");
+      const messageDiv = document.getElementById("popup");
+      const successPopup = document.getElementById("popup");
+      const errorPopup = document.getElementById("error-popup");
+      const errorMessage = document.getElementById("error-message");
+      const errorLink = document.getElementById("error-link");
+      const closeErrorPopupButton =
+        document.getElementById("close-error-popup");
+
+      async function loadKodeUlok() {
+        let email = getParameterByName("assigned_email"); 
+        if (!email) {
+          email = getParameterByName("email");
+        }
+        
+        if (!email) {
+          showPopup("Email tidak ditemukan di URL");
+          return;
+        }
+
+        try {
+          const res = await fetch(
+            `${GET_URL}?form=serah_terima&email=${encodeURIComponent(email)}`
+          );
+          const result = await res.json();
+
+          if (result.status === "error") {
+            throw new Error(result.message);
+          }
+
+          const select = document.getElementById("kode_ulok");
+          select.innerHTML = '<option value="">-- Pilih Kode Ulok --</option>';
+
+          if (result.data && Array.isArray(result.data)) {
+            ulokDataStore = result.data;
+
+            result.data.forEach((item) => {
+              const opt = document.createElement("option");
+              opt.value = item.kode;
+              opt.textContent = item.kode;
+              select.appendChild(opt);
+            });
+          } else {
+            console.error("Data kode ulok tidak valid:", result);
+            showPopup("Gagal memuat data kode ulok.");
+          }
+        } catch (err) {
+          console.error("Gagal memuat mode ulok:", err);
+          showPopup("Terjadi kesalahan: " + err.message);
+        }
+      }
+
+      function handleUlokChange() {
+        const selectedKode = document.getElementById("kode_ulok").value;
+        const lokasiInput = document.getElementById("lokasi");
+        const cabangInput = document.getElementById("cabang");
+
+        document.querySelectorAll('.pekerjaan-item select, #tanggal_serah, #status_serah').forEach(el => {
+          if (el.tagName === 'SELECT') {
+            el.value = "";
+          } else if (el.tagName === 'INPUT') {
+            el.value = "";
+          }
+        });
+        
+        document.querySelectorAll(".kelompok").forEach(section => {
+            section.querySelectorAll(".pekerjaan-item").forEach(updateItemState);
+            updateSectionColor(section);
+        });
+        checkFinalStatus();
+
+        if (!selectedKode) {
+          lokasiInput.value = "";
+          cabangInput.value = "";
+          return;
+        }
+
+        const selectedData = ulokDataStore.find(
+          (item) => item.kode === selectedKode
+        );
+
+        if (selectedData) {
+          lokasiInput.value = selectedData.alamat || "";
+          cabangInput.value = selectedData.cabang || "";
+        }
+
+        loadFormFromLocalStorage(selectedKode);
+      }
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const statusSerah = document.getElementById("status_serah").value;
+        if (statusSerah === "") {
+          let errorFound = false;
+          const allSections = document.querySelectorAll(".kelompok");
+
+          for (const section of allSections) {
+            const items = section.querySelectorAll(".pekerjaan-item");
+            
+            for (const item of items) {
+              const selectAda = item.querySelector('select[name$="_ada"]');
+              const val = (selectAda?.value || "").toLowerCase();
+              let firstInvalidElement = null;
+              
+              if (val === "") {
+                firstInvalidElement = selectAda;
+              } else if (val === "ada") {
+                const otherSelects = item.querySelectorAll(
+                  'select:not([name$="_ada"])'
+                );
+                for (const s of otherSelects) {
+                  if (s.value === "") {
+                    firstInvalidElement = s;
+                    break;
+                  }
+                }
+
+                if (!firstInvalidElement) {
+                  const fileInput = item.querySelector('input[type="file"]');
+                  if (fileInput && !fileInput.disabled && fileInput.files.length === 0) {
+                    firstInvalidElement = fileInput;
+                  }
+                }
+              }
+              
+              if (firstInvalidElement) {
+                document.querySelectorAll(".kelompok").forEach(s => s.classList.add("collapsed"));
+                section.classList.remove("collapsed");
+
+                item.scrollIntoView({ behavior: "smooth", block: "center" });
+                
+                showErrorPopup(
+                  "Masih ada item yang belum diisi. Harap periksa kembali.",
+                  null
+                );
+                
+                errorFound = true;
+                break;
+              }
+            }
+            
+            if (errorFound) {
+              break;
+            }
+          } 
+
+          if (!errorFound) {
+             showErrorPopup(
+              "Masih ada item yang belum diisi. Harap periksa kembali.",
+              null
+            );
+          }
+          
+          return;
+        }
+
+        submitButton.disabled = true;
+        showPopup("Mengirim data...");
+
+        const payload = {};
+        const fotoUpload = [];
+
+        const allFormElements = form.querySelectorAll("input, select");
+        for (const element of allFormElements) {
+          if (element.name && element.type !== "file") {
+            const mappedName = element.name
+              .replace(/_ada$/, "_ada/tidak")
+              .replace(/_desain$/, "_sesuai_design_standart")
+              .replace(/_kualitas$/, "_kualitas/kerapihan_pekerjaan")
+              .replace(/_material$/, "_spesifikasi_material")
+              .replace(/_diterima$/, "_diterima/tidak");
+
+            if (element.tagName === "SELECT") {
+              const selectedOption = element.options[element.selectedIndex];
+              payload[mappedName] = selectedOption
+                ? selectedOption.textContent
+                : "";
+            } else {
+              payload[mappedName] = element.value;
+            }
+          }
+        }
+
+        const itemDivs = document.querySelectorAll(".pekerjaan-item");
+        for (const itemDiv of itemDivs) {
+          const kode = itemDiv.getAttribute("data-item-kode");
+          const area = itemDiv.getAttribute("data-item-area");
+          const fileInput = itemDiv.querySelector(`input[name="${kode}_foto"]`);
+
+          if (fileInput && fileInput.files.length > 0 && !fileInput.disabled) {
+            const file = fileInput.files[0];
+            try {
+              const base64 = await convertFileToBase64(file);
+              fotoUpload.push({
+                item: kode,
+                area: area,
+                base64: base64.split(",")[1],
+              });
+            } catch (error) {
+              console.error(`Error converting file for ${kode}:`, error);
+              showPopup(`Error converting file for ${kode}: ${error.message}`);
+              submitButton.disabled = false;
+              return;
+            }
+          }
+        }
+
+        payload.fotoUpload = fotoUpload;
+        payload.pic_nama = getParameterByName("assigned_nama") || getParameterByName("nama");
+        payload.pic_building_support = getParameterByName("assigned_email") || getParameterByName("email");
+
+        try {
+          const response = await fetch(SCRIPT_URL, {
+            method: "POST",
+            body: JSON.stringify(payload),
+            headers: { "Content-Type": "application/json" },
+          });
+
+          let result;
+          try {
+            result = await response.json();
+          } catch {
+            const text = await response.text();
+            console.error("Non-JSON response:", text);
+            showPopup("Server mengembalikan format yang tidak dikenali.");
+            submitButton.disabled = false;
+            return;
+          }
+
+          if (response.ok && result.status === "success") {
+            showPopup("Data berhasil dikirim!");
+            const submittedKodeUlok = payload["kode_ulok"]; 
+            if (submittedKodeUlok) {
+                const storageKey = `autosave_serahTerima_${submittedKodeUlok}`;
+                localStorage.removeItem(storageKey); 
+            }
+
+            form.reset();
+            document.querySelectorAll(".kelompok").forEach(updateSectionColor);
+            checkFinalStatus();
+          } else {
+            showPopup("Gagal kirim: " + (result.message || "Tidak diketahui"));
+          }
+        } catch (err) {
+          console.error(err);
+          showPopup("Error: " + err.message);
+        } finally {
+          submitButton.disabled = false;
+        }
+      });
+
+      function convertFileToBase64(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      }
+
+      function showPopup(msg) {
+        messageDiv.querySelector("p").textContent = msg;
+        messageDiv.classList.add("show");
+      }
+
+      function closePopup() {
+        messageDiv.classList.remove("show");
+      }
+
+      function showErrorPopup(message, url) {
+        errorMessage.textContent = message;
+        
+        if (url) {
+          errorLink.href = url;
+          errorLink.style.display = "inline-block";
+        } else {
+          errorLink.style.display = "none";
+        }
+        
+        errorPopup.classList.add("show");
+      }
+
+      function closeErrorPopup() {
+        errorPopup.classList.remove("show");
+      }
+      closeErrorPopupButton.addEventListener("click", closeErrorPopup);
+
+      function getParameterByName(name) {
+        return new URLSearchParams(window.location.search).get(name) || "";
+      }
+
+      function setupFileSizeValidation() {
+        const fileInputs = document.querySelectorAll('input[type="file"]');
+        fileInputs.forEach((input) => {
+          input.addEventListener("change", function () {
+            const file = this.files[0];
+            if (file && file.size > MAX_SIZE_BYTES) {
+              const message = `File "${file.name}" terlalu besar (maksimal 2 MB). Silakan kompres terlebih dahulu.`;
+              showErrorPopup(message, COMPRESS_URL);
+              this.value = "";
+            }
+
+            const itemDiv = this.closest(".pekerjaan-item");
+            const section = this.closest(".kelompok");
+            if (itemDiv && section) {
+              updateSectionColor(section);
+              checkFinalStatus();
+            }
+          });
+        });
+      }
+
+      function saveFormToLocalStorage() {
+        const form = document.getElementById("laporan-form");
+        const kodeUlok = document.getElementById("kode_ulok").value;
+
+        if (!kodeUlok) {
+          return;
+        }
+
+        const data = {};
+        form.querySelectorAll("select, input[type='text'], input[type='date']").forEach(el => {
+          if (el.name) {
+            data[el.name] = el.value;
+          }
+        });
+        
+        const storageKey = `autosave_serahTerima_${kodeUlok}`;
+        localStorage.setItem(storageKey, JSON.stringify(data));
+      }
+
+      function loadFormFromLocalStorage(kodeUlok) {
+        if (!kodeUlok) {
+          return; 
+        }
+
+        const storageKey = `autosave_serahTerima_${kodeUlok}`;
+        const savedData = localStorage.getItem(storageKey);
+        
+        if (savedData) {
+          const data = JSON.parse(savedData);
+          let hasRestoredData = false;
+          
+          for (const key in data) {
+            if (key === 'kode_ulok') continue; 
+
+            const element = document.querySelector(`[name="${key}"]`);
+            if (element) {
+              element.value = data[key];
+              hasRestoredData = true;
+            }
+          }
+          
+          if (hasRestoredData) {
+            document.querySelectorAll(".kelompok").forEach(section => {
+              const itemDivs = section.querySelectorAll(".pekerjaan-item");
+              itemDivs.forEach(itemDiv => {
+                updateItemState(itemDiv);
+              });
+              updateSectionColor(section);
+            });
+            checkFinalStatus();
+            
+            showErrorPopup(
+              "Data Anda sebelumnya untuk kode ulok ini berhasil dipulihkan. PERHATIAN: FOTO HARUS DI-UPLOAD ULANG.",
+              null
+            );
+          }
+        }
+      }
+
+      document
+        .getElementById("kode_ulok")
+        .addEventListener("change", () => {
+            handleUlokChange();
+        });
+
+      document.getElementById("tanggal_serah").addEventListener("change", saveFormToLocalStorage);
+
+      function checkSessionTime() {
+        try {
+          const startHour = 6; 
+          const endHour = 18;
+
+          const now = new Date();
+          const options = { timeZone: "Asia/Jakarta", hour: '2-digit', hour12: false };
+          const currentHour = parseInt(new Intl.DateTimeFormat('en-US', options).format(now));
+
+          if (currentHour < startHour || currentHour >= endHour) {
+            
+            const token = sessionStorage.getItem("authToken");
+            
+            if (token) {
+              sessionStorage.removeItem("authToken");
+              
+              showPopup("Sesi Anda telah berakhir karena di luar jam operasional (06:00 - 18:00 WIB).");
+              
+              setTimeout(() => {
+                window.location.href = "https://frontend-form-virid.vercel.app/login-input_pic.html";
+              }, 3000);
+            }
+          }
+        } catch (err) {
+          console.error("Gagal menjalankan pengecekan jam sesi:", err);
+        }
+      }
+
+      window.addEventListener("DOMContentLoaded", () => {
+        loadKodeUlok();
+        setupFileSizeValidation();
+        checkSessionTime();
+      });
+
+      setInterval(checkSessionTime, 300000);
+    </script>
+  </body>
+</html>

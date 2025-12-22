@@ -2,7 +2,7 @@ if (!sessionStorage.getItem('loggedInUserCabang')) {
     window.location.replace('../../auth/kontraktor/login.html');
 }
 
-const API_BASE_URL = "https://sparta-backend.web.id/api";
+const API_BASE_URL = "https://sparta-backend-5hdj.onrender.com/api";
 const ENDPOINTS = {
     ulokList: `${API_BASE_URL}/get_ulok_by_email`,
     ganttData: `${API_BASE_URL}/get_gantt_data`,
