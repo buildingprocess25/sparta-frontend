@@ -862,16 +862,16 @@ function renderChart() {
     html += '<div class="task-column">Tahapan</div>';
     html += `<div class="timeline-column" style="width: ${totalChartWidth}px;">`;
     for (let i = 0; i < totalDaysToRender; i++) {
+        // Menghitung hari ke-sekian (dimulai dari 1)
+        const dayNumber = i + 1; 
+        // (Opsional) Jika Anda masih ingin mewarnai hari Minggu berdasarkan tanggal asli:
         const currentDate = new Date(projectStartDate);
         currentDate.setDate(projectStartDate.getDate() + i);
-        const dateNum = currentDate.getDate();
-        const monthName = currentDate.toLocaleDateString('id-ID', { month: 'short' });
         const isSunday = currentDate.getDay() === 0;
         html += `
             <div class="day-header" style="width: ${DAY_WIDTH}px; ${isSunday ? 'background-color:#ffe3e3;' : ''}">
-                <span class="d-date">${dateNum}</span>
-                <span class="d-month">${monthName}</span>
-            </div>
+                <span class="d-date" style="font-weight:bold; font-size:14px;">${dayNumber}</span>
+                </div>
         `;
     }
     html += '</div></div>';
