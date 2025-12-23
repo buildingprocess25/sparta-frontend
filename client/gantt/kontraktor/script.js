@@ -859,8 +859,15 @@ function renderChart() {
     html += `<div class="timeline-column" style="width: ${totalChartWidth}px;">`;
 
     for (let i = 0; i < totalDaysToRender; i++) {
+        // Logika pewarnaan hari Minggu (opsional, tetap berdasarkan tanggal asli)
+        const currentDate = new Date(projectStartDate);
+        currentDate.setDate(projectStartDate.getDate() + i);
+        const isSunday = currentDate.getDay() === 0;
+        
+        // Ubah tampilan menjadi angka urut (1, 2, 3...)
         const dayNumber = i + 1;
 
+        // Note: box-sizing: border-box ditambahkan agar lebar border tidak merusak layout
         html += `
             <div class="day-header" style="width: ${DAY_WIDTH}px; box-sizing: border-box; ${isSunday ? 'background-color:#ffe3e3;' : ''}">
                 <span class="d-date" style="font-weight:bold; font-size:14px;">${dayNumber}</span>
