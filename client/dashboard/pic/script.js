@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const roleConfig = {
         'BRANCH BUILDING & MAINTENANCE MANAGER': [
-            'menu-spk', 'menu-pengawasan', 'menu-opname', 'menu-tambahspk'
+            'menu-spk', 'menu-pengawasan', 'menu-opname', 'menu-tambahspk', 'menu-opname', 'menu-gantt', 'menu-dokumentasi', 'menu-svdokumen'
         ],
         'BRANCH BUILDING COORDINATOR': [
             'menu-dokumentasi', 'menu-pengawasan', 'menu-svdokumen'

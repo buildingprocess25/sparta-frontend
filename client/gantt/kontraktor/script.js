@@ -21,43 +21,40 @@ let filteredCategories = null;
 
 // ==================== TASK TEMPLATES ====================
 const taskTemplateME = [
-    { id: 1, name: 'Instalasi', start: 0, duration: 0, dependencies: [], manualDependencies: [] },
-    { id: 2, name: 'Fixture', start: 0, duration: 0, dependencies: [], manualDependencies: [] },
-    { id: 3, name: 'Pekerjaan Tambahan', start: 0, duration: 0, dependencies: [], manualDependencies: [] },
-    { id: 4, name: 'Pekerjaan SBO', start: 0, duration: 0, dependencies: [], manualDependencies: [] },
+    { id: 1, name: 'Instalasi', start: 0, duration: 0, dependencies: [] },
+    { id: 2, name: 'Fixture', start: 0, duration: 0, dependencies: [] },
+    { id: 3, name: 'Pekerjaan Tambahan', start: 0, duration: 0, dependencies: [] },
+    { id: 4, name: 'Pekerjaan SBO', start: 0, duration: 0, dependencies: [] },
 ];
 
 const taskTemplateSipil = [
-    { id: 1, name: 'Pekerjaan Persiapan', start: 0, duration: 0, dependencies: [], manualDependencies: [] },
-    { id: 2, name: 'Pekerjaan Bobokan/Bongkaran', start: 0, duration: 0, dependencies: [], manualDependencies: [] },
-    { id: 3, name: 'Pekerjaan Tanah', start: 0, duration: 0, dependencies: [], manualDependencies: [] },
-    { id: 4, name: 'Pekerjaan Pondasi & Beton', start: 0, duration: 0, dependencies: [], manualDependencies: [] },
-    { id: 5, name: 'Pekerjaan Pasangan', start: 0, duration: 0, dependencies: [], manualDependencies: [] },
-    { id: 6, name: 'Pekerjaan Besi', start: 0, duration: 0, dependencies: [], manualDependencies: [] },
-    { id: 7, name: 'Pekerjaan Keramik', start: 0, duration: 0, dependencies: [], manualDependencies: [] },
-    { id: 8, name: 'Pekerjaan Plumbing', start: 0, duration: 0, dependencies: [], manualDependencies: [] },
-    { id: 9, name: 'Pekerjaan Sanitary & Acecories', start: 0, duration: 0, dependencies: [], manualDependencies: [] },
-    { id: 10, name: 'Pekerjaan Janitor', start: 0, duration: 0, dependencies: [], manualDependencies: [] },
-    { id: 11, name: 'Pekerjaan Atap', start: 0, duration: 0, dependencies: [], manualDependencies: [] },
-    { id: 12, name: 'Pekerjaan Kusen, Pintu, dan Kaca', start: 0, duration: 0, dependencies: [], manualDependencies: [] },
-    { id: 13, name: 'Pekerjaan Finishing', start: 0, duration: 0, dependencies: [], manualDependencies: [] },
-    { id: 14, name: 'Pekerjaan Beanspot', start: 0, duration: 0, dependencies: [], manualDependencies: [] },
-    { id: 15, name: 'Pekerjaan Area Terbuka', start: 0, duration: 0, dependencies: [], manualDependencies: [] },
-    { id: 16, name: 'Pekerjaan Tambahan', start: 0, duration: 0, dependencies: [], manualDependencies: [] },
-    { id: 17, name: 'Pekerjaan SBO', start: 0, duration: 0, dependencies: [], manualDependencies: [] },
+    { id: 1, name: 'Pekerjaan Persiapan', start: 0, duration: 0, dependencies: [] },
+    { id: 2, name: 'Pekerjaan Bobokan/Bongkaran', start: 0, duration: 0, dependencies: [] },
+    { id: 3, name: 'Pekerjaan Tanah', start: 0, duration: 0, dependencies: [] },
+    { id: 4, name: 'Pekerjaan Pondasi & Beton', start: 0, duration: 0, dependencies: [] },
+    { id: 5, name: 'Pekerjaan Pasangan', start: 0, duration: 0, dependencies: [] },
+    { id: 6, name: 'Pekerjaan Besi', start: 0, duration: 0, dependencies: [] },
+    { id: 7, name: 'Pekerjaan Keramik', start: 0, duration: 0, dependencies: [] },
+    { id: 8, name: 'Pekerjaan Plumbing', start: 0, duration: 0, dependencies: [] },
+    { id: 9, name: 'Pekerjaan Sanitary & Acecories', start: 0, duration: 0, dependencies: [] },
+    { id: 10, name: 'Pekerjaan Janitor', start: 0, duration: 0, dependencies: [] },
+    { id: 11, name: 'Pekerjaan Atap', start: 0, duration: 0, dependencies: [] },
+    { id: 12, name: 'Pekerjaan Kusen, Pintu, dan Kaca', start: 0, duration: 0, dependencies: [] },
+    { id: 13, name: 'Pekerjaan Finishing', start: 0, duration: 0, dependencies: [] },
+    { id: 14, name: 'Pekerjaan Beanspot', start: 0, duration: 0, dependencies: [] },
+    { id: 15, name: 'Pekerjaan Area Terbuka', start: 0, duration: 0, dependencies: [] },
+    { id: 16, name: 'Pekerjaan Tambahan', start: 0, duration: 0, dependencies: [] },
+    { id: 17, name: 'Pekerjaan SBO', start: 0, duration: 0, dependencies: [] },
 ];
 
 let currentTasks = [];
-const totalDaysME = 40; // Disesuaikan agar chart tidak terlalu panjang
-const totalDaysSipil = 60; // Disesuaikan
+const totalDaysME = 100;
+const totalDaysSipil = 205;
 
 // ==================== HELPER FUNCTIONS ====================
 function formatDateID(date) {
-    if (!date) return '-';
-    const d = new Date(date);
-    if (isNaN(d.getTime())) return '-';
     const options = { day: 'numeric', month: 'short', year: 'numeric' };
-    return d.toLocaleDateString('id-ID', options);
+    return date.toLocaleDateString('id-ID', options);
 }
 
 function extractUlokAndLingkup(value) {
@@ -89,55 +86,40 @@ function escapeHtml(value) {
 
 function showLoadingMessage() {
     const chart = document.getElementById('ganttChart');
-    if(chart) {
-        chart.innerHTML = `
-            <div style="text-align: center; padding: 60px; color: #6c757d;">
-                <div style="font-size: 48px; margin-bottom: 20px;">⏳</div>
-                <h2 style="margin-bottom: 15px;">Memuat Data...</h2>
-                <p>Sedang mengambil data proyek dari server.</p>
-            </div>
-        `;
-    }
+    chart.innerHTML = `
+        <div style="text-align: center; padding: 60px; color: #6c757d;">
+            <div style="font-size: 48px; margin-bottom: 20px;">⏳</div>
+            <h2 style="margin-bottom: 15px;">Memuat Data...</h2>
+            <p>Sedang mengambil data proyek dari server.</p>
+        </div>
+    `;
 }
 
 function showErrorMessage(message) {
     const chart = document.getElementById('ganttChart');
-    if(chart) {
-        chart.innerHTML = `
-            <div style="text-align: center; padding: 60px; color: #e53e3e;">
-                <div style="font-size: 48px; margin-bottom: 20px;">⚠️</div>
-                <h2 style="margin-bottom: 15px;">Terjadi Kesalahan</h2>
-                <p>${message}</p>
-                <button onclick="loadDataAndInit()" style="margin-top: 20px; padding: 10px 20px; background: #3182ce; color: white; border: none; border-radius: 6px; cursor: pointer;">
-                    🔄 Coba Lagi
-                </button>
-            </div>
-        `;
-    }
+    chart.innerHTML = `
+        <div style="text-align: center; padding: 60px; color: #e53e3e;">
+            <div style="font-size: 48px; margin-bottom: 20px;">⚠️</div>
+            <h2 style="margin-bottom: 15px;">Terjadi Kesalahan</h2>
+            <p>${message}</p>
+            <button onclick="loadDataAndInit()" style="margin-top: 20px; padding: 10px 20px; background: #3182ce; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                🔄 Coba Lagi
+            </button>
+        </div>
+    `;
 }
 
 function showSelectProjectMessage() {
     const chart = document.getElementById('ganttChart');
-    if (chart) {
-        chart.innerHTML = `
-            <div style="text-align: center; padding: 60px; color: #6c757d;">
-                <h2 style="margin-bottom: 15px;">📋 Pilih No. Ulok</h2>
-                <p>Silakan pilih proyek di menu dropdown di atas untuk melihat jadwal.</p>
-            </div>
-        `;
-    }
-    const info = document.getElementById('projectInfo');
-    if(info) info.innerHTML = '';
-    
-    const stats = document.getElementById('stats');
-    if(stats) stats.innerHTML = '';
-    
-    const exportBtn = document.getElementById('exportButtons');
-    if(exportBtn) exportBtn.style.display = 'none';
-    
-    const depMgr = document.getElementById('dependencyManager');
-    if(depMgr) depMgr.style.display = 'none';
-
+    chart.innerHTML = `
+        <div style="text-align: center; padding: 60px; color: #6c757d;">
+            <h2 style="margin-bottom: 15px;">📋 Pilih No. Ulok</h2>
+            <p>Data berhasil dimuat. Silakan pilih proyek di atas.</p>
+        </div>
+    `;
+    document.getElementById('projectInfo').innerHTML = '';
+    document.getElementById('stats').innerHTML = '';
+    document.getElementById('exportButtons').style.display = 'none';
     ganttApiData = null;
     ganttApiError = null;
     hasUserInput = false;
@@ -148,15 +130,13 @@ function showSelectProjectMessage() {
 
 function showPleaseInputMessage() {
     const chart = document.getElementById('ganttChart');
-    if(chart) {
-        chart.innerHTML = `
-            <div style="text-align: center; padding: 60px; color: #6c757d;">
-                <div style="font-size: 48px; margin-bottom: 20px;">⏱️</div>
-                <h2 style="margin-bottom: 15px;">Silakan Input Jadwal Pengerjaan</h2>
-                <p>Masukkan hari mulai dan selesai untuk setiap tahapan di form di atas, kemudian klik <strong>"Terapkan Jadwal"</strong>.</p>
-            </div>
-        `;
-    }
+    chart.innerHTML = `
+        <div style="text-align: center; padding: 60px; color: #6c757d;">
+            <div style="font-size: 48px; margin-bottom: 20px;">⏱️</div>
+            <h2 style="margin-bottom: 15px;">Silakan Input Jadwal Pengerjaan</h2>
+            <p>Masukkan hari mulai dan selesai untuk setiap tahapan di form di atas, kemudian klik <strong>"Terapkan Jadwal"</strong>.</p>
+        </div>
+    `;
 }
 
 // ==================== PARSE PROJECT DATA ====================
@@ -205,11 +185,7 @@ async function loadDataAndInit() {
     try {
         showLoadingMessage();
         const userEmail = sessionStorage.getItem('loggedInUserEmail');
-        
-        // Fallback jika email tidak ada di session (untuk testing)
-        const emailToUse = userEmail || "kontraktor@example.com"; 
-
-        const urlWithParam = `${ENDPOINTS.ulokList}?email=${encodeURIComponent(emailToUse)}`;
+        const urlWithParam = `${ENDPOINTS.ulokList}?email=${encodeURIComponent(userEmail)}`;
         const response = await fetch(urlWithParam);
         if (!response.ok) {
             const errData = await response.json().catch(() => ({}));
@@ -266,8 +242,9 @@ function initChart() {
         hasUserInput = false;
         isProjectLocked = false;
         fetchGanttDataForSelection(selectedUlok);
+        renderProjectInfo();
+        updateStats();
         document.getElementById('exportButtons').style.display = 'block';
-        document.getElementById('dependencyManager').style.display = 'none';
     });
     const savedUlok = localStorage.getItem('lastSelectedUlok');
     if (savedUlok) {
@@ -276,9 +253,8 @@ function initChart() {
             ulokSelect.value = savedUlok;
             ulokSelect.dispatchEvent(new Event('change'));
         }
-    } else {
-        showSelectProjectMessage();
     }
+    showSelectProjectMessage();
 }
 
 // ==================== GANTT DATA FETCH (API) ====================
@@ -317,6 +293,7 @@ async function fetchGanttDataForSelection(selectedValue) {
 
         if (data.filtered_categories && Array.isArray(data.filtered_categories)) {
             filteredCategories = data.filtered_categories;
+            console.log("📂 Filtered Categories:", filteredCategories);
         } else {
             filteredCategories = null;
         }
@@ -327,7 +304,7 @@ async function fetchGanttDataForSelection(selectedValue) {
             const ganttData = data.gantt_data;
             const ganttStatus = String(ganttData.Status || '').trim().toLowerCase();
 
-            if (['terkunci', 'locked', 'published', 'selesai'].includes(ganttStatus)) {
+            if (['terkunci', 'locked', 'published'].includes(ganttStatus)) {
                 isProjectLocked = true;
                 console.log("🔒 Status Project: TERKUNCI");
             } else {
@@ -363,6 +340,7 @@ async function fetchGanttDataForSelection(selectedValue) {
                     );
                 });
                 currentTasks = currentTasks.map((task, idx) => ({ ...task, id: idx + 1 }));
+                console.log(`📋 Tasks filtered: ${currentTasks.length} dari ${templateTasks.length}`);
             } else {
                 currentTasks = templateTasks;
             }
@@ -382,7 +360,6 @@ async function fetchGanttDataForSelection(selectedValue) {
         isLoadingGanttData = false;
         renderProjectInfo();
         renderApiData();
-        updateStats();
 
         if (hasUserInput && currentTasks.length > 0) {
             renderChart();
@@ -393,6 +370,7 @@ async function fetchGanttDataForSelection(selectedValue) {
                 showPleaseInputMessage();
             }
         }
+        updateStats();
     }
 }
 
@@ -405,13 +383,11 @@ function parseGanttDataToTasks(ganttData, selectedValue) {
     let tempTaskList = [];
     let i = 1;
 
-    // Loop untuk membaca Kategori_1, Kategori_2, dst.
     while (true) {
         const kategoriKey = `Kategori_${i}`;
         const mulaiKey = `Hari_Mulai_Kategori_${i}`;
         const selesaiKey = `Hari_Selesai_Kategori_${i}`;
         const keterlambatanKey = `Keterlambatan_Kategori_${i}`;
-        const dependencyKey = `Dependencies_Kategori_${i}`;
 
         if (!ganttData.hasOwnProperty(kategoriKey)) {
             break;
@@ -421,7 +397,6 @@ function parseGanttDataToTasks(ganttData, selectedValue) {
         const hariMulai = ganttData[mulaiKey];
         const hariSelesai = ganttData[selesaiKey];
         const keterlambatan = parseInt(ganttData[keterlambatanKey]) || 0;
-        const dependenciesStr = ganttData[dependencyKey] || '';
 
         if (kategoriName) {
             let sDate = null;
@@ -434,18 +409,12 @@ function parseGanttDataToTasks(ganttData, selectedValue) {
                 }
             }
 
-            // Parse dependencies (comma-separated task IDs)
-            const dependencies = dependenciesStr.split(',')
-                .map(d => parseInt(d.trim()))
-                .filter(d => !isNaN(d) && d > 0);
-
             tempTaskList.push({
                 id: i,
                 name: kategoriName,
                 rawStart: sDate,
                 rawEnd: hariSelesai ? new Date(hariSelesai) : null,
-                keterlambatan: keterlambatan,
-                manualDependencies: dependencies
+                keterlambatan: keterlambatan
             });
         }
         i++;
@@ -457,6 +426,7 @@ function parseGanttDataToTasks(ganttData, selectedValue) {
 
     const projectStartDate = earliestDate;
     currentProject.startDate = projectStartDate.toISOString().split('T')[0];
+    console.log(`📆 Project Start Date (dari gantt_data): ${currentProject.startDate}`);
     const msPerDay = 1000 * 60 * 60 * 24;
 
     tempTaskList.forEach(item => {
@@ -479,7 +449,6 @@ function parseGanttDataToTasks(ganttData, selectedValue) {
             start: startDay > 0 ? startDay : 0,
             duration: duration > 0 ? duration : 0,
             dependencies: [],
-            manualDependencies: item.manualDependencies || [],
             keterlambatan: item.keterlambatan || 0,
             inputData: {
                 ranges: startDay > 0 ? [{ start: startDay, end: endDay, duration: duration }] : []
@@ -488,9 +457,11 @@ function parseGanttDataToTasks(ganttData, selectedValue) {
     });
     currentTasks = dynamicTasks;
     projectTasks[selectedValue] = currentTasks;
+
+    console.log(`✅ Data API berhasil diparsing: ${currentTasks.length} tahapan ditemukan.`);
 }
 
-// ==================== RENDER API DATA (INPUT FORM) ====================
+// ==================== RENDER API DATA ====================
 function renderApiData() {
     const container = document.getElementById('apiData');
     if (!container) return;
@@ -554,19 +525,19 @@ function renderApiData() {
                         <div class="input-group">
                             <label>H</label>
                             <input type="number" class="task-day-input" 
-                                data-task-id="${task.id}" 
-                                data-type="start" 
-                                data-range-idx="${idx}"
-                                value="${range.start || 0}" min="0">
+                                   data-task-id="${task.id}" 
+                                   data-type="start" 
+                                   data-range-idx="${idx}"
+                                   value="${range.start || 0}" min="0">
                         </div>
                         <span class="input-separator">s/d</span>
                         <div class="input-group">
                             <label>H</label>
                             <input type="number" class="task-day-input" 
-                                data-task-id="${task.id}" 
-                                data-type="end" 
-                                data-range-idx="${idx}"
-                                value="${range.end || 0}" min="0">
+                                   data-task-id="${task.id}" 
+                                   data-type="end" 
+                                   data-range-idx="${idx}"
+                                   value="${range.end || 0}" min="0">
                         </div>
                         <button class="btn-remove-range" onclick="removeRange(${task.id}, ${idx})" title="Hapus range">×</button>
                     </div>
@@ -578,19 +549,19 @@ function renderApiData() {
                     <div class="input-group">
                         <label>H</label>
                         <input type="number" class="task-day-input" 
-                            data-task-id="${task.id}" 
-                            data-type="start" 
-                            data-range-idx="0"
-                            value="0" min="0">
+                               data-task-id="${task.id}" 
+                               data-type="start" 
+                               data-range-idx="0"
+                               value="0" min="0">
                     </div>
                     <span class="input-separator">s/d</span>
                     <div class="input-group">
                         <label>H</label>
                         <input type="number" class="task-day-input" 
-                            data-task-id="${task.id}" 
-                            data-type="end" 
-                            data-range-idx="0"
-                            value="0" min="0">
+                               data-task-id="${task.id}" 
+                               data-type="end" 
+                               data-range-idx="0"
+                               value="0" min="0">
                     </div>
                     <button class="btn-remove-range" onclick="removeRange(${task.id}, 0)" title="Hapus range">×</button>
                 </div>
@@ -607,259 +578,15 @@ function renderApiData() {
     html += '</div>';
     html += `
         <div class="task-input-actions">
-            <button class="btn-manage-dependencies" onclick="toggleDependencyManager()">⛓️ Atur Dependency</button>
             <button class="btn-apply-schedule" onclick="applyTaskSchedule()">Terapkan Jadwal</button>
             <button class="btn-reset-schedule" onclick="resetTaskSchedule()">Reset</button>
         </div>
         <div class="task-input-actions" style="border-top: none; padding-top: 0;">
-            <button class="btn-publish" onclick="confirmAndPublish()">🔒 Kunci & Terbitkan Jadwal</button>
+            <button class="btn-publish" onclick="confirmAndPublish()">🔒 Kunci Jadwal</button>
         </div>
     `;
     html += '</div>';
     container.innerHTML = html;
-}
-
-// ==================== VISUALIZATION FUNCTIONS (MISSING PART 1) ====================
-
-function renderProjectInfo() {
-    const container = document.getElementById('projectInfo');
-    if (!container) return;
-    
-    if (!currentProject) {
-        container.innerHTML = '';
-        return;
-    }
-    
-    container.innerHTML = `
-        <div class="info-item"><strong>No. Ulok:</strong> ${escapeHtml(currentProject.ulok)}</div>
-        <div class="info-item"><strong>Toko:</strong> ${escapeHtml(currentProject.store)}</div>
-        <div class="info-item"><strong>Jenis:</strong> ${escapeHtml(currentProject.projectType)}</div>
-        <div class="info-item"><strong>Mulai:</strong> ${formatDateID(new Date(currentProject.startDate))}</div>
-    `;
-}
-
-function updateProjectFromRab(rabData) {
-    if (!currentProject || !rabData) return;
-    if (rabData.nama_toko) currentProject.store = rabData.nama_toko;
-    if (rabData.jenis_proyek) currentProject.projectType = rabData.jenis_proyek;
-}
-
-function renderChart() {
-    const chartContainer = document.getElementById('ganttChart');
-    if(!chartContainer) return;
-    chartContainer.innerHTML = '';
-
-    if (!currentProject || !currentTasks.length) return;
-
-    // Tentukan panjang hari chart
-    const totalDays = currentProject.lingkup === 'ME' ? totalDaysME : totalDaysSipil;
-    
-    // Header
-    let headerHTML = '<div class="chart-header"><div class="task-column">Tahapan Pekerjaan</div><div class="timeline-column">';
-    for (let i = 1; i <= totalDays; i++) {
-        headerHTML += `<div class="day-header"><span class="d-date">${i}</span></div>`;
-    }
-    headerHTML += '</div></div>';
-
-    // Body
-    let bodyHTML = '<div class="chart-body">';
-    currentTasks.forEach(task => {
-        bodyHTML += `<div class="task-row">
-            <div class="task-name">${task.id}. ${escapeHtml(task.name)}</div>
-            <div class="timeline-column">`;
-        
-        for (let i = 1; i <= totalDays; i++) {
-            let activeClass = '';
-            
-            // Cek apakah hari ini masuk dalam salah satu range
-            if (task.inputData && task.inputData.ranges) {
-                task.inputData.ranges.forEach(range => {
-                    if (i >= range.start && i <= range.end) {
-                        activeClass = 'bar-active'; 
-                        // Note: pastikan di CSS ada class .bar-active { background-color: #3182ce; }
-                    }
-                });
-            }
-
-            bodyHTML += `<div class="day-cell ${activeClass}" title="Hari ke-${i}"></div>`;
-        }
-        bodyHTML += `</div></div>`;
-    });
-    bodyHTML += '</div>';
-    
-    chartContainer.innerHTML = headerHTML + bodyHTML;
-}
-
-function updateStats() {
-    const statsContainer = document.getElementById('stats');
-    if (!statsContainer || !currentTasks.length) {
-        if(statsContainer) statsContainer.innerHTML = '';
-        return;
-    }
-
-    let completed = 0;
-    let total = currentTasks.length;
-    
-    currentTasks.forEach(t => {
-        if (t.inputData && t.inputData.ranges && t.inputData.ranges.length > 0 && t.inputData.ranges[0].end > 0) {
-            completed++;
-        }
-    });
-
-    const percent = Math.round((completed / total) * 100);
-
-    statsContainer.innerHTML = `
-        <div class="stat-box">
-            <div class="stat-value">${percent}%</div>
-            <div class="stat-label">Terisi</div>
-        </div>
-        <div class="stat-box">
-            <div class="stat-value">${total}</div>
-            <div class="stat-label">Total Tahapan</div>
-        </div>
-    `;
-}
-
-// ==================== LOGIC FUNCTIONS (MISSING PART 2) ====================
-
-function applyTaskSchedule() {
-    // 1. Ambil nilai dari input form
-    currentTasks.forEach(task => {
-        const rangesContainer = document.getElementById(`ranges-${task.id}`);
-        if (!rangesContainer) return;
-
-        const rangeGroups = rangesContainer.querySelectorAll('.range-input-group');
-        let newRanges = [];
-
-        rangeGroups.forEach(group => {
-            const startInput = group.querySelector('input[data-type="start"]');
-            const endInput = group.querySelector('input[data-type="end"]');
-            
-            if (startInput && endInput) {
-                const start = parseInt(startInput.value) || 0;
-                const end = parseInt(endInput.value) || 0;
-
-                if (start > 0 && end >= start) {
-                    newRanges.push({
-                        start: start,
-                        end: end,
-                        duration: end - start + 1
-                    });
-                }
-            }
-        });
-
-        // Update task data
-        task.inputData = { ranges: newRanges };
-        
-        // Update properti utama task (ambil range pertama sebagai default start/durasi)
-        if (newRanges.length > 0) {
-            task.start = newRanges[0].start;
-            task.duration = newRanges[0].duration;
-        } else {
-            task.start = 0;
-            task.duration = 0;
-        }
-    });
-
-    // 2. Kalkulasi ulang berdasarkan dependency (jika ada)
-    calculateDependencyAdjustedSchedule();
-
-    // 3. Render ulang chart dan update input form (agar sinkron dengan hasil kalkulasi)
-    renderChart();
-    renderApiData(); 
-    updateStats();
-    
-    alert("Jadwal berhasil diterapkan!");
-}
-
-function resetTaskSchedule() {
-    if (confirm("Apakah Anda yakin ingin mereset semua input?")) {
-        // Reload data from API (membuang perubahan lokal)
-        if (currentProject) {
-            fetchGanttDataForSelection(currentProject.ulok);
-        }
-    }
-}
-
-async function confirmAndPublish() {
-    if (!currentProject) return;
-
-    if (!confirm("Apakah Anda yakin ingin mengunci dan menerbitkan jadwal ini? Data tidak dapat diubah setelah diterbitkan.")) {
-        return;
-    }
-
-    // Persiapkan payload
-    // Kita kirim seluruh data tasks yang sudah diinput
-    const payload = {
-        ulok: currentProject.ulokClean, // Menggunakan ULOK bersih tanpa suffix -ME/-Sipil
-        lingkup: currentProject.lingkup,
-        project_data: currentProject,
-        tasks: currentTasks.map(t => ({
-            id: t.id,
-            name: t.name,
-            ranges: t.inputData.ranges,
-            dependencies: t.manualDependencies
-        })),
-        publishedAt: new Date().toISOString()
-    };
-
-    try {
-        showLoadingMessage();
-        
-        const response = await fetch(ENDPOINTS.insertData, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-            throw new Error(`Gagal menyimpan data: ${response.status}`);
-        }
-
-        const result = await response.json();
-        alert("✅ Jadwal berhasil diterbitkan!");
-        
-        // Refresh data untuk masuk ke mode terkunci
-        fetchGanttDataForSelection(currentProject.ulok);
-
-    } catch (error) {
-        console.error("Publish error:", error);
-        showErrorMessage(`Gagal menerbitkan jadwal: ${error.message}`);
-    }
-}
-
-function exportToExcel() {
-    if (!currentProject || !currentTasks.length) {
-        alert("Tidak ada data untuk diekspor.");
-        return;
-    }
-
-    let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += "ID,Tahapan Pekerjaan,Mulai (Hari ke),Selesai (Hari ke),Durasi,Dependencies\n";
-
-    currentTasks.forEach(task => {
-        const deps = task.manualDependencies ? task.manualDependencies.join(';') : '';
-        const rangesStr = task.inputData && task.inputData.ranges 
-            ? task.inputData.ranges.map(r => `H${r.start}-H${r.end}`).join(' | ') 
-            : '-';
-        
-        // Ambil data utama dari range pertama untuk kolom CSV sederhana
-        const start = task.start || 0;
-        const end = (task.start + task.duration - 1) || 0;
-            
-        csvContent += `${task.id},"${task.name}",${start},${end},${task.duration},"${deps}"\n`;
-    });
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `Jadwal_${currentProject.ulok}_${currentProject.lingkup}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
 }
 
 // ==================== ADD/REMOVE RANGE FUNCTIONS ====================
@@ -873,19 +600,19 @@ function addRange(taskId) {
             <div class="input-group">
                 <label>H</label>
                 <input type="number" class="task-day-input" 
-                    data-task-id="${taskId}" 
-                    data-type="start" 
-                    data-range-idx="${newIdx}"
-                    value="0" min="0">
+                       data-task-id="${taskId}" 
+                       data-type="start" 
+                       data-range-idx="${newIdx}"
+                       value="0" min="0">
             </div>
             <span class="input-separator">s/d</span>
             <div class="input-group">
                 <label>H</label>
                 <input type="number" class="task-day-input" 
-                    data-task-id="${taskId}" 
-                    data-type="end" 
-                    data-range-idx="${newIdx}"
-                    value="0" min="0">
+                       data-task-id="${taskId}" 
+                       data-type="end" 
+                       data-range-idx="${newIdx}"
+                       value="0" min="0">
             </div>
             <button class="btn-remove-range" onclick="removeRange(${taskId}, ${newIdx})" title="Hapus range">×</button>
         </div>
@@ -907,7 +634,6 @@ function removeRange(taskId, rangeIdx) {
     if (targetRange) {
         targetRange.remove();
         
-        // Re-index sisanya
         const remainingRanges = rangesContainer.querySelectorAll('.range-input-group');
         remainingRanges.forEach((range, newIdx) => {
             range.setAttribute('data-range-idx', newIdx);
@@ -922,140 +648,479 @@ function removeRange(taskId, rangeIdx) {
     }
 }
 
-// ==================== DEPENDENCY MANAGEMENT ====================
-function toggleDependencyManager() {
-    const manager = document.getElementById('dependencyManager');
-    if (manager.style.display === 'none') {
-        renderDependencyManager();
-        manager.style.display = 'block';
-    } else {
-        manager.style.display = 'none';
-    }
-}
+// ==================== CHANGE ULOK (SELECT PROJECT) ====================
+async function changeUlok() {
+    const ulokSelect = document.getElementById('ulokSelect');
+    const selectedUlok = ulokSelect.value;
 
-function renderDependencyManager() {
-    const container = document.getElementById('dependencyManager');
-    if (!currentTasks || currentTasks.length === 0) {
-        container.innerHTML = '<p style="text-align:center;color:#6c757d;">Tidak ada tahapan untuk diatur dependency-nya.</p>';
+    if (!selectedUlok) {
+        currentProject = null;
+        currentTasks = [];
+        hasUserInput = false;
+        showSelectProjectMessage();
         return;
     }
-    
-    let html = '<div class="dependency-card">';
-    html += '<div class="dependency-card-title">⛓️ Atur Ketergantungan Tahapan</div>';
-    html += '<p class="dependency-description">Pilih tahapan yang bergantung pada tahapan lain. Jika tahapan A bergantung pada B, maka A akan otomatis dimulai setelah B selesai.</p>';
-    html += '<div class="dependency-list">';
-    
-    currentTasks.forEach(task => {
-        const deps = task.manualDependencies || [];
-        html += `
-            <div class="dependency-item">
-                <div class="dependency-task-name">
-                    <strong>${escapeHtml(task.name)}</strong>
-                    <span class="dependency-hint">bergantung pada:</span>
-                </div>
-                <div class="dependency-checkboxes" id="dep-checks-${task.id}">
-        `;
-        
-        currentTasks.forEach(potentialDep => {
-            if (potentialDep.id !== task.id) {
-                const isChecked = deps.includes(potentialDep.id);
-                html += `
-                    <label class="dependency-checkbox-label">
-                        <input type="checkbox" 
-                            class="dependency-checkbox" 
-                            data-task-id="${task.id}" 
-                            data-depends-on="${potentialDep.id}"
-                            ${isChecked ? 'checked' : ''}>
-                        <span>${escapeHtml(potentialDep.name)}</span>
-                    </label>
-                `;
-            }
-        });
-        
-        html += '</div></div>';
-    });
-    
-    html += '</div>';
-    html += '<div class="dependency-actions">';
-    html += '<button class="btn-save-dependencies" onclick="saveDependencies()">💾 Simpan Dependency</button>';
-    html += '<button class="btn-cancel-dependencies" onclick="toggleDependencyManager()">Tutup</button>';
-    html += '</div>';
-    html += '</div>';
-    
-    container.innerHTML = html;
+
+    currentProject = projects.find(p => p.ulok === selectedUlok);
+    currentTasks = projectTasks[selectedUlok];
+    hasUserInput = false;
+    isProjectLocked = false;
+
+    fetchGanttDataForSelection(selectedUlok);
+
+    renderProjectInfo();
+    updateStats();
+    document.getElementById('exportButtons').style.display = 'none';
 }
 
-function saveDependencies() {
-    currentTasks.forEach(task => {
-        const checkboxes = document.querySelectorAll(`.dependency-checkbox[data-task-id="${task.id}"]`);
-        const dependencies = [];
-        
-        checkboxes.forEach(cb => {
-            if (cb.checked) {
-                dependencies.push(parseInt(cb.dataset.dependsOn));
-            }
-        });
-        
-        task.manualDependencies = dependencies;
-    });
-    
-    alert('✅ Dependency berhasil disimpan! Klik "Terapkan Jadwal" untuk melihat efeknya.');
-    toggleDependencyManager();
+// ==================== LOGIC SIMPAN & KUNCI ====================
+function confirmAndPublish() {
+    const totalDuration = currentTasks.reduce((acc, t) => acc + t.duration, 0);
+    if (totalDuration === 0) {
+        alert("⚠️ Jadwal masih kosong. Mohon isi durasi dan klik 'Terapkan Jadwal' terlebih dahulu.");
+        return;
+    }
+
+    const isSure = confirm(
+        "KONFIRMASI PENGUNCIAN JADWAL\n\n" +
+        "Apakah Anda yakin ingin MENGUNCI jadwal ini?\n" +
+        "Setelah dikunci, inputan akan hilang dan data tidak dapat diubah lagi.\n\n" +
+        "Lanjutkan?"
+    );
+
+    if (isSure) {
+        saveProjectSchedule("Terkunci");
+    }
 }
 
-function calculateDependencyAdjustedSchedule() {
-    if (!currentTasks || currentTasks.length === 0) return;
-    
-    // Create a copy to avoid modifying original data during calculation
-    const adjustedTasks = JSON.parse(JSON.stringify(currentTasks));
-    
-    // Calculate for each task
-    adjustedTasks.forEach(task => {
-        const deps = task.manualDependencies || [];
+async function saveProjectSchedule(statusType = "Active") {
+    if (!currentProject) return;
+
+    const userEmail = sessionStorage.getItem('loggedInUserEmail') || "user@unknown.com";
+
+    if (!currentProject.ulokClean || !currentProject.work) {
+        alert("⚠️ Data proyek tidak lengkap. Silakan refresh halaman.");
+        return;
+    }
+
+    const isLocking = statusType === "Terkunci";
+    const loadingText = isLocking ? "🔒 Mengunci..." : "💾 Menyimpan...";
+
+    const payload = {
+        "Nomor Ulok": currentProject.ulokClean,
+        "Lingkup_Pekerjaan": currentProject.work.toUpperCase(),
+        "Status": statusType,
+        "Email_Pembuat": userEmail,
+        "Proyek": currentProject.projectType || "Reguler",
+        "Alamat": currentProject.alamat || "-",
+        "Cabang": "HEAD OFFICE",
+        "Nama_Toko": currentProject.store || "-",
+        "Nama_Kontraktor": "PT KONTRAKTOR",
+    };
+
+    const projectStartDate = new Date(currentProject.startDate);
+
+    currentTasks.forEach((task) => {
+        const ranges = task.inputData?.ranges || [];
         
-        if (deps.length > 0) {
-            let maxEndDay = 0;
+        if (ranges.length > 0) {
+            const firstRange = ranges[0];
+            const lastRange = ranges[ranges.length - 1];
             
-            // Find the latest end day from all dependencies
-            deps.forEach(depId => {
-                const depTask = adjustedTasks.find(t => t.id === depId);
-                if (depTask && depTask.inputData && depTask.inputData.ranges) {
-                    depTask.inputData.ranges.forEach(range => {
-                        if (range.end > maxEndDay) {
-                            maxEndDay = range.end;
-                        }
-                    });
+            const tStart = new Date(projectStartDate);
+            tStart.setDate(projectStartDate.getDate() + (firstRange.start - 1));
+            
+            const tEnd = new Date(projectStartDate);
+            tEnd.setDate(projectStartDate.getDate() + (lastRange.end - 1));
+            
+            const formatDateISO = (date) => date.toISOString().split('T')[0];
+            
+            payload[`Kategori_${task.id}`] = task.name;
+            payload[`Hari_Mulai_Kategori_${task.id}`] = formatDateISO(tStart);
+            payload[`Hari_Selesai_Kategori_${task.id}`] = formatDateISO(tEnd);
+            payload[`Keterlambatan_Kategori_${task.id}`] = "0";
+        }
+    });
+
+    const btnTarget = isLocking
+        ? document.querySelector('.btn-publish')
+        : document.querySelector('.btn-apply-schedule');
+
+    const originalText = btnTarget ? btnTarget.innerText : (isLocking ? 'Kunci Jadwal' : 'Terapkan Jadwal');
+
+    if (btnTarget) {
+        btnTarget.innerText = loadingText;
+        btnTarget.disabled = true;
+    }
+
+    try {
+        console.log(`📤 Mengirim Data (${statusType}):`, payload);
+
+        const response = await fetch(ENDPOINTS.insertData, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.message || 'Gagal menyimpan data ke server');
+        }
+
+        if (isLocking) {
+            alert("✅ Sukses! Jadwal telah DIKUNCI.");
+            isProjectLocked = true;
+        } else {
+            alert("✅ Data tersimpan sebagai 'Active'.");
+            isProjectLocked = false;
+        }
+
+        renderApiData();
+        renderChart();
+
+    } catch (error) {
+        console.error("❌ Error saving:", error);
+        alert(`Gagal menyimpan (${statusType}): ` + error.message);
+    } finally {
+        if (btnTarget) {
+            btnTarget.innerText = originalText;
+            btnTarget.disabled = false;
+        }
+    }
+}
+
+// ==================== TASK MANIPULATION ====================
+function applyTaskSchedule(silentMode = false) {
+    if (!currentProject || !currentTasks.length) return false;
+
+    let hasError = false;
+    const updatedTasks = [];
+
+    for (const task of currentTasks) {
+        const rangesContainer = document.getElementById(`ranges-${task.id}`);
+        if (!rangesContainer) {
+            updatedTasks.push(task);
+            continue;
+        }
+
+        const rangeElements = rangesContainer.querySelectorAll('.range-input-group');
+        const ranges = [];
+        let totalDuration = 0;
+        let minStart = Infinity;
+
+        rangeElements.forEach(rangeEl => {
+            const startInput = rangeEl.querySelector('[data-type="start"]');
+            const endInput = rangeEl.querySelector('[data-type="end"]');
+            
+            const startDay = parseInt(startInput.value) || 0;
+            const endDay = parseInt(endInput.value) || 0;
+
+            if (startDay === 0 && endDay === 0) return;
+
+            if (endDay < startDay) {
+                alert(`Error pada ${task.name}: Hari selesai (${endDay}) tidak boleh lebih kecil dari hari mulai (${startDay})!`);
+                hasError = true;
+                return;
+            }
+
+            const duration = endDay - startDay + 1;
+            totalDuration += duration;
+            
+            if (startDay < minStart) {
+                minStart = startDay;
+            }
+
+            ranges.push({ start: startDay, end: endDay, duration });
+        });
+
+        if (hasError) break;
+
+        updatedTasks.push({
+            ...task,
+            start: minStart === Infinity ? 0 : minStart,
+            duration: totalDuration,
+            inputData: { ranges }
+        });
+    }
+
+    if (hasError) return false;
+
+    currentTasks = updatedTasks;
+    projectTasks[currentProject.ulok] = updatedTasks;
+    hasUserInput = true;
+
+    renderChart();
+    updateStats();
+    document.getElementById('exportButtons').style.display = 'flex';
+
+    if (!silentMode) {
+        document.getElementById('ganttChart').scrollIntoView({ behavior: 'smooth' });
+        saveProjectSchedule("Active");
+    }
+
+    return true;
+}
+
+function resetTaskSchedule() {
+    if (!currentProject || !currentTasks) return;
+    currentTasks.forEach(task => {
+        task.start = 0;
+        task.duration = 0;
+        task.inputData = { ranges: [] };
+    });
+    hasUserInput = false;
+    renderApiData();
+    showPleaseInputMessage();
+    if (typeof updateStats === 'function') {
+        updateStats();
+    }
+}
+
+// ==================== HELPER API DATA (RAB) ====================
+function updateProjectFromRab(rabData) {
+    if (!rabData || !currentProject) return;
+    const getFirstNonEmpty = (keys) => {
+        for (const key of keys) {
+            const val = rabData[key];
+            if (val !== undefined && val !== null && String(val).trim() !== '') return val;
+        }
+        return undefined;
+    };
+    const alamat = getFirstNonEmpty(['Alamat', 'alamat']);
+    if (alamat) currentProject.alamat = alamat;
+    const storeVal = getFirstNonEmpty(['Nama Toko', 'Store', 'Nama_Toko']);
+    if (storeVal) currentProject.store = storeVal;
+}
+
+// ==================== RENDERING (INFO & STATS) ====================
+function renderProjectInfo() {
+    if (!currentProject) return;
+    const info = document.getElementById('projectInfo');
+
+    let html = `
+        <div class="project-detail">
+            <div class="project-label">No. Ulok</div>
+            <div class="project-value">${currentProject.ulokClean || currentProject.ulok}</div>
+        </div>
+        <div class="project-detail">
+            <div class="project-label">Jenis Proyek</div>
+            <div class="project-value">${currentProject.projectType}</div>
+        </div>
+        <div class="project-detail">
+            <div class="project-label">Nama Toko</div>
+            <div class="project-value">${currentProject.store}</div>
+        </div>
+        <div class="project-detail">
+            <div class="project-label">Lingkup Pekerjaan</div>
+            <div class="project-value">${currentProject.work}</div>
+        </div>
+    `;
+    info.innerHTML = html;
+}
+
+function updateStats() {
+    if (!currentProject) return;
+    const inputedTasks = currentTasks.filter(t => t.duration > 0);
+    const totalInputed = inputedTasks.length;
+    let maxEnd = 0;
+    if (inputedTasks.length > 0) {
+        inputedTasks.forEach(task => {
+            if (task.inputData && task.inputData.ranges) {
+                task.inputData.ranges.forEach(range => {
+                    if (range.end > maxEnd) {
+                        maxEnd = range.end;
+                    }
+                });
+            }
+        });
+    }
+    const stats = document.getElementById('stats');
+    stats.innerHTML = `
+        <div class="stat-card">
+            <div class="stat-value">${currentTasks.length}</div>
+            <div class="stat-label">Total Tahapan</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">${totalInputed}</div>
+            <div class="stat-label">Tahapan Terinput</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">${maxEnd}</div>
+            <div class="stat-label">Estimasi Selesai (hari)</div>
+        </div>
+    `;
+}
+
+// ==================== CHART RENDERING ====================
+function renderChart() {
+    if (!currentProject) return;
+    const chart = document.getElementById('ganttChart');
+    const DAY_WIDTH = 40;
+
+    let maxTaskEndDay = 0;
+    currentTasks.forEach(task => {
+        if (task.inputData && task.inputData.ranges) {
+            task.inputData.ranges.forEach(range => {
+                if (range.end > maxTaskEndDay) {
+                    maxTaskEndDay = range.end;
                 }
             });
-            
-            // If there are dependencies with valid end dates, adjust this task's start
-            if (maxEndDay > 0) {
-                const newStart = maxEndDay + 1; // Start the day after dependency ends
-                
-                if (task.inputData && task.inputData.ranges && task.inputData.ranges.length > 0) {
-                    const currentFirstStart = task.inputData.ranges[0].start;
-                    const shift = newStart - currentFirstStart;
-                    
-                    // Only shift if dependency requires later start
-                    if (shift > 0) {
-                        task.inputData.ranges = task.inputData.ranges.map(range => ({
-                            start: range.start + shift,
-                            end: range.end + shift,
-                            duration: range.duration
-                        }));
-                        
-                        // Update task's start property
-                        task.start = task.inputData.ranges[0].start;
-                    }
-                }
-            }
         }
     });
     
-    // Update current tasks with adjusted values
-    currentTasks = adjustedTasks;
-    projectTasks[currentProject.ulok] = adjustedTasks;
+    const totalDaysToRender = Math.max(
+        (currentProject.work === 'ME' ? totalDaysME : totalDaysSipil),
+        maxTaskEndDay + 10
+    );
+    
+    const totalChartWidth = totalDaysToRender * DAY_WIDTH;
+    const projectStartDate = new Date(currentProject.startDate);
+
+    let html = '<div class="chart-header">';
+    html += '<div class="task-column">Tahapan</div>';
+    html += `<div class="timeline-column" style="width: ${totalChartWidth}px;">`;
+
+    for (let i = 0; i < totalDaysToRender; i++) {
+        const currentDate = new Date(projectStartDate);
+        currentDate.setDate(projectStartDate.getDate() + i);
+        const isSunday = currentDate.getDay() === 0;
+        const dayNumber = i + 1;
+        
+        html += `
+            <div class="day-header" style="width: ${DAY_WIDTH}px; box-sizing: border-box; ${isSunday ? 'background-color:#ffe3e3;' : ''}">
+                <span class="d-date" style="font-weight:bold; font-size:14px;">${dayNumber}</span>
+            </div>
+        `;
+    }
+    html += '</div></div>';
+    html += '<div class="chart-body">';
+    
+    currentTasks.forEach(task => {
+        if (task.duration === 0) return;
+        
+        const keterlambatan = task.keterlambatan || 0;
+        const ranges = task.inputData?.ranges || [];
+        
+        html += '<div class="task-row">';
+        html += `<div class="task-name">
+            <span>${task.name}</span>
+            <span class="task-duration">Total Durasi: ${task.duration} hari${keterlambatan > 0 ? ` <span style="color: #e53e3e;">(+${keterlambatan} hari delay)</span>` : ''}</span>
+        </div>`;
+        html += `<div class="timeline" style="width: ${totalChartWidth}px;">`;
+        
+        ranges.forEach((range, idx) => {
+            const leftPos = (range.start - 1) * DAY_WIDTH;
+            const widthPos = (range.duration * DAY_WIDTH) - 1;
+            
+            const tStart = new Date(projectStartDate);
+            tStart.setDate(projectStartDate.getDate() + (range.start - 1));
+            const tEnd = new Date(tStart);
+            tEnd.setDate(tStart.getDate() + range.duration - 1);
+            
+            html += `<div class="bar on-time" data-task-id="${task.id}-${idx}" 
+                    style="left: ${leftPos}px; width: ${widthPos}px; box-sizing: border-box;" 
+                    title="${task.name} (Range ${idx + 1}): ${formatDateID(tStart)} - ${formatDateID(tEnd)}">
+                ${range.duration}
+            </div>`;
+        });
+        
+        if (keterlambatan > 0 && ranges.length > 0) {
+            const lastRange = ranges[ranges.length - 1];
+            const lastEnd = new Date(projectStartDate);
+            lastEnd.setDate(projectStartDate.getDate() + lastRange.end - 1);
+            
+            const delayLeftPos = (lastRange.end) * DAY_WIDTH;
+            const delayWidthPos = (keterlambatan * DAY_WIDTH) - 1;
+            const tEndWithDelay = new Date(lastEnd);
+            tEndWithDelay.setDate(lastEnd.getDate() + keterlambatan);
+            
+            html += `<div class="bar delayed" data-task-id="${task.id}-delay" 
+                    style="left: ${delayLeftPos}px; width: ${delayWidthPos}px; box-sizing: border-box; background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);" 
+                    title="Keterlambatan ${task.name}: +${keterlambatan} hari (s/d ${formatDateID(tEndWithDelay)})">
+                +${keterlambatan}
+            </div>`;
+        }
+        
+        html += '</div></div>';
+    });
+    html += '</div>';
+    chart.innerHTML = html;
+    setTimeout(drawDependencyLines, 50);
 }
 
-// Inisialisasi awal
-document.addEventListener('DOMContentLoaded', loadDataAndInit);
+function drawDependencyLines() {
+    const existingSvg = document.querySelector('.dependency-svg');
+    if (existingSvg) existingSvg.remove();
+
+    const chartBody = document.querySelector('.chart-body');
+    if (!chartBody) return;
+
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.classList.add('dependency-svg');
+    svg.style.width = `${chartBody.scrollWidth}px`;
+    svg.style.height = `${chartBody.scrollHeight}px`;
+    chartBody.appendChild(svg);
+    const bodyRect = chartBody.getBoundingClientRect();
+
+    currentTasks.forEach(task => {
+        if (task.dependencies && task.dependencies.length > 0) {
+            task.dependencies.forEach(depId => {
+                const fromBar = document.querySelector(`.bar[data-task-id="${depId}"]`);
+                const toBar = document.querySelector(`.bar[data-task-id="${task.id}"]`);
+                if (fromBar && toBar) {
+                    const r1 = fromBar.getBoundingClientRect();
+                    const r2 = toBar.getBoundingClientRect();
+                    const x1 = (r1.right - bodyRect.left) + chartBody.scrollLeft;
+                    const y1 = (r1.top + r1.height / 2 - bodyRect.top) + chartBody.scrollTop;
+                    const x2 = (r2.left - bodyRect.left) + chartBody.scrollLeft;
+                    const y2 = (r2.top + r2.height / 2 - bodyRect.top) + chartBody.scrollTop;
+
+                    const d = `M ${x1} ${y1} C ${x1 + 20} ${y1}, ${x2 - 20} ${y2}, ${x2} ${y2}`;
+                    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    path.setAttribute('d', d);
+                    path.classList.add('dependency-line');
+                    svg.appendChild(path);
+                }
+            });
+        }
+    });
+}
+
+// ==================== EXPORT EXCEL ====================
+function exportToExcel() {
+    if (!currentProject || !currentTasks.length) return;
+    const startDate = new Date(currentProject.startDate);
+    const data = [
+        ["Laporan Jadwal Proyek"],
+        ["No. Ulok", currentProject.ulok],
+        ["Nama Toko", currentProject.store],
+        [],
+        ["No", "Tahapan", "Mulai", "Selesai", "Durasi"]
+    ];
+    currentTasks.forEach((task, i) => {
+        if (task.duration === 0) return;
+        const ranges = task.inputData?.ranges || [];
+        if (ranges.length > 0) {
+            const firstRange = ranges[0];
+            const lastRange = ranges[ranges.length - 1];
+            
+            const tStart = new Date(startDate);
+            tStart.setDate(startDate.getDate() + (firstRange.start - 1));
+            const tEnd = new Date(startDate);
+            tEnd.setDate(startDate.getDate() + (lastRange.end - 1));
+            
+            data.push([i + 1, task.name, formatDateID(tStart), formatDateID(tEnd), task.duration]);
+        }
+    });
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Jadwal");
+    XLSX.writeFile(wb, `Jadwal_${currentProject.ulokClean}.xlsx`);
+}
+
+// ==================== START ====================
+loadDataAndInit();
+window.addEventListener('resize', () => {
+    if (currentProject && hasUserInput) drawDependencyLines();
+});
