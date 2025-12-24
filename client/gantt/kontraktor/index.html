@@ -33,23 +33,6 @@
         </div>
         <div class="project-info" id="projectInfo"></div>
         <div class="api-data" id="apiData"></div>
-        
-        <!-- Dependency Management Section -->
-        <div class="dependency-section" id="dependencySection" style="display: none;">
-            <div class="api-card">
-                <div class="api-card-title">⚡ Atur Ketergantungan Tahapan (Dependencies)</div>
-                <p style="color: #6c757d; font-size: 13px; margin-bottom: 15px;">
-                    Pilih tahapan yang harus selesai terlebih dahulu sebelum tahapan lain dimulai. Sistem akan otomatis menyesuaikan jadwal jika terjadi keterlambatan.
-                </p>
-                <div id="dependencyList" class="dependency-list"></div>
-                <div class="task-input-actions">
-                    <button class="btn-apply-schedule" onclick="applyDependencies()">
-                        Simpan Dependency
-                    </button>
-                </div>
-            </div>
-        </div>
-
         <div class="export-buttons" id="exportButtons" style="display: none;">
             <button class="btn-export btn-excel" onclick="exportToExcel()">
                 Export to Excel
@@ -67,10 +50,6 @@
             <div class="legend-item">
                 <div class="legend-color" style="background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);"></div>
                 <span>Terlambat</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #3d9bffff;"></div>
-                <span>Garis Dependency</span>
             </div>
         </div>
     </div>
