@@ -954,58 +954,99 @@ function updateStats() {
 
 // ==================== CHART RENDERING ====================
 function renderChart() {
-    const chartContainer = document.getElementById('ganttChart');
-    chartContainer.innerHTML = ''; // Bersihkan chart sebelumnya
+    if (!currentProject) return;
+    const chart = document.getElementById('ganttChart');
+    const DAY_WIDTH = 40;
 
-    // Validasi data
-    if (!currentProject || !currentTasks || currentTasks.length === 0) {
-        return;
-    }
-
-    const startDate = new Date(currentProject.startDate);
-
-    // Loop langsung ke array data (currentTasks), JANGAN loop elemen DOM/Input
-    currentTasks.forEach((task, index) => {
-        // Lewati jika durasi 0 atau tidak valid
-        if (!task.duration || task.duration === 0) return;
-
-        // Ambil data range (sesuaikan dengan logika exportToExcel Anda)
-        let startDay = task.start || 0;
-        let duration = task.duration;
-
-        // Jika menggunakan ranges (seperti di snippet Excel Anda):
-        const ranges = task.inputData?.ranges || [];
-        if (ranges.length > 0) {
-            const firstRange = ranges[0];
-            const lastRange = ranges[ranges.length - 1];
-            // Hitung start day relatif terhadap project start
-            startDay = firstRange.start - 1; // -1 karena range 1-based index
-            // Duration sudah ada di task.duration
+    let maxTaskEndDay = 0;
+    currentTasks.forEach(task => {
+        if (task.inputData && task.inputData.ranges) {
+            task.inputData.ranges.forEach(range => {
+                if (range.end > maxTaskEndDay) {
+                    maxTaskEndDay = range.end;
+                }
+            });
         }
-
-        // Hitung posisi visual bar (misal 1 hari = 40px, sesuaikan dengan CSS Anda)
-        const DAY_WIDTH = 40; 
-        const leftPos = startDay * DAY_WIDTH;
-        const width = duration * DAY_WIDTH;
-
-        // Buat elemen bar
-        const barElement = document.createElement('div');
-        barElement.className = 'bar'; // Pastikan class ini ada di style.css
-        barElement.style.left = `${leftPos}px`;
-        barElement.style.width = `${width}px`;
-        barElement.style.position = 'absolute';
-        barElement.style.top = `${index * 50}px`; // Sesuaikan tinggi baris
-        
-        // Styling tambahan untuk warna (opsional, sesuaikan logika warna Anda)
-        const isLate = false; // Tambahkan logika keterlambatan jika perlu
-        barElement.style.backgroundColor = isLate ? '#ff6a00' : '#38ef7d';
-        
-        // Tooltip atau Label
-        barElement.title = `${task.name}: ${duration} Hari`;
-        barElement.innerHTML = `<span class="bar-label">${task.name}</span>`;
-
-        chartContainer.appendChild(barElement);
     });
+    
+    const totalDaysToRender = Math.max(
+        (currentProject.work === 'ME' ? totalDaysME : totalDaysSipil),
+        maxTaskEndDay + 10
+    );
+    
+    const totalChartWidth = totalDaysToRender * DAY_WIDTH;
+    const projectStartDate = new Date(currentProject.startDate);
+
+    let html = '<div class="chart-header">';
+    html += '<div class="task-column">Tahapan</div>';
+    html += `<div class="timeline-column" style="width: ${totalChartWidth}px;">`;
+
+    for (let i = 0; i < totalDaysToRender; i++) {
+        const currentDate = new Date(projectStartDate);
+        currentDate.setDate(projectStartDate.getDate() + i);
+        const isSunday = currentDate.getDay() === 0;
+        const dayNumber = i + 1;
+        
+        html += `
+            <div class="day-header" style="width: ${DAY_WIDTH}px; box-sizing: border-box; ${isSunday ? 'background-color:#ffe3e3;' : ''}">
+                <span class="d-date" style="font-weight:bold; font-size:14px;">${dayNumber}</span>
+            </div>
+        `;
+    }
+    html += '</div></div>';
+    html += '<div class="chart-body">';
+    
+    currentTasks.forEach(task => {
+        if (task.duration === 0) return;
+        
+        const keterlambatan = task.keterlambatan || 0;
+        const ranges = task.inputData?.ranges || [];
+        
+        html += '<div class="task-row">';
+        html += `<div class="task-name">
+            <span>${task.name}</span>
+            <span class="task-duration">Total Durasi: ${task.duration} hari${keterlambatan > 0 ? ` <span style="color: #e53e3e;">(+${keterlambatan} hari delay)</span>` : ''}</span>
+        </div>`;
+        html += `<div class="timeline" style="width: ${totalChartWidth}px;">`;
+        
+        ranges.forEach((range, idx) => {
+            const leftPos = (range.start - 1) * DAY_WIDTH;
+            const widthPos = (range.duration * DAY_WIDTH) - 1;
+            
+            const tStart = new Date(projectStartDate);
+            tStart.setDate(projectStartDate.getDate() + (range.start - 1));
+            const tEnd = new Date(tStart);
+            tEnd.setDate(tStart.getDate() + range.duration - 1);
+            
+            html += `<div class="bar on-time" data-task-id="${task.id}-${idx}" 
+                    style="left: ${leftPos}px; width: ${widthPos}px; box-sizing: border-box;" 
+                    title="${task.name} (Range ${idx + 1}): ${formatDateID(tStart)} - ${formatDateID(tEnd)}">
+                ${range.duration}
+            </div>`;
+        });
+        
+        if (keterlambatan > 0 && ranges.length > 0) {
+            const lastRange = ranges[ranges.length - 1];
+            const lastEnd = new Date(projectStartDate);
+            lastEnd.setDate(projectStartDate.getDate() + lastRange.end - 1);
+            
+            const delayLeftPos = (lastRange.end) * DAY_WIDTH;
+            const delayWidthPos = (keterlambatan * DAY_WIDTH) - 1;
+            const tEndWithDelay = new Date(lastEnd);
+            tEndWithDelay.setDate(lastEnd.getDate() + keterlambatan);
+            
+            html += `<div class="bar delayed" data-task-id="${task.id}-delay" 
+                    style="left: ${delayLeftPos}px; width: ${delayWidthPos}px; box-sizing: border-box; background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);" 
+                    title="Keterlambatan ${task.name}: +${keterlambatan} hari (s/d ${formatDateID(tEndWithDelay)})">
+                +${keterlambatan}
+            </div>`;
+        }
+        
+        html += '</div></div>';
+    });
+    html += '</div>';
+    chart.innerHTML = html;
+    setTimeout(drawDependencyLines, 50);
 }
 
 function drawDependencyLines() {
