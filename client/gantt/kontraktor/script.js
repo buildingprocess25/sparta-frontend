@@ -465,95 +465,127 @@ function parseGanttDataToTasks(ganttData, selectedValue) {
 function renderApiData() {
     const container = document.getElementById('apiData');
     if (!container) return;
-
-    if (isLoadingGanttData) {
-        container.innerHTML = `<div class="api-card"><div class="api-card-title">Memuat data...</div></div>`;
-        return;
-    }
-    if (ganttApiError) {
-        container.innerHTML = `<div class="api-card api-error"><div class="api-card-title">Error</div><div class="api-row">${escapeHtml(ganttApiError)}</div></div>`;
-        return;
-    }
-    if (!currentProject || isProjectLocked) {
-        container.innerHTML = ''; // Hide inputs if locked or no project
-        return;
-    }
-
-    let html = '<div class="task-input-card"><h3 style="margin-bottom:15px; padding-left:10px;">Input Jadwal & Ketergantungan</h3>';
     
-    currentTasks.forEach((task, idx) => {
-        html += `<div class="task-input-row-multi" id="task-row-${task.id}">`;
-        
-        // --- Header Nama Task ---
-        html += `<div class="task-input-label-multi">${task.id}. ${task.name}</div>`;
-
-        // --- INPUT DEPENDENCY (BARU) ---
-        // Membuat opsi dropdown dari task lain
-        const depOptions = currentTasks
-            .filter(t => t.id !== task.id) // Tidak boleh depend ke diri sendiri
-            .map(t => {
-                const isSelected = task.dependencies && task.dependencies.includes(t.id);
-                return `<option value="${t.id}" ${isSelected ? 'selected' : ''}>Predecessor: ${t.id}. ${t.name}</option>`;
-            }).join('');
-
-        html += `
-        <div style="padding-left:12px; margin-bottom:10px;">
-            <div class="input-group">
-                <label style="min-width:100px;">Ketergantungan:</label>
-                <select class="task-dependency-select" data-task-id="${task.id}" style="padding:6px; flex:1; border:1px solid #dee2e6; border-radius:6px; background:#fff;">
-                    <option value="">-- Tidak Ada (Bebas) --</option>
-                    ${depOptions}
-                </select>
+    if (isLoadingGanttData) {
+        container.innerHTML = `
+            <div class="api-card">
+                <div class="api-card-title">Memuat data...</div>
+                <div class="api-row">Mohon tunggu sebentar.</div>
+            </div>`;
+        return;
+    }
+    
+    if (ganttApiError) {
+        container.innerHTML = `
+            <div class="api-card api-error">
+                <div class="api-card-title">Gagal memuat data</div>
+                <div class="api-row">${escapeHtml(ganttApiError)}</div>
+            </div>`;
+        return;
+    }
+    
+    if (!currentProject) {
+        container.innerHTML = '';
+        return;
+    }
+    
+    if (isProjectLocked) {
+        container.innerHTML = `
+            <div class="api-card" style="border: 2px solid #48bb78; background: #f0fff4;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div>
+                        <h3 style="color: #2f855a; margin: 0 0 5px 0;">✅ Jadwal Terkunci</h3>
+                        <p style="margin: 0; color: #276749;">Data jadwal sudah diterbitkan dan tidak dapat diubah.</p>
+                    </div>
+                </div>
             </div>
-            <div style="font-size:11px; color:#718096; margin-top:4px;">*Jika dipilih, jadwal akan otomatis mengikuti selesai tahapan tersebut.</div>
-        </div>
         `;
+        document.getElementById('exportButtons').style.display = 'flex';
+        return;
+    }
+    
+    let html = '<div class="api-card task-input-card">';
+    html += '<div class="api-card-title">Input Pengerjaan Tahapan (Multi Range)</div>';
+    html += '<div class="task-input-container">';
 
-        // --- INPUT RANGES (Tanggal) ---
-        html += `<div class="task-ranges-container" id="ranges-${task.id}">`;
+    currentTasks.forEach((task) => {
+        const taskData = task.inputData || { ranges: [] };
+        const ranges = taskData.ranges || [];
         
-        if (task.inputData && task.inputData.ranges && task.inputData.ranges.length > 0) {
-            task.inputData.ranges.forEach((range, rangeIdx) => {
+        html += `
+            <div class="task-input-row-multi" id="task-row-${task.id}">
+                <div class="task-input-label-multi">${escapeHtml(task.name)}</div>
+                <div class="task-ranges-container" id="ranges-${task.id}">
+        `;
+        
+        if (ranges.length > 0) {
+            ranges.forEach((range, idx) => {
                 html += `
-                <div class="range-input-group" data-range-idx="${rangeIdx}">
+                    <div class="range-input-group" data-range-idx="${idx}">
+                        <div class="input-group">
+                            <label>H</label>
+                            <input type="number" class="task-day-input" 
+                                   data-task-id="${task.id}" 
+                                   data-type="start" 
+                                   data-range-idx="${idx}"
+                                   value="${range.start || 0}" min="0">
+                        </div>
+                        <span class="input-separator">s/d</span>
+                        <div class="input-group">
+                            <label>H</label>
+                            <input type="number" class="task-day-input" 
+                                   data-task-id="${task.id}" 
+                                   data-type="end" 
+                                   data-range-idx="${idx}"
+                                   value="${range.end || 0}" min="0">
+                        </div>
+                        <button class="btn-remove-range" onclick="removeRange(${task.id}, ${idx})" title="Hapus range">×</button>
+                    </div>
+                `;
+            });
+        } else {
+            html += `
+                <div class="range-input-group" data-range-idx="0">
                     <div class="input-group">
                         <label>H</label>
-                        <input type="number" class="task-day-input" data-task-id="${task.id}" data-type="start" data-range-idx="${rangeIdx}" value="${range.start}" min="0">
+                        <input type="number" class="task-day-input" 
+                               data-task-id="${task.id}" 
+                               data-type="start" 
+                               data-range-idx="0"
+                               value="0" min="0">
                     </div>
                     <span class="input-separator">s/d</span>
                     <div class="input-group">
                         <label>H</label>
-                        <input type="number" class="task-day-input" data-task-id="${task.id}" data-type="end" data-range-idx="${rangeIdx}" value="${range.end}" min="0">
+                        <input type="number" class="task-day-input" 
+                               data-task-id="${task.id}" 
+                               data-type="end" 
+                               data-range-idx="0"
+                               value="0" min="0">
                     </div>
-                    <button class="btn-remove-range" onclick="removeRange(${task.id}, ${rangeIdx})" title="Hapus range">×</button>
-                </div>`;
-            });
-        } else {
-            // Default kosong jika belum ada range
-            html += `
-            <div class="range-input-group" data-range-idx="0">
-                <div class="input-group"><label>H</label><input type="number" class="task-day-input" data-task-id="${task.id}" data-type="start" data-range-idx="0" value="0" min="0"></div>
-                <span class="input-separator">s/d</span>
-                <div class="input-group"><label>H</label><input type="number" class="task-day-input" data-task-id="${task.id}" data-type="end" data-range-idx="0" value="0" min="0"></div>
-                <button class="btn-remove-range" onclick="removeRange(${task.id}, 0)" title="Hapus range">×</button>
-            </div>`;
+                    <button class="btn-remove-range" onclick="removeRange(${task.id}, 0)" title="Hapus range">×</button>
+                </div>
+            `;
         }
-
-        html += `</div>`; // end ranges container
-        html += `<button class="btn-add-range" onclick="addRange(${task.id})">+ Tambah Hari</button>`;
-        html += `</div>`; // end row
+        
+        html += `
+                </div>
+                <button class="btn-add-range" onclick="addRange(${task.id})">+ Tambah Hari</button>
+            </div>
+        `;
     });
-
+    
+    html += '</div>';
     html += `
         <div class="task-input-actions">
-            <button class="btn-apply-schedule" onclick="applyTaskSchedule()">⚡ Terapkan & Hitung Jadwal</button>
+            <button class="btn-apply-schedule" onclick="applyTaskSchedule()">Terapkan Jadwal</button>
             <button class="btn-reset-schedule" onclick="resetTaskSchedule()">Reset</button>
         </div>
         <div class="task-input-actions" style="border-top: none; padding-top: 0;">
             <button class="btn-publish" onclick="confirmAndPublish()">🔒 Kunci Jadwal</button>
         </div>
-    </div>`;
-    
+    `;
+    html += '</div>';
     container.innerHTML = html;
 }
 
@@ -759,114 +791,75 @@ async function saveProjectSchedule(statusType = "Active") {
 }
 
 // ==================== TASK MANIPULATION ====================
-function applyTaskSchedule() {
+function applyTaskSchedule(silentMode = false) {
+    if (!currentProject || !currentTasks.length) return false;
+
     let hasError = false;
-    let tempTasks = JSON.parse(JSON.stringify(currentTasks)); // Copy data
+    const updatedTasks = [];
 
-    // 1. BACA DATA DARI INPUT (Ranges & Dependency)
-    tempTasks.forEach(task => {
-        // Ambil Dependency
-        const depSelect = document.querySelector(`.task-dependency-select[data-task-id="${task.id}"]`);
-        task.dependencies = (depSelect && depSelect.value) ? [parseInt(depSelect.value)] : [];
-
-        // Ambil Ranges (Hari Mulai/Selesai)
+    for (const task of currentTasks) {
         const rangesContainer = document.getElementById(`ranges-${task.id}`);
-        if (!rangesContainer) return;
+        if (!rangesContainer) {
+            updatedTasks.push(task);
+            continue;
+        }
 
-        const rangeGroups = rangesContainer.querySelectorAll('.range-input-group');
-        let ranges = [];
-        let minStart = Infinity;
-        let maxEnd = 0;
+        const rangeElements = rangesContainer.querySelectorAll('.range-input-group');
+        const ranges = [];
         let totalDuration = 0;
+        let minStart = Infinity;
 
-        rangeGroups.forEach(group => {
-            const startInput = group.querySelector('input[data-type="start"]');
-            const endInput = group.querySelector('input[data-type="end"]');
+        rangeElements.forEach(rangeEl => {
+            const startInput = rangeEl.querySelector('[data-type="start"]');
+            const endInput = rangeEl.querySelector('[data-type="end"]');
+            
             const startDay = parseInt(startInput.value) || 0;
             const endDay = parseInt(endInput.value) || 0;
 
-            if (startDay === 0 && endDay === 0) return; // Skip kosong
-            
-            // Validasi dasar
+            if (startDay === 0 && endDay === 0) return;
+
             if (endDay < startDay) {
-                alert(`Error pada ${task.name}: Hari selesai (${endDay}) tidak boleh < mulai (${startDay})!`);
+                alert(`Error pada ${task.name}: Hari selesai (${endDay}) tidak boleh lebih kecil dari hari mulai (${startDay})!`);
                 hasError = true;
+                return;
             }
 
-            ranges.push({ start: startDay, end: endDay, duration: (endDay - startDay + 1) });
-            if (startDay < minStart) minStart = startDay;
-            if (endDay > maxEnd) maxEnd = endDay;
-        });
-
-        task.inputData = { ranges: ranges };
-        task.start = (minStart === Infinity) ? 0 : minStart;
-        task.duration = (maxEnd > 0) ? (maxEnd - minStart + 1) : 0;
-    });
-
-    if (hasError) return;
-
-    // 2. LOGIKA DEPENDENCY (AUTO-SHIFT)
-    // Loop beberapa kali untuk memastikan pergeseran berantai teratasi (misal A->B->C)
-    let changed = true;
-    let loopCount = 0;
-    while (changed && loopCount < tempTasks.length) {
-        changed = false;
-        tempTasks.forEach(task => {
-            if (task.dependencies && task.dependencies.length > 0) {
-                const parentId = task.dependencies[0];
-                const parent = tempTasks.find(t => t.id === parentId);
-
-                // Jika parent punya jadwal valid
-                if (parent && parent.inputData.ranges.length > 0) {
-                    // Cari hari terakhir parent selesai
-                    let parentEndDay = 0;
-                    parent.inputData.ranges.forEach(r => {
-                        if (r.end > parentEndDay) parentEndDay = r.end;
-                    });
-
-                    const requiredStart = parentEndDay + 1; // Mulai besoknya
-
-                    // Cek jadwal task ini sekarang
-                    if (task.inputData.ranges.length > 0) {
-                        const currentStart = task.inputData.ranges[0].start; // Asumsi range pertama adalah awal
-                        
-                        // Jika jadwal tidak sesuai (terlalu cepat atau lambat), geser!
-                        // Logic: Pertahankan durasi, geser tanggalnya.
-                        if (currentStart !== requiredStart && currentStart !== 0) {
-                            const shift = requiredStart - currentStart;
-                            
-                            // Geser semua range di task ini
-                            task.inputData.ranges.forEach(r => {
-                                r.start += shift;
-                                r.end += shift;
-                            });
-                            
-                            // Update properti utama
-                            task.start += shift;
-                            
-                            changed = true; // Tandai ada perubahan, ulangi loop untuk anak-anaknya
-                        }
-                    }
-                }
+            const duration = endDay - startDay + 1;
+            totalDuration += duration;
+            
+            if (startDay < minStart) {
+                minStart = startDay;
             }
+
+            ranges.push({ start: startDay, end: endDay, duration });
         });
-        loopCount++;
+
+        if (hasError) break;
+
+        updatedTasks.push({
+            ...task,
+            start: minStart === Infinity ? 0 : minStart,
+            duration: totalDuration,
+            inputData: { ranges }
+        });
     }
 
-    // 3. SIMPAN & RENDER ULANG
-    currentTasks = tempTasks;
-    projectTasks[currentProject.ulok] = tempTasks;
+    if (hasError) return false;
+
+    currentTasks = updatedTasks;
+    projectTasks[currentProject.ulok] = updatedTasks;
     hasUserInput = true;
 
-    // Render ulang input form agar angka hari ter-update otomatis di mata user
-    renderApiData(); 
-    
-    // Render chart visual
-    renderChart(); 
-    
+    renderChart();
     updateStats();
     document.getElementById('exportButtons').style.display = 'flex';
-    saveProjectSchedule("Active");
+
+    if (!silentMode) {
+        document.getElementById('ganttChart').scrollIntoView({ behavior: 'smooth' });
+        saveProjectSchedule("Active");
+    }
+
+    return true;
 }
 
 function resetTaskSchedule() {
@@ -1053,61 +1046,40 @@ function renderChart() {
     });
     html += '</div>';
     chart.innerHTML = html;
-    requestAnimationFrame(() => {
-        drawDependencies();
-    });
+    setTimeout(drawDependencyLines, 50);
 }
 
-function drawDependencies() {
-    // Bersihkan garis lama
+function drawDependencyLines() {
     const existingSvg = document.querySelector('.dependency-svg');
     if (existingSvg) existingSvg.remove();
 
     const chartBody = document.querySelector('.chart-body');
     if (!chartBody) return;
 
-    // Buat layer SVG
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.classList.add('dependency-svg');
-    svg.style.position = 'absolute';
-    svg.style.top = '0';
-    svg.style.left = '0';
     svg.style.width = `${chartBody.scrollWidth}px`;
     svg.style.height = `${chartBody.scrollHeight}px`;
-    svg.style.pointerEvents = 'none'; // Agar bisa klik bar di bawahnya
-    svg.style.zIndex = '15'; // Di atas grid, di bawah task bar
     chartBody.appendChild(svg);
+    const bodyRect = chartBody.getBoundingClientRect();
 
-    // Loop tasks untuk gambar garis
     currentTasks.forEach(task => {
         if (task.dependencies && task.dependencies.length > 0) {
             task.dependencies.forEach(depId => {
                 const fromBar = document.querySelector(`.bar[data-task-id="${depId}"]`);
                 const toBar = document.querySelector(`.bar[data-task-id="${task.id}"]`);
-
                 if (fromBar && toBar) {
-                    const fromRect = fromBar.getBoundingClientRect();
-                    const toRect = toBar.getBoundingClientRect();
-                    const containerRect = chartBody.getBoundingClientRect();
+                    const r1 = fromBar.getBoundingClientRect();
+                    const r2 = toBar.getBoundingClientRect();
+                    const x1 = (r1.right - bodyRect.left) + chartBody.scrollLeft;
+                    const y1 = (r1.top + r1.height / 2 - bodyRect.top) + chartBody.scrollTop;
+                    const x2 = (r2.left - bodyRect.left) + chartBody.scrollLeft;
+                    const y2 = (r2.top + r2.height / 2 - bodyRect.top) + chartBody.scrollTop;
 
-                    // Koordinat relatif terhadap chart-body
-                    const startX = (fromRect.right - containerRect.left) + chartBody.scrollLeft;
-                    const startY = (fromRect.top - containerRect.top) + (fromRect.height / 2) + chartBody.scrollTop;
-                    
-                    const endX = (toRect.left - containerRect.left) + chartBody.scrollLeft;
-                    const endY = (toRect.top - containerRect.top) + (toRect.height / 2) + chartBody.scrollTop;
-
-                    // Gambar Path (Kurva Sederhana)
+                    const d = `M ${x1} ${y1} C ${x1 + 20} ${y1}, ${x2 - 20} ${y2}, ${x2} ${y2}`;
                     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                    // Logic kurva: Garis lurus ke kanan sedikit, lalu turun/naik, lalu masuk ke target
-                    const midX = startX + 15; 
-                    const d = `M ${startX} ${startY} L ${midX} ${startY} L ${midX} ${endY} L ${endX} ${endY}`;
-
                     path.setAttribute('d', d);
-                    path.setAttribute('stroke', '#3d9bff');
-                    path.setAttribute('stroke-width', '2');
-                    path.setAttribute('fill', 'none');
-                    path.setAttribute('marker-end', 'url(#arrowhead)'); // Opsional jika ingin panah
+                    path.classList.add('dependency-line');
                     svg.appendChild(path);
                 }
             });
