@@ -736,10 +736,6 @@ async function saveProjectSchedule(statusType = "Active") {
     // Isi payload utama (flat columns untuk kebutuhan view)
     currentTasks.forEach((task) => {
         const ranges = task.inputData?.ranges || [];
-<<<<<<< HEAD
-=======
-
->>>>>>> 8edd98fffde68a2ee928a22f5e3c1d6b3b4640e6
         if (ranges.length > 0) {
             const firstRange = ranges[0];
             const lastRange = ranges[ranges.length - 1];
@@ -750,11 +746,6 @@ async function saveProjectSchedule(statusType = "Active") {
             const tEnd = new Date(projectStartDate);
             tEnd.setDate(projectStartDate.getDate() + (lastRange.end - 1));
 
-<<<<<<< HEAD
-=======
-            const formatDateISO = (date) => date.toISOString().split('T')[0];
-
->>>>>>> 8edd98fffde68a2ee928a22f5e3c1d6b3b4640e6
             payload[`Kategori_${task.id}`] = task.name;
             payload[`Hari_Mulai_Kategori_${task.id}`] = formatDateISO(tStart);
             payload[`Hari_Selesai_Kategori_${task.id}`] = formatDateISO(tEnd);
@@ -773,7 +764,6 @@ async function saveProjectSchedule(statusType = "Active") {
         btnTarget.disabled = true;
     }
 
-<<<<<<< HEAD
     // 2. Siapkan Payload Detail Harian (FIXED BUG DISINI)
     // Menggunakan array baru untuk setiap entry guna menghindari referensi kosong
     const dayInsertPayload = [];
@@ -817,64 +807,6 @@ async function saveProjectSchedule(statusType = "Active") {
         console.log(`📤 Mengirim Data Utama (${statusType}):`, payload);
         
         // Kirim data utama dulu
-=======
-    // Build payload for day insert endpoint (massive data format)
-    const dayInsertPayload = [];
-    const formatDateDDMMYYYY = (date) => {
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear();
-        return `${day}/${month}/${year}`;
-    };
-
-    // Cache project data to avoid closure issues
-    const projectUlok = String(currentProject.ulokClean);
-    const projectLingkup = String(currentProject.work).toUpperCase();
-
-    for (let t = 0; t < currentTasks.length; t++) {
-        const task = currentTasks[t];
-        const taskName = String(task.name);
-        const ranges = task.inputData?.ranges || [];
-        
-        console.log(`📋 Task: ${taskName}, Ranges count: ${ranges.length}`, JSON.stringify(ranges));
-
-        for (let r = 0; r < ranges.length; r++) {
-            const range = ranges[r];
-            const startDay = parseInt(range.start) || 0;
-            const endDay = parseInt(range.end) || 0;
-            
-            console.log(`   Range ${r}: start=${startDay}, end=${endDay}`);
-            
-            if (startDay > 0 && endDay > 0) {
-                const rangeStart = new Date(projectStartDate.getTime());
-                rangeStart.setDate(rangeStart.getDate() + (startDay - 1));
-
-                const rangeEnd = new Date(projectStartDate.getTime());
-                rangeEnd.setDate(rangeEnd.getDate() + (endDay - 1));
-
-                const newEntry = {
-                    "Nomor Ulok": projectUlok,
-                    "Lingkup_Pekerjaan": projectLingkup,
-                    "Kategori": taskName,
-                    "h_awal": formatDateDDMMYYYY(rangeStart),
-                    "h_akhir": formatDateDDMMYYYY(rangeEnd)
-                };
-                
-                console.log(`   ✅ Adding entry:`, JSON.stringify(newEntry));
-                dayInsertPayload.push(newEntry);
-            }
-        }
-    }
-
-    console.log(`📤 Total Day Insert entries: ${dayInsertPayload.length}`);
-    console.log(`📤 Day Insert Payload:`, JSON.stringify(dayInsertPayload, null, 2));
-
-    try {
-        console.log(`📤 Mengirim Data (${statusType}):`, payload);
-        console.log(`📤 Mengirim Day Insert Data:`, dayInsertPayload);
-
-        // Send to main gantt insert endpoint
->>>>>>> 8edd98fffde68a2ee928a22f5e3c1d6b3b4640e6
         const response = await fetch(ENDPOINTS.insertData, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -886,17 +818,11 @@ async function saveProjectSchedule(statusType = "Active") {
             throw new Error(result.message || 'Gagal menyimpan data ke server');
         }
 
-<<<<<<< HEAD
         // Kirim data harian (jika ada)
         if (dayInsertPayload.length > 0) {
             console.log(`📤 Mengirim ${dayInsertPayload.length} baris ke Day Insert Endpoint...`);
             console.log("🔍 Sample Data:", JSON.stringify(dayInsertPayload[0])); // Debug sample
 
-=======
-        // Send to day insert endpoint if there's data
-        if (dayInsertPayload.length > 0) {
-            console.log(`📤 Mengirim ke Day Insert Endpoint...`);
->>>>>>> 8edd98fffde68a2ee928a22f5e3c1d6b3b4640e6
             const dayResponse = await fetch(ENDPOINTS.dayInsert, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -906,11 +832,7 @@ async function saveProjectSchedule(statusType = "Active") {
             const dayResult = await dayResponse.json();
 
             if (!dayResponse.ok) {
-<<<<<<< HEAD
                 console.warn('⚠️ Gagal insert data harian:', dayResult.message);
-=======
-                console.warn('⚠️ Day insert warning:', dayResult.message || 'Gagal menyimpan data hari');
->>>>>>> 8edd98fffde68a2ee928a22f5e3c1d6b3b4640e6
             } else {
                 console.log('✅ Day insert berhasil:', dayResult);
             }
