@@ -1190,207 +1190,194 @@ function updateStats() {
 
 // ==================== CHART RENDERING ====================
 function renderChart() {
-  if (!currentProject) return
-  const chart = document.getElementById("ganttChart")
-  const DAY_WIDTH = 40
+    if (!currentProject) return
+    const chart = document.getElementById("ganttChart")
+    const DAY_WIDTH = 40
 
-  // Tentukan lebar chart berdasarkan ranges
-  let maxTaskEndDay = 0
-  currentTasks.forEach((task) => {
-    if (task.inputData && task.inputData.ranges && task.inputData.ranges.length > 0) {
-      task.inputData.ranges.forEach((range) => {
-        if (range.end > maxTaskEndDay) {
-          maxTaskEndDay = range.end
+    // Tentukan lebar chart berdasarkan ranges
+    let maxTaskEndDay = 0
+    currentTasks.forEach((task) => {
+        if (task.inputData && task.inputData.ranges && task.inputData.ranges.length > 0) {
+        task.inputData.ranges.forEach((range) => {
+            if (range.end > maxTaskEndDay) {
+            maxTaskEndDay = range.end
+            }
+        })
+        } else {
+        const end = task.start + task.duration
+        if (end > maxTaskEndDay) maxTaskEndDay = end
         }
-      })
-    } else {
-      const end = task.start + task.duration
-      if (end > maxTaskEndDay) maxTaskEndDay = end
-    }
-  })
+    })
 
-  let maxCheckpointDay = 0
-  for (const taskId in checkpoints) {
-    if (checkpoints.hasOwnProperty(taskId)) {
-      checkpoints[taskId].forEach((cp) => {
-        if (cp.day > maxCheckpointDay) {
-          maxCheckpointDay = cp.day
+    let maxCheckpointDay = 0
+    for (const taskId in checkpoints) {
+        if (checkpoints.hasOwnProperty(taskId)) {
+        checkpoints[taskId].forEach((cp) => {
+            if (cp.day > maxCheckpointDay) {
+            maxCheckpointDay = cp.day
+            }
+        })
         }
-      })
     }
-  }
-  const maxDayToRender = Math.max(maxTaskEndDay, maxCheckpointDay)
+    const maxDayToRender = Math.max(maxTaskEndDay, maxCheckpointDay)
 
-  const totalDaysToRender = Math.max(
-    currentProject.work === "ME" ? totalDaysME : totalDaysSipil,
-    maxDayToRender + 10, // Add some buffer
-  )
+    const totalDaysToRender = Math.max(
+        currentProject.work === "ME" ? totalDaysME : totalDaysSipil,
+        maxDayToRender + 10, // Add some buffer
+    )
 
-  const totalChartWidth = totalDaysToRender * DAY_WIDTH
-  const projectStartDate = new Date(currentProject.startDate)
+    const totalChartWidth = totalDaysToRender * DAY_WIDTH
+    const projectStartDate = new Date(currentProject.startDate)
 
-  // Render Header dengan click handler untuk supervision
-  let html = '<div class="chart-header">'
-  html += '<div class="task-column">Tahapan</div>'
-  html += `<div class="timeline-column" style="width: ${totalChartWidth}px;">`
-  for (let i = 0; i < totalDaysToRender; i++) {
-    const currentDate = new Date(projectStartDate)
-    currentDate.setDate(projectStartDate.getDate() + i)
+    // Render Header dengan click handler untuk supervision
+    let html = '<div class="chart-header">'
+    html += '<div class="task-column">Tahapan</div>'
+    html += `<div class="timeline-column" style="width: ${totalChartWidth}px;">`
+    for (let i = 0; i < totalDaysToRender; i++) {
+        const currentDate = new Date(projectStartDate)
+        currentDate.setDate(projectStartDate.getDate() + i)
 
-    const isSunday = currentDate.getDay() === 0
-    const dayNumber = i + 1
-    const isSupervisionDay = supervisionDays[dayNumber] === true
-    const isDefaultSupervision = DEFAULT_SUPERVISION_DAYS.includes(dayNumber)
-    const supervisionClass = isSupervisionDay ? "supervision-active" : ""
-    const defaultSupervisionStyle = isDefaultSupervision ? "background-color: #fbbf24; cursor: not-allowed;" : ""
+        const dayNumber = i + 1
+        const isSupervisionDay = supervisionDays[dayNumber] === true
+        const isDefaultSupervision = DEFAULT_SUPERVISION_DAYS.includes(dayNumber)
+        const supervisionClass = isSupervisionDay ? "supervision-active" : ""
+        const defaultSupervisionStyle = isDefaultSupervision ? "background-color: #fbbf24; cursor: not-allowed;" : ""
 
-    html += `
-                <div class="day-header ${supervisionClass}" 
-                     style="width: ${DAY_WIDTH}px; box-sizing: border-box; ${isSunday ? "background-color:#ffe3e3;" : ""} ${defaultSupervisionStyle}"
-                     onclick="handleSupervisionDayClick(${dayNumber}, this)"
-                     title="${isDefaultSupervision ? "Hari Pengawasan Default (tidak dapat diubah)" : isSupervisionDay ? "Hari Pengawasan - Klik untuk menghapus" : "Klik untuk menerapkan pengawasan"}">
-                    <span class="d-date" style="font-weight:bold; font-size:14px;">${dayNumber}</span>
-                </div>
-            `
-  }
-  html += "</div></div>"
-
-  // Render Body
-  html += '<div class="chart-body">'
-  currentTasks.forEach((task) => {
-    const ranges = task.inputData?.ranges || []
-
-    // Skip tasks that have no ranges/bars to display
-    if (ranges.length === 0 && task.duration === 0) return
-
-    const keterlambatan = task.keterlambatan || 0
-
-    // Calculate total duration from ranges if available
-    const totalDuration = task.duration > 0 ? task.duration : ranges.reduce((sum, r) => sum + (r.duration || 0), 0)
-
-    html += '<div class="task-row">'
-    html += `<div class="task-name">
-            <span>${task.name}</span>
-            <span class="task-duration">Total Durasi: ${totalDuration} hari${keterlambatan > 0 ? ` <span style="color: #e53e3e;">(+${keterlambatan} hari delay)</span>` : ""}</span>
-        </div>`
-    html += `<div class="timeline" style="width: ${totalChartWidth}px;">`
-
-    // Render bars from ranges if available
-    if (ranges.length > 0) {
-      ranges.forEach((range, idx) => {
-        const leftPos = (range.start - 1) * DAY_WIDTH
-        const widthPos = range.duration * DAY_WIDTH - 1
-
-        const tStart = new Date(projectStartDate)
-        tStart.setDate(projectStartDate.getDate() + (range.start - 1))
-        const tEnd = new Date(tStart)
-        tEnd.setDate(tStart.getDate() + range.duration - 1)
-
-        html += `<div class="bar on-time" data-task-id="${task.id}-${idx}"
-                        style="left: ${leftPos}px; width: ${widthPos}px; box-sizing: border-box;"
-                        title="${task.name} (Range ${idx + 1}): ${formatDateID(tStart)} - ${formatDateID(tEnd)}">
-                    ${range.duration}
-                </div>`
-      })
-
-      // Bar keterlambatan (merah) - setelah range terakhir
-      if (keterlambatan > 0) {
-        const lastRange = ranges[ranges.length - 1]
-        const lastEnd = new Date(projectStartDate)
-        lastEnd.setDate(projectStartDate.getDate() + lastRange.end - 1)
-
-        const delayLeftPos = lastRange.end * DAY_WIDTH
-        const delayWidthPos = keterlambatan * DAY_WIDTH - 1
-        const tEndWithDelay = new Date(lastEnd)
-        tEndWithDelay.setDate(lastEnd.getDate() + keterlambatan)
-
-        html += `<div class="bar delayed" data-task-id="${task.id}-delay"
-                        style="left: ${delayLeftPos}px; width: ${delayWidthPos}px; box-sizing: border-box; background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);"
-                        title="Keterlambatan ${task.name}: +${keterlambatan} hari (s/d ${formatDateID(tEndWithDelay)})">
-                    +${keterlambatan}
-                </div>`
-      }
-    } else {
-      // Fallback to old single-bar rendering if no ranges
-      const leftPos = (task.start - 1) * DAY_WIDTH
-      const widthPos = task.duration * DAY_WIDTH
-
-      const tStart = new Date(projectStartDate)
-      tStart.setDate(projectStartDate.getDate() + (task.start - 1))
-      const tEnd = new Date(tStart)
-      tEnd.setDate(tStart.getDate() + task.duration - 1)
-
-      html += `<div class="bar on-time" data-task-id="${task.id}"
-                    style="left: ${leftPos}px; width: ${widthPos}px;"
-                    title="${task.name}: ${formatDateID(tStart)} - ${formatDateID(tEnd)}">
-                ${task.duration}h
-            </div>`
-
-      // Bar keterlambatan (merah)
-      if (keterlambatan > 0) {
-        const delayLeftPos = leftPos + widthPos
-        const delayWidthPos = keterlambatan * DAY_WIDTH
-        const tEndWithDelay = new Date(tEnd)
-        tEndWithDelay.setDate(tEnd.getDate() + keterlambatan)
-
-        html += `<div class="bar delayed" data-task-id="${task.id}-delay"
-                        style="left: ${delayLeftPos}px; width: ${delayWidthPos}px; background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);"
-                        title="Keterlambatan ${task.name}: +${keterlambatan} hari (s/d ${formatDateID(tEndWithDelay)})">
-                    +${keterlambatan}h
-                </div>`
-      }
+        html += `
+                    <div class="day-header ${supervisionClass}" 
+                        style="width: ${DAY_WIDTH}px; box-sizing: border-box; : ""} ${defaultSupervisionStyle}"
+                        onclick="handleSupervisionDayClick(${dayNumber}, this)"
+                        title="${isDefaultSupervision ? "Hari Pengawasan Default (tidak dapat diubah)" : isSupervisionDay ? "Hari Pengawasan - Klik untuk menghapus" : "Klik untuk menerapkan pengawasan"}">
+                        <span class="d-date" style="font-weight:bold; font-size:14px;">${dayNumber}</span>
+                    </div>
+                `
     }
-
     html += "</div></div>"
 
-    if (checkpoints[task.id]) {
-      checkpoints[task.id].forEach((cp) => {
-        const cpLeftPos = (cp.day - 1) * DAY_WIDTH
-        html += `
-                        <div class="checkpoint-marker" onclick="handleCheckpointClick(${task.id}, ${cp.day})"
-                             style="left: ${cpLeftPos}px;"
-                             title="Checkpoint: ${cp.taskName} - Hari ${cp.day}">
-                            <div class="checkpoint-label">CP ${cp.day}</div>
-                        </div>
-                    `
-      })
-    }
+    // Render Body
+    html += '<div class="chart-body">'
+    currentTasks.forEach((task) => {
+        const ranges = task.inputData?.ranges || []
 
-    // Add supervision markers
-    for (const dayNumber in supervisionDays) {
-      if (supervisionDays[dayNumber]) {
-        const dayInt = Number.parseInt(dayNumber, 10)
-        if (dayInt >= task.start && dayInt <= task.start + task.duration - 1) {
-          // Check if day falls within task duration
-          const markerLeftPos = (dayInt - 1) * DAY_WIDTH
-          html += `
-                        <div class="supervision-marker"
-                             style="left: ${markerLeftPos}px;"
-                             title="Hari Pengawasan: Hari ${dayInt}">
-                        </div>
-                    `
+        // Skip tasks that have no ranges/bars to display
+        if (ranges.length === 0 && task.duration === 0) return
+
+        const keterlambatan = task.keterlambatan || 0
+
+        // Calculate total duration from ranges if available
+        const totalDuration = task.duration > 0 ? task.duration : ranges.reduce((sum, r) => sum + (r.duration || 0), 0)
+
+        html += '<div class="task-row">'
+        html += `<div class="task-name">
+                <span>${task.name}</span>
+                <span class="task-duration">Total Durasi: ${totalDuration} hari${keterlambatan > 0 ? ` <span style="color: #e53e3e;">(+${keterlambatan} hari delay)</span>` : ""}</span>
+            </div>`
+        html += `<div class="timeline" style="width: ${totalChartWidth}px;">`
+
+        // Render bars from ranges if available
+        if (ranges.length > 0) {
+        ranges.forEach((range, idx) => {
+            const leftPos = (range.start - 1) * DAY_WIDTH
+            const widthPos = range.duration * DAY_WIDTH - 1
+
+            const tStart = new Date(projectStartDate)
+            tStart.setDate(projectStartDate.getDate() + (range.start - 1))
+            const tEnd = new Date(tStart)
+            tEnd.setDate(tStart.getDate() + range.duration - 1)
+
+            html += `<div class="bar on-time" data-task-id="${task.id}-${idx}"
+                            style="left: ${leftPos}px; width: ${widthPos}px; box-sizing: border-box;"
+                            title="${task.name} (Range ${idx + 1}): ${formatDateID(tStart)} - ${formatDateID(tEnd)}">
+                        ${range.duration}
+                    </div>`
+        })
+
+        // Bar keterlambatan (merah) - setelah range terakhir
+        if (keterlambatan > 0) {
+            const lastRange = ranges[ranges.length - 1]
+            const lastEnd = new Date(projectStartDate)
+            lastEnd.setDate(projectStartDate.getDate() + lastRange.end - 1)
+
+            const delayLeftPos = lastRange.end * DAY_WIDTH
+            const delayWidthPos = keterlambatan * DAY_WIDTH - 1
+            const tEndWithDelay = new Date(lastEnd)
+            tEndWithDelay.setDate(lastEnd.getDate() + keterlambatan)
+
+            html += `<div class="bar delayed" data-task-id="${task.id}-delay"
+                            style="left: ${delayLeftPos}px; width: ${delayWidthPos}px; box-sizing: border-box; background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);"
+                            title="Keterlambatan ${task.name}: +${keterlambatan} hari (s/d ${formatDateID(tEndWithDelay)})">
+                        +${keterlambatan}
+                    </div>`
         }
-      }
-    }
-  })
-  html += "</div>"
+        } else {
+        // Fallback to old single-bar rendering if no ranges
+        const leftPos = (task.start - 1) * DAY_WIDTH
+        const widthPos = task.duration * DAY_WIDTH
 
-  chart.innerHTML = html
+        const tStart = new Date(projectStartDate)
+        tStart.setDate(projectStartDate.getDate() + (task.start - 1))
+        const tEnd = new Date(tStart)
+        tEnd.setDate(tStart.getDate() + task.duration - 1)
 
-  const chartContainer = document.getElementById("ganttChart")
-  const legendHtml = `
-    <div style="margin-top: 20px; padding: 12px; background-color: #f9fafb; border-radius: 6px; border-left: 4px solid #fbbf24;">
-      <div style="font-weight: bold; margin-bottom: 8px; color: #111827;">Keterangan:</div>
-      <div style="display: flex; align-items: center; gap: 8px; color: #4b5563;">
-        <div style="width: 20px; height: 20px; background-color: #fbbf24; border-radius: 4px;"></div>
-        <span>Hari Pengawasan (Hari 1-3 adalah default dan tidak dapat diubah)</span>
-      </div>
-    </div>
-  `
-  chartContainer.insertAdjacentHTML("afterend", legendHtml)
+        html += `<div class="bar on-time" data-task-id="${task.id}"
+                        style="left: ${leftPos}px; width: ${widthPos}px;"
+                        title="${task.name}: ${formatDateID(tStart)} - ${formatDateID(tEnd)}">
+                    ${task.duration}h
+                </div>`
 
-  // Draw lines after render
-  setTimeout(drawDependencyLines, 50)
+        // Bar keterlambatan (merah)
+        if (keterlambatan > 0) {
+            const delayLeftPos = leftPos + widthPos
+            const delayWidthPos = keterlambatan * DAY_WIDTH
+            const tEndWithDelay = new Date(tEnd)
+            tEndWithDelay.setDate(tEnd.getDate() + keterlambatan)
+
+            html += `<div class="bar delayed" data-task-id="${task.id}-delay"
+                            style="left: ${delayLeftPos}px; width: ${delayWidthPos}px; background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);"
+                            title="Keterlambatan ${task.name}: +${keterlambatan} hari (s/d ${formatDateID(tEndWithDelay)})">
+                        +${keterlambatan}h
+                    </div>`
+        }
+        }
+
+        html += "</div></div>"
+
+        if (checkpoints[task.id]) {
+        checkpoints[task.id].forEach((cp) => {
+            const cpLeftPos = (cp.day - 1) * DAY_WIDTH
+            html += `
+                            <div class="checkpoint-marker" onclick="handleCheckpointClick(${task.id}, ${cp.day})"
+                                style="left: ${cpLeftPos}px;"
+                                title="Checkpoint: ${cp.taskName} - Hari ${cp.day}">
+                                <div class="checkpoint-label">CP ${cp.day}</div>
+                            </div>
+                        `
+        })
+        }
+
+        // Add supervision markers
+        for (const dayNumber in supervisionDays) {
+        if (supervisionDays[dayNumber]) {
+            const dayInt = Number.parseInt(dayNumber, 10)
+            if (dayInt >= task.start && dayInt <= task.start + task.duration - 1) {
+            // Check if day falls within task duration
+            const markerLeftPos = (dayInt - 1) * DAY_WIDTH
+            html += `
+                            <div class="supervision-marker"
+                                style="left: ${markerLeftPos}px;"
+                                title="Hari Pengawasan: Hari ${dayInt}">
+                            </div>
+                        `
+            }
+        }
+        }
+    })
+    html += "</div>"
+
+    chart.innerHTML = html
+
+    // Draw lines after render
+    setTimeout(drawDependencyLines, 50)
 }
 
 function drawDependencyLines() {
