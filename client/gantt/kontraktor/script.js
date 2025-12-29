@@ -19,6 +19,7 @@ let isLoadingGanttData = false;
 let hasUserInput = false;
 let isProjectLocked = false;
 let filteredCategories = null;
+let dayGanttData = null;
 
 // ==================== TASK TEMPLATES ====================
 const taskTemplateME = [
@@ -126,6 +127,7 @@ function showSelectProjectMessage() {
     hasUserInput = false;
     isProjectLocked = false;
     filteredCategories = null;
+    dayGanttData = null;
     renderApiData();
 }
 
@@ -299,6 +301,14 @@ async function fetchGanttDataForSelection(selectedValue) {
             filteredCategories = null;
         }
 
+        // Store day_gantt_data if available
+        if (data.day_gantt_data && Array.isArray(data.day_gantt_data)) {
+            dayGanttData = data.day_gantt_data;
+            console.log("📅 day_gantt_data ditemukan:", dayGanttData.length, "entries");
+        } else {
+            dayGanttData = null;
+        }
+
         if (data.gantt_data && typeof data.gantt_data === 'object') {
             console.log("📊 gantt_data ditemukan di response");
 
@@ -313,7 +323,8 @@ async function fetchGanttDataForSelection(selectedValue) {
                 console.log("🔓 Status Project: ACTIVE");
             }
 
-            parseGanttDataToTasks(ganttData, selectedValue);
+            // Parse tasks from gantt_data and day_gantt_data
+            parseGanttDataToTasks(ganttData, selectedValue, dayGanttData);
             hasUserInput = true;
 
         } else {
@@ -324,6 +335,7 @@ async function fetchGanttDataForSelection(selectedValue) {
     } catch (error) {
         console.warn('⚠️ Menggunakan template default:', error.message);
         ganttApiError = null;
+        dayGanttData = null;
 
         if (currentProject) {
             let templateTasks;
@@ -362,7 +374,8 @@ async function fetchGanttDataForSelection(selectedValue) {
         renderProjectInfo();
         renderApiData();
 
-        if (hasUserInput && currentTasks.length > 0) {
+        // Render chart if we have tasks with input data or if project is locked
+        if ((hasUserInput && currentTasks.length > 0) || (isProjectLocked && currentTasks.length > 0)) {
             renderChart();
         } else {
             if (ganttApiError) {
@@ -376,7 +389,7 @@ async function fetchGanttDataForSelection(selectedValue) {
 }
 
 // ==================== PARSE GANTT_DATA TO TASKS ====================
-function parseGanttDataToTasks(ganttData, selectedValue) {
+function parseGanttDataToTasks(ganttData, selectedValue, dayGanttDataArray = null) {
     if (!currentProject || !ganttData) return;
 
     let dynamicTasks = [];
@@ -384,10 +397,9 @@ function parseGanttDataToTasks(ganttData, selectedValue) {
     let tempTaskList = [];
     let i = 1;
 
+    // Extract categories from gantt_data
     while (true) {
         const kategoriKey = `Kategori_${i}`;
-        const mulaiKey = `Hari_Mulai_Kategori_${i}`;
-        const selesaiKey = `Hari_Selesai_Kategori_${i}`;
         const keterlambatanKey = `Keterlambatan_Kategori_${i}`;
 
         if (!ganttData.hasOwnProperty(kategoriKey)) {
@@ -395,71 +407,145 @@ function parseGanttDataToTasks(ganttData, selectedValue) {
         }
 
         const kategoriName = ganttData[kategoriKey];
-        const hariMulai = ganttData[mulaiKey];
-        const hariSelesai = ganttData[selesaiKey];
         const keterlambatan = parseInt(ganttData[keterlambatanKey]) || 0;
 
-        if (kategoriName) {
-            let sDate = null;
-            if (hariMulai && hariMulai.trim() !== '') {
-                sDate = new Date(hariMulai);
-                if (!isNaN(sDate.getTime())) {
-                    if (!earliestDate || sDate < earliestDate) {
-                        earliestDate = sDate;
-                    }
-                }
-            }
-
+        if (kategoriName && kategoriName.trim() !== '') {
             tempTaskList.push({
                 id: i,
                 name: kategoriName,
-                rawStart: sDate,
-                rawEnd: hariSelesai ? new Date(hariSelesai) : null,
                 keterlambatan: keterlambatan
             });
         }
         i++;
     }
 
-    if (!earliestDate) {
+    // Parse day_gantt_data to get ranges for each category
+    const categoryRangesMap = {};
+
+    if (dayGanttDataArray && Array.isArray(dayGanttDataArray) && dayGanttDataArray.length > 0) {
+        console.log("📅 Parsing day_gantt_data for ranges...");
+
+        // Find earliest date from day_gantt_data
+        dayGanttDataArray.forEach(entry => {
+            const hAwalStr = entry.h_awal;
+            if (hAwalStr) {
+                const parsedDate = parseDateDDMMYYYY(hAwalStr);
+                if (parsedDate && !isNaN(parsedDate.getTime())) {
+                    if (!earliestDate || parsedDate < earliestDate) {
+                        earliestDate = parsedDate;
+                    }
+                }
+            }
+        });
+
+        if (!earliestDate) {
+            earliestDate = new Date();
+        }
+
+        const projectStartDate = earliestDate;
+        currentProject.startDate = projectStartDate.toISOString().split('T')[0];
+        console.log(`📆 Project Start Date (dari day_gantt_data): ${currentProject.startDate}`);
+
+        const msPerDay = 1000 * 60 * 60 * 24;
+
+        // Group ranges by category
+        dayGanttDataArray.forEach(entry => {
+            const kategori = entry.Kategori;
+            if (!kategori) return;
+
+            const hAwalStr = entry.h_awal;
+            const hAkhirStr = entry.h_akhir;
+
+            if (!hAwalStr || !hAkhirStr) return;
+
+            const startDate = parseDateDDMMYYYY(hAwalStr);
+            const endDate = parseDateDDMMYYYY(hAkhirStr);
+
+            if (!startDate || !endDate || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+                return;
+            }
+
+            const startDay = Math.round((startDate - projectStartDate) / msPerDay) + 1;
+            const endDay = Math.round((endDate - projectStartDate) / msPerDay) + 1;
+            const duration = endDay - startDay + 1;
+
+            if (!categoryRangesMap[kategori]) {
+                categoryRangesMap[kategori] = [];
+            }
+
+            categoryRangesMap[kategori].push({
+                start: startDay > 0 ? startDay : 1,
+                end: endDay > 0 ? endDay : 1,
+                duration: duration > 0 ? duration : 1
+            });
+        });
+
+        console.log("📊 Category Ranges Map:", categoryRangesMap);
+    } else {
+        // No day_gantt_data, use current date as start
         earliestDate = new Date();
+        currentProject.startDate = earliestDate.toISOString().split('T')[0];
+        console.log(`📆 Project Start Date (default): ${currentProject.startDate}`);
     }
 
-    const projectStartDate = earliestDate;
-    currentProject.startDate = projectStartDate.toISOString().split('T')[0];
-    console.log(`📆 Project Start Date (dari gantt_data): ${currentProject.startDate}`);
-    const msPerDay = 1000 * 60 * 60 * 24;
-
+    // Build dynamic tasks with ranges from day_gantt_data
     tempTaskList.forEach(item => {
-        let startDay = 0;
-        let duration = 0;
-        let endDay = 0;
+        // Find matching ranges by normalizing category names
+        const normalizedName = item.name.toLowerCase().trim();
+        let ranges = [];
 
-        if (item.rawStart && item.rawEnd && !isNaN(item.rawStart) && !isNaN(item.rawEnd)) {
-            const diffStartMs = item.rawStart - projectStartDate;
-            const diffEndMs = item.rawEnd - projectStartDate;
+        // Try to find ranges by matching category name
+        for (const [kategori, rangeArray] of Object.entries(categoryRangesMap)) {
+            const normalizedKategori = kategori.toLowerCase().trim();
+            if (normalizedName === normalizedKategori ||
+                normalizedName.includes(normalizedKategori) ||
+                normalizedKategori.includes(normalizedName)) {
+                ranges = rangeArray;
+                break;
+            }
+        }
 
-            startDay = Math.round(diffStartMs / msPerDay) + 1;
-            endDay = Math.round(diffEndMs / msPerDay) + 1;
-            duration = endDay - startDay + 1;
+        // Calculate total duration from all ranges
+        let totalDuration = 0;
+        let minStart = 0;
+
+        if (ranges.length > 0) {
+            totalDuration = ranges.reduce((sum, r) => sum + r.duration, 0);
+            minStart = Math.min(...ranges.map(r => r.start));
         }
 
         dynamicTasks.push({
             id: item.id,
             name: item.name,
-            start: startDay > 0 ? startDay : 0,
-            duration: duration > 0 ? duration : 0,
+            start: minStart,
+            duration: totalDuration,
             dependencies: [],
             keterlambatan: item.keterlambatan || 0,
             inputData: {
-                ranges: startDay > 0 ? [{ start: startDay, end: endDay, duration: duration }] : []
+                ranges: ranges
             }
         });
     });
+
     currentTasks = dynamicTasks;
     projectTasks[selectedValue] = currentTasks;
 
     console.log(`✅ Data API berhasil diparsing: ${currentTasks.length} tahapan ditemukan.`);
+}
+
+// Helper function to parse DD/MM/YYYY date format
+function parseDateDDMMYYYY(dateStr) {
+    if (!dateStr) return null;
+
+    const parts = dateStr.split('/');
+    if (parts.length !== 3) return null;
+
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
+    const year = parseInt(parts[2], 10);
+
+    const date = new Date(year, month, day);
+    return isNaN(date.getTime()) ? null : date;
 }
 
 // ==================== RENDER API DATA ====================
@@ -796,7 +882,7 @@ async function saveProjectSchedule(statusType = "Active") {
                 };
 
                 // Validasi data sebelum push (opsional tapi disarankan)
-                if(rowEntry["Nomor Ulok"] && rowEntry["Kategori"]) {
+                if (rowEntry["Nomor Ulok"] && rowEntry["Kategori"]) {
                     dayInsertPayload.push(rowEntry);
                 }
             }
@@ -805,7 +891,7 @@ async function saveProjectSchedule(statusType = "Active") {
 
     try {
         console.log(`📤 Mengirim Data Utama (${statusType}):`, payload);
-        
+
         // Kirim data utama dulu
         const response = await fetch(ENDPOINTS.insertData, {
             method: 'POST',
@@ -1003,8 +1089,14 @@ function renderProjectInfo() {
 
 function updateStats() {
     if (!currentProject) return;
-    const inputedTasks = currentTasks.filter(t => t.duration > 0);
+
+    // Count tasks that have ranges or duration > 0
+    const inputedTasks = currentTasks.filter(t => {
+        const hasRanges = t.inputData && t.inputData.ranges && t.inputData.ranges.length > 0;
+        return t.duration > 0 || hasRanges;
+    });
     const totalInputed = inputedTasks.length;
+
     let maxEnd = 0;
     if (inputedTasks.length > 0) {
         inputedTasks.forEach(task => {
@@ -1079,15 +1171,21 @@ function renderChart() {
     html += '<div class="chart-body">';
 
     currentTasks.forEach(task => {
-        if (task.duration === 0) return;
+        const ranges = task.inputData?.ranges || [];
+
+        // Skip tasks that have no ranges/bars to display
+        if (ranges.length === 0 && task.duration === 0) return;
 
         const keterlambatan = task.keterlambatan || 0;
-        const ranges = task.inputData?.ranges || [];
+
+        // Calculate total duration from ranges if not set
+        const totalDuration = task.duration > 0 ? task.duration :
+            ranges.reduce((sum, r) => sum + (r.duration || 0), 0);
 
         html += '<div class="task-row">';
         html += `<div class="task-name">
             <span>${task.name}</span>
-            <span class="task-duration">Total Durasi: ${task.duration} hari${keterlambatan > 0 ? ` <span style="color: #e53e3e;">(+${keterlambatan} hari delay)</span>` : ''}</span>
+            <span class="task-duration">Total Durasi: ${totalDuration} hari${keterlambatan > 0 ? ` <span style="color: #e53e3e;">(+${keterlambatan} hari delay)</span>` : ''}</span>
         </div>`;
         html += `<div class="timeline" style="width: ${totalChartWidth}px;">`;
 
