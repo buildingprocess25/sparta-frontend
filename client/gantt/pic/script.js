@@ -861,6 +861,7 @@ async function handleDelayUpdate(action) {
 
 // ==================== CHANGE ULOK (SELECT PROJECT) ====================
 async function changeUlok() {
+  supervisionDays = {} // Clear supervisionDays when project changes
   const ulokSelect = document.getElementById("ulokSelect")
   const selectedUlok = ulokSelect.value
 
@@ -972,6 +973,12 @@ async function saveProjectSchedule(statusType = "Active") {
       }
     }
     console.log("🚀 Adding checkpoints to payload:", payload.checkpoints)
+  }
+
+  // Add supervisionDays to payload if they exist
+  if (Object.keys(supervisionDays).length > 0) {
+    payload.supervision_days = Object.keys(supervisionDays).map(Number)
+    console.log("👁️ Adding supervision days to payload:", payload.supervision_days)
   }
 
   // Indikator Loading di Tombol yang sesuai
@@ -1092,6 +1099,7 @@ function resetTaskSchedule() {
   document.getElementById("exportButtons").style.display = "none"
   checkpoints = {}
   renderCheckpointList()
+  supervisionDays = {} // Reset supervision days on reset
 }
 
 // ==================== HELPER API DATA (RAB) ====================
@@ -1218,7 +1226,7 @@ function renderChart() {
   const totalChartWidth = totalDaysToRender * DAY_WIDTH
   const projectStartDate = new Date(currentProject.startDate)
 
-  // Render Header
+  // Render Header dengan click handler untuk supervision
   let html = '<div class="chart-header">'
   html += '<div class="task-column">Tahapan</div>'
   html += `<div class="timeline-column" style="width: ${totalChartWidth}px;">`
@@ -1228,8 +1236,14 @@ function renderChart() {
 
     const isSunday = currentDate.getDay() === 0
     const dayNumber = i + 1
+    const isSupervisionDay = supervisionDays[dayNumber] === true
+    const supervisionClass = isSupervisionDay ? "supervision-active" : ""
+
     html += `
-                <div class="day-header" style="width: ${DAY_WIDTH}px; box-sizing: border-box; ${isSunday ? "background-color:#ffe3e3;" : ""}">
+                <div class="day-header ${supervisionClass}" 
+                     style="width: ${DAY_WIDTH}px; box-sizing: border-box; ${isSunday ? "background-color:#ffe3e3;" : ""}"
+                     onclick="handleSupervisionDayClick(${dayNumber}, this)"
+                     title="${isSupervisionDay ? "Hari Pengawasan - Klik untuk menghapus" : "Klik untuk menerapkan pengawasan"}">
                     <span class="d-date" style="font-weight:bold; font-size:14px;">${dayNumber}</span>
                 </div>
             `
@@ -1335,6 +1349,23 @@ function renderChart() {
                         </div>
                     `
       })
+    }
+
+    // Add supervision markers
+    for (const dayNumber in supervisionDays) {
+      if (supervisionDays[dayNumber]) {
+        const dayInt = Number.parseInt(dayNumber, 10)
+        if (dayInt >= task.start && dayInt <= task.start + task.duration - 1) {
+          // Check if day falls within task duration
+          const markerLeftPos = (dayInt - 1) * DAY_WIDTH
+          html += `
+                        <div class="supervision-marker" 
+                             style="left: ${markerLeftPos}px;"
+                             title="Hari Pengawasan: Hari ${dayInt}">
+                        </div>
+                    `
+        }
+      }
     }
   })
   html += "</div>"
@@ -1611,6 +1642,29 @@ function renderCheckpointList() {
   })
 
   listContainer.innerHTML = html
+}
+
+// ==================== SUPERVISION DAY HANDLING ====================
+let supervisionDays = {} // Format: { dayNumber: true, ... }
+
+function handleSupervisionDayClick(dayNumber, element) {
+  if (supervisionDays[dayNumber]) {
+    // Sudah ada pengawasan, tanyakan apakah ingin dihapus
+    const confirmDelete = confirm(`Hapus pengawasan?\n\nHari: ${dayNumber}\n\nApakah Anda yakin?`)
+    if (confirmDelete) {
+      delete supervisionDays[dayNumber]
+      element.classList.remove("supervision-active")
+      renderChart() // Re-render to remove the marker
+    }
+  } else {
+    // Belum ada pengawasan, tanyakan apakah ingin diterapkan
+    const confirmAdd = confirm(`Terapkan pengawasan?\n\nHari: ${dayNumber}\n\nApakah Anda yakin?`)
+    if (confirmAdd) {
+      supervisionDays[dayNumber] = true
+      element.classList.add("supervision-active")
+      renderChart() // Re-render to add the marker
+    }
+  }
 }
 
 // ==================== START ====================
