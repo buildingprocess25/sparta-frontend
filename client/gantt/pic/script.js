@@ -710,7 +710,7 @@ function populateTaskOptionsFromGanttData() {
             if (hAwalStr) {
                 const startDate = parseDateDDMMYYYY(hAwalStr)
                 if (startDate && !isNaN(startDate.getTime())) {
-                    hAwalDay = Math.round((startDate - projectStartDate) / msPerDay) + 1
+                    hAwalDay = Math.round((startDate - projectStartDate) / msPerDay) + 0
                     if (hAwalDay < 1) hAwalDay = 1
                 }
             }
@@ -718,7 +718,7 @@ function populateTaskOptionsFromGanttData() {
             if (hAkhirStr) {
                 const endDate = parseDateDDMMYYYY(hAkhirStr)
                 if (endDate && !isNaN(endDate.getTime())) {
-                    hAkhirDay = Math.round((endDate - projectStartDate) / msPerDay) + 1
+                    hAkhirDay = Math.round((endDate - projectStartDate) / msPerDay) + 0
                     if (hAkhirDay < 1) hAkhirDay = 1
                 }
             }
