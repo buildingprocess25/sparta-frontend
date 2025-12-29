@@ -1241,9 +1241,9 @@ function renderChart() {
 
     html += `
                 <div class="day-header ${supervisionClass}" 
-                     style="width: ${DAY_WIDTH}px; box-sizing: border-box; ${isSunday ? "background-color:#ffe3e3;" : ""}"
-                     onclick="handleSupervisionDayClick(${dayNumber}, this)"
-                     title="${isSupervisionDay ? "Hari Pengawasan - Klik untuk menghapus" : "Klik untuk menerapkan pengawasan"}">
+                    style="width: ${DAY_WIDTH}px; box-sizing: border-box; : ""}"
+                    onclick="handleSupervisionDayClick(${dayNumber}, this)"
+                    title="${isSupervisionDay ? "Hari Pengawasan - Klik untuk menghapus" : "Klik untuk menerapkan pengawasan"}">
                     <span class="d-date" style="font-weight:bold; font-size:14px;">${dayNumber}</span>
                 </div>
             `
