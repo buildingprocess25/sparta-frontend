@@ -690,40 +690,53 @@ function populateTaskOptionsFromGanttData() {
 
     // Use dayGanttData if available
     if (dayGanttData && Array.isArray(dayGanttData) && dayGanttData.length > 0) {
-        // Group by kategori to get unique categories with their date ranges
-        const categoryMap = {}
+        // Get project start date for calculating day numbers
+        const projectStartDate = currentProject ? new Date(currentProject.startDate) : new Date()
+        const msPerDay = 1000 * 60 * 60 * 24
 
+        // Create option for each entry in day_gantt_data
         dayGanttData.forEach((entry, index) => {
             const kategori = entry.Kategori
             if (!kategori || kategori.trim() === "") return
 
-            if (!categoryMap[kategori]) {
-                categoryMap[kategori] = {
-                    entries: [],
-                    totalKeterlambatan: 0
+            const hAwalStr = entry.h_awal
+            const hAkhirStr = entry.h_akhir
+            const keterlambatan = entry.keterlambatan || 0
+
+            // Calculate day numbers from dates
+            let hAwalDay = "-"
+            let hAkhirDay = "-"
+
+            if (hAwalStr) {
+                const startDate = parseDateDDMMYYYY(hAwalStr)
+                if (startDate && !isNaN(startDate.getTime())) {
+                    hAwalDay = Math.round((startDate - projectStartDate) / msPerDay) + 1
+                    if (hAwalDay < 1) hAwalDay = 1
                 }
             }
-            categoryMap[kategori].entries.push({
-                index: index,
-                h_awal: entry.h_awal,
-                h_akhir: entry.h_akhir,
-                keterlambatan: entry.keterlambatan || 0
-            })
-            categoryMap[kategori].totalKeterlambatan += (entry.keterlambatan || 0)
-        })
 
-        // Create options for each unique category
-        Object.entries(categoryMap).forEach(([kategori, data]) => {
+            if (hAkhirStr) {
+                const endDate = parseDateDDMMYYYY(hAkhirStr)
+                if (endDate && !isNaN(endDate.getTime())) {
+                    hAkhirDay = Math.round((endDate - projectStartDate) / msPerDay) + 1
+                    if (hAkhirDay < 1) hAkhirDay = 1
+                }
+            }
+
             const option = document.createElement("option")
-            option.value = kategori
+            option.value = index // Use index as value for unique identification
+            option.dataset.index = index
             option.dataset.kategori = kategori
-            option.dataset.keterlambatan = data.totalKeterlambatan
-            option.dataset.entries = JSON.stringify(data.entries)
+            option.dataset.hAwal = hAwalStr || ""
+            option.dataset.hAkhir = hAkhirStr || ""
+            option.dataset.keterlambatan = keterlambatan
 
-            const delayText = data.totalKeterlambatan > 0
-                ? ` (Keterlambatan: ${data.totalKeterlambatan} hari)`
-                : " (Keterlambatan: 0 hari)"
-            option.textContent = kategori + delayText
+            // Format label: Kategori - H{awal} s/d H{akhir} (Keterlambatan: X hari)
+            const dayRangeText = `H${hAwalDay} s/d H${hAkhirDay}`
+            const delayText = keterlambatan > 0
+                ? ` (Keterlambatan: ${keterlambatan} hari)`
+                : ""
+            option.textContent = `${kategori} - ${dayRangeText}${delayText}`
 
             select.appendChild(option)
         })
@@ -810,14 +823,15 @@ async function handleDelayUpdate(action) {
     const taskSelect = document.getElementById("delayTaskSelect")
     const daysInput = document.getElementById("delayDaysInput")
 
-    const taskName = taskSelect.value
+    const selectedValue = taskSelect.value
     const selectedOption = taskSelect.options[taskSelect.selectedIndex]
 
     let days = Number.parseInt(daysInput.value)
-    if (!taskName) return alert("Harap pilih tahapan pekerjaan.")
+    if (selectedValue === "") return alert("Harap pilih tahapan pekerjaan.")
 
     if (action === "reset") {
-        if (!confirm(`Hapus keterlambatan untuk tahapan "${taskName}"?`)) return
+        const kategori = selectedOption?.dataset?.kategori || selectedValue
+        if (!confirm(`Hapus keterlambatan untuk tahapan "${kategori}"?`)) return
         days = 0
     } else {
         if (isNaN(days) || days < 0) return alert("Harap masukkan jumlah hari yang valid.")
@@ -837,42 +851,37 @@ async function handleDelayUpdate(action) {
     }
 
     try {
-        // Check if we have dayGanttData entries for this category
-        const entriesData = selectedOption?.dataset?.entries
+        // Check if we have dayGanttData entry (using index from dataset)
+        const entryIndex = selectedOption?.dataset?.index
 
-        if (entriesData && dayGanttData) {
+        if (entryIndex !== undefined && dayGanttData && dayGanttData[entryIndex]) {
             // Use new endpoint with day_gantt_data format
-            const entries = JSON.parse(entriesData)
+            const dayEntry = dayGanttData[entryIndex]
+            const kategori = selectedOption?.dataset?.kategori || dayEntry.Kategori
 
-            // Send delay update for each entry of this category
-            for (const entry of entries) {
-                const dayEntry = dayGanttData[entry.index]
-                if (!dayEntry) continue
+            const payload = {
+                nomor_ulok: currentProject.ulokClean || currentProject.ulok.split("-").slice(0, -1).join("-"),
+                lingkup_pekerjaan: currentProject.work.toUpperCase(),
+                kategori: kategori.toUpperCase(),
+                h_awal: dayEntry.h_awal,
+                h_akhir: dayEntry.h_akhir,
+                keterlambatan: days
+            }
 
-                const payload = {
-                    nomor_ulok: currentProject.ulokClean || currentProject.ulok.split("-").slice(0, -1).join("-"),
-                    lingkup_pekerjaan: currentProject.work.toUpperCase(),
-                    kategori: taskName.toUpperCase(),
-                    h_awal: dayEntry.h_awal,
-                    h_akhir: dayEntry.h_akhir,
-                    keterlambatan: days
-                }
+            console.log("📤 Sending delay update to day endpoint:", payload)
 
-                console.log("📤 Sending delay update to day endpoint:", payload)
+            const response = await fetch(ENDPOINTS.dayKeterlambatan, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(payload),
+            })
 
-                const response = await fetch(ENDPOINTS.dayKeterlambatan, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(payload),
-                })
+            const result = await response.json()
 
-                const result = await response.json()
-
-                if (!response.ok) {
-                    throw new Error(result.message || "Gagal menyimpan data")
-                }
+            if (!response.ok) {
+                throw new Error(result.message || "Gagal menyimpan data")
             }
 
             alert(action === "reset" ? "✅ Keterlambatan dihapus!" : "✅ Keterlambatan berhasil diterapkan!")
@@ -884,6 +893,7 @@ async function handleDelayUpdate(action) {
         } else {
             // Fallback to old endpoint if no dayGanttData
             const kategoriIndex = selectedOption?.dataset?.kategoriIndex || null
+            const taskName = selectedOption?.textContent || selectedValue
 
             const payload = {
                 "Nomor Ulok": currentProject.ulokClean || currentProject.ulok.split("-").slice(0, -1).join("-"),
