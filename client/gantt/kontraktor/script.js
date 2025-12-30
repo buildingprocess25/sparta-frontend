@@ -20,6 +20,7 @@ let hasUserInput = false;
 let isProjectLocked = false;
 let filteredCategories = null;
 let dayGanttData = null;
+let supervisionDays = {}; // Format: { dayNumber: true, ... }
 
 // ==================== TASK TEMPLATES ====================
 const taskTemplateME = [
@@ -322,6 +323,9 @@ async function fetchGanttDataForSelection(selectedValue) {
                 isProjectLocked = false;
                 console.log("🔓 Status Project: ACTIVE");
             }
+
+            // Parse supervision days from gantt_data
+            parseSupervisionFromGanttData(ganttData);
 
             // Parse tasks from gantt_data and day_gantt_data
             parseGanttDataToTasks(ganttData, selectedValue, dayGanttData);
@@ -1157,7 +1161,7 @@ function renderChart() {
     const totalChartWidth = totalDaysToRender * DAY_WIDTH;
     const projectStartDate = new Date(currentProject.startDate);
 
-    // Render Header
+    // Render Header dengan supervision day highlighting
     let html = '<div class="chart-header">';
     html += '<div class="task-column">Tahapan</div>';
     html += `<div class="timeline-column" style="width: ${totalChartWidth}px;">`;
@@ -1166,10 +1170,13 @@ function renderChart() {
         currentDate.setDate(projectStartDate.getDate() + i);
 
         const dayNumber = i + 1;
+        const isSupervisionDay = supervisionDays[dayNumber] === true;
+        const supervisionClass = isSupervisionDay ? "supervision-active" : "";
 
         html += `
-                <div class="day-header" 
-                    style="width: ${DAY_WIDTH}px; box-sizing: border-box;">
+                <div class="day-header ${supervisionClass}" 
+                    style="width: ${DAY_WIDTH}px; box-sizing: border-box;"
+                    title="${isSupervisionDay ? "Hari Pengawasan" : ""}">
                     <span class="d-date" style="font-weight:bold; font-size:14px;">${dayNumber}</span>
                 </div>
             `;
@@ -1331,6 +1338,31 @@ function exportToExcel() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Jadwal");
     XLSX.writeFile(wb, `Jadwal_${currentProject.ulokClean}.xlsx`);
+}
+
+// ==================== SUPERVISION DAY HANDLING ====================
+// Parse Pengawasan_1 to Pengawasan_10 from gantt_data
+function parseSupervisionFromGanttData(ganttData) {
+    if (!ganttData) return;
+
+    supervisionDays = {}; // Reset supervision days
+
+    // Check Pengawasan_1 to Pengawasan_10
+    for (let i = 1; i <= 10; i++) {
+        const key = `Pengawasan_${i}`;
+        const value = ganttData[key];
+
+        if (value !== undefined && value !== null && value !== "") {
+            // Value contains the day number
+            const dayNum = Number.parseInt(value, 10);
+            if (!isNaN(dayNum) && dayNum > 0) {
+                supervisionDays[dayNum] = true;
+                console.log(`👁️ Pengawasan found: Day ${dayNum} (from ${key})`);
+            }
+        }
+    }
+
+    console.log("📋 Supervision days loaded:", supervisionDays);
 }
 
 // ==================== START ====================
