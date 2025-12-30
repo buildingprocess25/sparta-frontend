@@ -473,10 +473,16 @@ function parseGanttDataToTasks(ganttData, selectedValue, dayGanttDataArray = nul
                 categoryRangesMap[kategori] = [];
             }
 
+            // Parse keterlambatan value
+            const keterlambatanValue = parseInt(entry.keterlambatan, 10) || 0;
+
             categoryRangesMap[kategori].push({
                 start: startDay > 0 ? startDay : 1,
                 end: endDay > 0 ? endDay : 1,
-                duration: duration > 0 ? duration : 1
+                duration: duration > 0 ? duration : 1,
+                keterlambatan: keterlambatanValue,
+                hAwal: hAwalStr,
+                hAkhir: hAkhirStr
             });
         });
 
@@ -1182,10 +1188,14 @@ function renderChart() {
         const totalDuration = task.duration > 0 ? task.duration :
             ranges.reduce((sum, r) => sum + (r.duration || 0), 0);
 
+        // Calculate total delay from all ranges
+        const totalRangeDelay = ranges.reduce((sum, r) => sum + (r.keterlambatan || 0), 0);
+        const displayDelay = totalRangeDelay > 0 ? totalRangeDelay : keterlambatan;
+
         html += '<div class="task-row">';
         html += `<div class="task-name">
             <span>${task.name}</span>
-            <span class="task-duration">Total Durasi: ${totalDuration} hari${keterlambatan > 0 ? ` <span style="color: #e53e3e;">(+${keterlambatan} hari delay)</span>` : ''}</span>
+            <span class="task-duration">Total Durasi: ${totalDuration} hari${displayDelay > 0 ? ` <span style="color: #e53e3e;">(+${displayDelay} hari delay)</span>` : ''}</span>
         </div>`;
         html += `<div class="timeline" style="width: ${totalChartWidth}px;">`;
 
@@ -1198,14 +1208,36 @@ function renderChart() {
             const tEnd = new Date(tStart);
             tEnd.setDate(tStart.getDate() + range.duration - 1);
 
-            html += `<div class="bar on-time" data-task-id="${task.id}-${idx}" 
-                    style="left: ${leftPos}px; width: ${widthPos}px; box-sizing: border-box;" 
-                    title="${task.name} (Range ${idx + 1}): ${formatDateID(tStart)} - ${formatDateID(tEnd)}">
+            // Determine bar color based on delay
+            const hasDelay = range.keterlambatan && range.keterlambatan > 0;
+            const barClass = hasDelay ? "bar on-time has-delay" : "bar on-time";
+            const barStyle = hasDelay
+                ? `left: ${leftPos}px; width: ${widthPos}px; box-sizing: border-box; border: 2px solid #e53e3e;`
+                : `left: ${leftPos}px; width: ${widthPos}px; box-sizing: border-box;`;
+
+            html += `<div class="${barClass}" data-task-id="${task.id}-${idx}" 
+                    style="${barStyle}" 
+                    title="${task.name} (Range ${idx + 1}): ${formatDateID(tStart)} - ${formatDateID(tEnd)}${hasDelay ? ` | Keterlambatan: +${range.keterlambatan} hari` : ''}">
                 ${range.duration}
             </div>`;
+
+            // Render delay bar immediately after this range if it has delay
+            if (range.keterlambatan && range.keterlambatan > 0) {
+                const delayLeftPos = range.end * DAY_WIDTH;
+                const delayWidthPos = range.keterlambatan * DAY_WIDTH - 1;
+                const tEndWithDelay = new Date(tEnd);
+                tEndWithDelay.setDate(tEnd.getDate() + range.keterlambatan);
+
+                html += `<div class="bar delayed" data-task-id="${task.id}-${idx}-delay"
+                        style="left: ${delayLeftPos}px; width: ${delayWidthPos}px; box-sizing: border-box; background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%); opacity: 0.85;"
+                        title="Keterlambatan ${task.name} (Range ${idx + 1}): +${range.keterlambatan} hari (s/d ${formatDateID(tEndWithDelay)})">
+                    +${range.keterlambatan}
+                </div>`;
+            }
         });
 
-        if (keterlambatan > 0 && ranges.length > 0) {
+        // Legacy: Bar keterlambatan dari task level (jika tidak ada delay per range)
+        if (keterlambatan > 0 && totalRangeDelay === 0 && ranges.length > 0) {
             const lastRange = ranges[ranges.length - 1];
             const lastEnd = new Date(projectStartDate);
             lastEnd.setDate(projectStartDate.getDate() + lastRange.end - 1);
