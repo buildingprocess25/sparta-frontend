@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // const PYTHON_API_BASE_URL = "https://building-alfamart.onrender.com";
     const PYTHON_API_BASE_URL = "https://sparta-backend-5hdj.onrender.com"
-    
+
     if (!sessionStorage.getItem('loggedInUserCabang')) {
         window.location.replace('../../auth/pic/login.html');
     }
@@ -121,10 +121,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const showMessage = (text, type = "info") => {
         messageDiv.textContent = text;
-        messageDiv.style.display = "block";
-        if (type === "success") messageDiv.style.backgroundColor = "#28a745";
-        else if (type === "error") messageDiv.style.backgroundColor = "#dc3545";
-        else messageDiv.style.backgroundColor = "#007bff";
+        messageDiv.className = ""; 
+        messageDiv.classList.add("show");
+
+        if (type === "success") {
+            messageDiv.classList.add("status-success");
+        } else if (type === "error") {
+            messageDiv.classList.add("status-error");
+        } else {
+            messageDiv.classList.add("status-info");
+        }
     };
 
     function setCabangCode(cabangName) {

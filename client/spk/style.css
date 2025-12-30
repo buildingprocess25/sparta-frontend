@@ -191,6 +191,48 @@ header h1 {
     text-decoration: underline;
 }
 
+/* --- MESSAGE BOX STYLING --- */
+#message {
+    display: none; /* Default sembunyi */
+    width: 100%;
+    margin-top: 1.5rem; /* Jarak dari tombol submit */
+    padding: 1rem 1.25rem; /* Padding: Atas-Bawah 1rem, Kiri-Kanan 1.25rem */
+    border-radius: 8px; /* Sudut tumpul agar modern */
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    font-weight: 600; /* Teks semi-bold agar terbaca jelas */
+    color: #ffffff; /* Warna teks putih */
+    text-align: center; /* Posisi teks di tengah */
+    line-height: 1.5;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Efek bayangan halus */
+    box-sizing: border-box;
+    opacity: 0; /* Untuk animasi fade-in */
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Class ini akan ditambahkan via JavaScript saat pesan muncul */
+#message.show {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Variasi Warna Status */
+.status-success {
+    background-color: #28a745; /* Hijau Sukses */
+    border-left: 6px solid #1e7e34; /* Aksen garis kiri */
+}
+
+.status-error {
+    background-color: #e53e3e; /* Merah Error (sesuai tema Alfamart) */
+    border-left: 6px solid #c53030;
+}
+
+.status-info {
+    background-color: #3182ce; /* Biru Info */
+    border-left: 6px solid #2b6cb0;
+}
+
 /* --- RESPONSIVE --- */
 @media (max-width: 640px) {
     header {
