@@ -33,7 +33,7 @@ header h1 {
     font-weight: 700;
     letter-spacing: -0.5px;
     color: white;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .container {
@@ -113,14 +113,14 @@ header h1 {
     font-weight: 600;
     backdrop-filter: blur(4px);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .btn-back-header:hover {
     background-color: #ffffff;
     color: #b91c1c;
     transform: translateY(-50%) scale(1.05);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }
 
 .btn-back-header:active {
@@ -188,6 +188,16 @@ header h1 {
     flex-shrink: 0;
 }
 
+.day-header.supervision-active {
+    background: #fbbf24;
+    color: #000;
+    font-weight: 600;
+}
+
+.day-header.supervision-active:hover {
+    background: #f59e0b;
+}
+
 .day-header span.d-date {
     font-weight: bold;
     font-size: 12px;
@@ -196,6 +206,10 @@ header h1 {
 .day-header span.d-month {
     font-size: 9px;
     color: #868e96;
+}
+
+.day-header.supervision-active span.d-month {
+    color: #000;
 }
 
 .month {
@@ -793,16 +807,19 @@ header h1 {
         padding: 1.5rem;
         max-width: 100%;
     }
+
     header {
         flex-direction: column;
         padding: 1.5rem;
         height: auto;
     }
+
     header h1 {
         font-size: 1.5rem;
         margin-top: 1rem;
         text-align: center;
     }
+
     .header-logo {
         position: static;
         transform: none;
@@ -810,16 +827,20 @@ header h1 {
         width: 120px;
         left: auto;
     }
+
     .btn-back-header span {
         display: none;
     }
+
     .btn-back-header {
         padding: 0.6rem;
         border-radius: 50%;
     }
+
     .task-input-actions {
         flex-direction: column;
     }
+
     .btn-apply-schedule,
     .btn-reset-schedule,
     .btn-publish {
