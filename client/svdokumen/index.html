@@ -3,98 +3,101 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Penyimpanan Dokumen</title>
-    <link rel="icon" href="../../assets/favicon.ico" type="image/x-icon">
-    
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    
+    <title>Penyimpanan Dokumen Alfamart</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="shortcut icon" href="https://upload.wikimedia.org/wikipedia/commons/9/9e/Alfamart_logo.svg" type="image/x-icon">
 </head>
 <body>
 
-    <div id="toast" class="toast hidden">Notifikasi</div>
+    <div id="toast" class="toast hidden">Pesan Notifikasi</div>
 
     <div id="loadingModal" class="modal-overlay hidden">
         <div class="modal-box">
             <div class="loader"></div>
-            <p>Memproses...</p>
+            <p>Memproses data...</p>
         </div>
     </div>
 
-    <header>
-        <div class="header-content">
-            <a href="/">
-                <img src="../../assets/Alfamart-Emblem.png" alt="Logo" class="header-logo"/>
-            </a>
-            <h1>Penyimpanan Dokumen</h1>
-            
-            <a href="../../dashboard/pic/index.html" class="btn-back-header">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="19" y1="12" x2="5" y2="12"></line>
-                    <polyline points="12 19 5 12 12 5"></polyline>
-                </svg>
-                <span>Kembali</span>
-            </a>
-        </div>
-    </header>
-
-    <div class="container">
-        
-        <div class="action-bar">
-            <div class="search-group">
-                <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                <input type="text" id="searchInput" placeholder="Cari dokumen...">
+    <section id="dashboardSection">
+        <header class="app-header">
+            <div class="header-content">
+                <div class="header-left">
+                    <h1>Building Process</h1>
+                    <span id="userWelcome">Memuat data user...</span>
+                </div>
+                <div class="header-right">
+                    <button id="backToDashboardBtn" class="btn-secondary">⬅ Kembali ke Dashboard</button>
+                    <button onclick="handleLogout()" class="btn-logout">Logout</button>
+                </div>
             </div>
-            
-            <button id="addDocBtn" class="btn-primary">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                Tambah Dokumen
-            </button>
-        </div>
+        </header>
 
-        <div class="table-container">
-            <table id="docTable">
-                <thead>
-                    <tr>
-                        <th style="width: 50px; text-align: center;">No</th>
-                        <th>Nama Dokumen</th>
-                        <th>Diunggah Oleh</th>
-                        <th>Tanggal</th>
-                        <th style="text-align: center; width: 120px;">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody id="docTableBody">
-                    </tbody>
-            </table>
-        </div>
-        
-        <div id="emptyMessage" class="hidden" style="text-align: center; padding: 3rem; color: #a0aec0;">
-            Belum ada dokumen yang diunggah.
-        </div>
-    </div>
+        <div class="container">
+            <div class="toolbar">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Cari Kode / Nama Toko..." onkeyup="renderTable()">
+                </div>
+                <div class="actions">
+                    <button class="btn-primary" onclick="openAddForm()">+ Tambah Dokumen</button>
+                    <span id="timeInfo" class="time-info-badge">Memuat Jam...</span>
+                </div>
+            </div>
 
-    <div id="uploadModal" class="modal-overlay hidden">
-        <div class="modal-box text-left">
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>Kode Toko</th>
+                            <th>Nama Toko</th>
+                            <th>Cabang</th>
+                            <th>Waktu Upload</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        </tbody>
+                </table>
+            </div>
+
+            <div class="pagination">
+                <button id="prevPage" onclick="changePage(-1)">Sebelumnya</button>
+                <span id="pageInfo">Halaman 1</span>
+                <button id="nextPage" onclick="changePage(1)">Selanjutnya</button>
+            </div>
+        </div>
+    </section>
+
+    <div id="formModal" class="modal-overlay hidden">
+        <div class="modal-content">
             <div class="modal-header">
-                <h3>Unggah Dokumen Baru</h3>
-                <button id="closeModalBtn" class="close-btn">&times;</button>
+                <h3 id="formTitle">Form Dokumen Toko</h3>
+                <button class="close-btn" onclick="closeForm()">×</button>
             </div>
-            <form id="uploadForm" class="modal-body">
-                <div class="form-group">
-                    <label>Nama Dokumen</label>
-                    <input type="text" id="fileNameInput" placeholder="Contoh: Berita Acara..." required>
-                </div>
-                <div class="form-group">
-                    <label>Pilih File (PDF/Gambar)</label>
-                    <input type="file" id="fileInput" required>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" id="cancelBtn" class="btn-secondary">Batal</button>
-                    <button type="submit" class="btn-primary">Simpan</button>
-                </div>
-            </form>
+            <div class="modal-body">
+                <form id="uploadForm">
+                    <input type="hidden" id="editModeKode">
+                    
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Kode Toko</label>
+                            <input type="text" id="kodeToko" required placeholder="Contoh: T123">
+                        </div>
+                        <div class="form-group">
+                            <label>Nama Toko</label>
+                            <input type="text" id="namaToko" required placeholder="Contoh: ALFAMART RAYA">
+                        </div>
+                    </div>
+
+                    <div id="uploadContainer" class="upload-grid">
+                        </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn-secondary" onclick="closeForm()">Batal</button>
+                        <button type="submit" class="btn-save">Simpan Data</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
