@@ -62,18 +62,12 @@ body {
     position: relative;
     min-height: 70px;
 }
-
-/* 1. PERBAIKAN LOGO: Dibatasi tingginya */
 .header-logo {
-    height: 45px; /* Tinggi fix agar tidak raksasa */
-    width: auto;  /* Lebar menyesuaikan proporsi */
-    object-fit: contain;
-    
-    /* Opsional: Beri background putih tipis jika logo transparan/gelap */
-    background: rgba(255, 255, 255, 0.9);
-    padding: 4px 8px;
-    border-radius: 6px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    position: static;
+    transform: none;
+    margin: 0 auto;
+    width: 120px;
+    left: auto;
 }
 
 /* Container Tengah untuk Judul & User Welcome */
