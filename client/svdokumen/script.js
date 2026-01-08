@@ -109,7 +109,7 @@ async function fetchDocuments() {
         // Menggunakan data cabang dari user yang login
         const userCabang = (state.user.cabang === "HEAD OFFICE" || !state.user.cabang) ? "" : state.user.cabang;
         
-        let url = `${BASE_URL}/documents`;
+        let url = `${BASE_URL}/api/doc/list`;
         if (userCabang) url += `?cabang=${encodeURIComponent(userCabang)}`;
 
         const res = await fetch(url);
@@ -310,7 +310,7 @@ document.getElementById("uploadForm").addEventListener("submit", async (e) => {
         files: state.filesToUpload
     };
 
-    const endpoint = state.isEditing ? `${BASE_URL}/update` : `${BASE_URL}/upload`;
+    const endpoint = state.isEditing ? `${BASE_URL}/api/doc/update/{kode}` : `${BASE_URL}/api/doc/update/{kode}`;
 
     setLoading(true);
     try {
@@ -341,7 +341,7 @@ window.deleteDocument = async (kodeToko) => {
 
     setLoading(true);
     try {
-        const res = await fetch(`${BASE_URL}/delete?kode_toko=${kodeToko}`, { method: "DELETE" });
+        const res = await fetch(`${BASE_URL}/api/doc/delete/{kode}`, { method: "DELETE" });
         const result = await res.json();
         
         if (result.ok) {

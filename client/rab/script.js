@@ -978,7 +978,7 @@ async function initializePage() {
                 messageDiv.style.display = 'none';
             }
         } else {
-             messageDiv.style.display = 'none';
+            messageDiv.style.display = 'none';
         }
     } catch (error) {
         console.error("Gagal memuat data status awal:", error);
