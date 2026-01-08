@@ -1,217 +1,191 @@
-/* =========================================
-   STYLE DARI RAB (UNTUK KONSISTENSI VISUAL)
-   ========================================= */
-
+/* GLOBAL STYLE (RAB THEME) */
 body {
     font-family: 'Inter', sans-serif;
     background-color: #f4f7f6;
     margin: 0;
-    padding: 0;
     color: #2d3748;
-    -webkit-font-smoothing: antialiased;
 }
 
-/* Header Style RAB */
+/* HEADER */
 header {
-    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); /* Merah Alfamart */
     color: white;
-    text-align: center;
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 1rem 0;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+}
+
+.header-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
     display: flex;
     align-items: center;
     justify-content: center;
     position: relative;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .header-logo {
-    width: 140px;
-    height: auto;
+    width: 120px;
     position: absolute;
-    left: 25px;
-    top: 50%;
-    transform: translateY(-50%);
+    left: 1.5rem;
 }
 
 header h1 {
-    margin: 0;
-    font-size: 1.75rem;
+    font-size: 1.5rem;
     font-weight: 700;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin: 0;
 }
 
-/* Tombol Kembali di Header */
 .btn-back-header {
     position: absolute;
-    right: 25px;
-    top: 50%;
-    transform: translateY(-50%);
+    right: 1.5rem;
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 6px;
+    gap: 0.5rem;
     color: white;
     text-decoration: none;
-    font-size: 0.9rem;
     font-weight: 500;
-    transition: all 0.3s ease;
+    opacity: 0.9;
+    transition: opacity 0.2s;
 }
-.btn-back-header:hover {
-    background: rgba(255, 255, 255, 0.2);
-}
+.btn-back-header:hover { opacity: 1; }
 
-/* Container Style RAB */
+/* CONTAINER */
 .container {
     max-width: 1200px;
-    margin: 2.5rem auto;
-    background-color: #ffffff;
-    padding: 2.5rem;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    margin: 2rem auto;
+    background: white;
     border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
 }
 
-/* =========================================
-   STYLE SPESIFIK SV DOKUMEN
-   ========================================= */
-
-.section-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: #4a5568;
-    margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 2px solid #e2e8f0;
-}
-
-/* Layout Filter & Search */
-.filter-section {
+/* ACTION BAR (Search & Add Button) */
+.action-bar {
     display: flex;
-    gap: 1.5rem;
-    margin-bottom: 2rem;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    gap: 1rem;
     flex-wrap: wrap;
 }
 
-.input-group {
+.search-group {
+    position: relative;
     flex: 1;
-    min-width: 250px;
+    max-width: 400px;
 }
 
-.input-group label {
-    display: block;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-    color: #4a5568;
-    font-size: 0.9rem;
+.search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #a0aec0;
 }
 
-input[type="text"], select {
+input[type="text"] {
     width: 100%;
-    padding: 0.75rem 1rem;
-    border: 1px solid #cbd5e0;
+    padding: 0.75rem 1rem 0.75rem 2.5rem;
+    border: 1px solid #e2e8f0;
     border-radius: 8px;
-    font-size: 1rem;
-    background-color: #f7fafc;
-    transition: border-color 0.2s;
+    font-size: 0.95rem;
+    transition: all 0.2s;
 }
-
-input[type="text"]:focus, select:focus {
+input[type="text"]:focus {
     border-color: #dc2626;
     outline: none;
     box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
 }
 
-/* Tabel Style */
+/* BUTTONS */
+.btn-primary {
+    background-color: #dc2626;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: background 0.2s;
+}
+.btn-primary:hover { background-color: #b91c1c; }
+
+.btn-secondary {
+    background-color: #edf2f7;
+    color: #4a5568;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-right: 0.5rem;
+}
+.btn-secondary:hover { background-color: #e2e8f0; }
+
+/* TABLE */
 .table-container {
-    overflow-x: auto;
     border: 1px solid #e2e8f0;
     border-radius: 8px;
+    overflow: hidden;
 }
 
-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-thead {
-    background: linear-gradient(to right, #f8f9fa, #e9ecef);
-}
-
+table { width: 100%; border-collapse: collapse; }
+thead { background-color: #f7fafc; }
 th {
-    padding: 12px 16px;
+    padding: 1rem;
     text-align: left;
     font-size: 0.85rem;
     font-weight: 700;
-    text-transform: uppercase;
     color: #4a5568;
-    border-bottom: 2px solid #cbd5e0;
+    text-transform: uppercase;
+    border-bottom: 2px solid #e2e8f0;
 }
-
 td {
-    padding: 12px 16px;
-    border-bottom: 1px solid #e2e8f0;
-    font-size: 0.95rem;
+    padding: 1rem;
+    border-bottom: 1px solid #edf2f7;
     vertical-align: middle;
 }
+tr:last-child td { border-bottom: none; }
+tr:hover { background-color: #fffafa; }
 
-tr:hover {
-    background-color: #fff5f5; /* Tint merah tipis saat hover */
-}
-
-/* Tombol Aksi */
-.btn-action {
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
-    border: none;
-    cursor: pointer;
-    margin: 0 4px;
-    font-size: 1rem;
-    transition: 0.2s;
-}
-
-.btn-download { background-color: #eff6ff; color: #1d4ed8; }
-.btn-download:hover { background-color: #dbeafe; }
-
-.btn-delete { background-color: #fef2f2; color: #dc2626; }
-.btn-delete:hover { background-color: #fee2e2; }
-
-.badge-role {
-    background-color: #edf2f7;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.8rem;
-    font-weight: 600;
-}
-
-/* Utilities */
-.hidden { display: none !important; }
-
-/* Toast */
-.toast {
-    position: fixed; top: 20px; right: 20px;
-    background: #1a202c; color: white;
-    padding: 12px 24px; border-radius: 8px;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    z-index: 50;
-}
-
-/* Loader */
+/* MODAL */
 .modal-overlay {
     position: fixed; inset: 0;
     background: rgba(0,0,0,0.5);
     display: flex; justify-content: center; align-items: center;
     z-index: 100;
+    backdrop-filter: blur(2px);
 }
 .modal-box {
-    background: white; padding: 2rem;
-    border-radius: 12px; text-align: center;
+    background: white;
+    width: 90%; max-width: 500px;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+.modal-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 1.5rem;
+}
+.modal-header h3 { margin: 0; font-size: 1.25rem; }
+.close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; }
+.form-group { margin-bottom: 1rem; }
+.form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem; }
+.form-group input { width: 100%; padding: 0.6rem; border: 1px solid #cbd5e0; border-radius: 6px; }
+
+/* UTILITY */
+.hidden { display: none !important; }
+.toast {
+    position: fixed; top: 20px; right: 20px;
+    background: #2d3748; color: white; padding: 12px 24px;
+    border-radius: 8px; z-index: 200;
 }
 .loader {
     border: 3px solid #f3f3f3; border-top: 3px solid #dc2626;
