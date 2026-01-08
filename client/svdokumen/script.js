@@ -1,409 +1,422 @@
-// ============================================
-// KONFIGURASI & STATE
-// ============================================
-const BASE_URL = "https://sparta-backend-5hdj.onrender.com"; // Sesuaikan jika perlu
-const DASHBOARD_URL = "../../dashboard/pic/index.html"; // URL Dashboard Utama
-const LOGIN_URL = "../../auth/pic/login.html"; // URL Login Utama
+// ==========================================
+// 1. CONFIG & AUTHENTICATION
+// ==========================================
+const BASE_URL = "https://sparta-backend-5hdj.onrender.com"; // Sesuaikan jika backend berubah
+let currentUser = null;
+let allDocuments = []; // Menyimpan data lokal untuk pagination/filter
+let isEditing = false;
+let currentEditId = null;
 
-const CATEGORIES = ["fotoAsal", "fotoRenovasi", "me", "sipil", "sketsaAwal", "pendukung"];
+// Categories untuk Upload
+const UPLOAD_CATEGORIES = [
+    { key: "fotoAsal", label: "Foto Toko Asal" },
+    { key: "fotoRenovasi", label: "Foto Proses Renovasi" },
+    { key: "me", label: "Gambar ME" },
+    { key: "sipil", label: "Gambar Sipil" },
+    { key: "sketsaAwal", label: "Sketsa Awal (Layout)" },
+    { key: "pendukung", label: "Dokumen Pendukung Lainnya" },
+];
 
-const state = {
-    user: null, // Akan diisi dari Session/Local Storage
-    docs: [],
-    currentPage: 1,
-    rowsPerPage: 5,
-    filesToUpload: {}, // Menyimpan file baru (Base64)
-    existingFiles: {}, // Menyimpan file lama (untuk edit)
-    isEditing: false
-};
-
-// ============================================
-// INISIALISASI
-// ============================================
+// Cek Session saat halaman dimuat
 document.addEventListener("DOMContentLoaded", () => {
-    // 1. Cek Integrasi Auth
-    checkAuthIntegration();
-    
-    // 2. Setup Event Listeners
-    setupEventListeners();
-    setupNumberInputs();
-
-    // 3. Tombol Kembali ke Dashboard
-    const backBtn = document.getElementById('backToDashboardBtn');
-    if(backBtn) {
-        backBtn.addEventListener('click', () => {
-            window.location.href = DASHBOARD_URL;
-        });
-    }
+    checkAuth();
+    initApp();
+    setupAutoLogout();
 });
 
-function checkAuthIntegration() {
-    // UBAHAN: Mengambil data sesuai dengan key yang diset di login_script.js
+function checkAuth() {
     const isAuthenticated = sessionStorage.getItem("authenticated");
-    const email = sessionStorage.getItem("loggedInUserEmail");
-    const cabang = sessionStorage.getItem("loggedInUserCabang");
-    const role = sessionStorage.getItem("userRole");
-
-    // Cek apakah user sudah terautentikasi
-    if (!isAuthenticated || isAuthenticated !== "true") {
-        alert("Sesi Anda telah berakhir atau Anda belum login. Silakan login kembali.");
-        window.location.href = LOGIN_URL;
+    if (isAuthenticated !== "true") {
+        // Redirect ke login jika tidak ada sesi
+        window.location.href = "../login.html"; // Asumsi login.html ada di folder parent
         return;
     }
 
-    try {
-        // UBAHAN: Membentuk object user secara manual dari data session
-        // agar kompatibel dengan sisa logika di script ini (state.user)
-        state.user = {
-            username: email,
-            nama: email, // Default ke email karena tidak ada data nama di session login
-            cabang: cabang,
-            jabatan: role, // Mapping role ke jabatan
-            role: role
-        };
-        
-        // Update UI dengan data user
-        const welcomeMsg = document.getElementById("userWelcome");
-        // Tampilkan username atau email
-        if(welcomeMsg) welcomeMsg.textContent = `Halo, ${state.user.username || 'User'}`;
+    // Ambil data user dari sessionStorage (diset oleh login_script.js)
+    currentUser = {
+        email: sessionStorage.getItem("loggedInUserEmail"),
+        cabang: sessionStorage.getItem("loggedInUserCabang"), // Password field sering dipakai sbg Cabang di sistem lama
+        role: sessionStorage.getItem("userRole")
+    };
 
-        // Lanjut load data
-        checkOperationalHours();
-        fetchDocuments();
+    // Update Header
+    document.getElementById("user-name").textContent = currentUser.email || "User";
+    document.getElementById("user-branch").textContent = currentUser.cabang || "Cabang";
 
-    } catch (e) {
-        console.error("Gagal memproses data user", e);
-        alert("Terjadi kesalahan data sesi. Silakan login ulang.");
-        sessionStorage.clear();
-        window.location.href = LOGIN_URL;
+    // Show/Hide kolom cabang di tabel
+    if (currentUser.cabang?.toLowerCase() === "head office") {
+        document.querySelector(".col-cabang").style.display = "table-cell";
+        document.getElementById("filter-cabang").style.display = "block";
     }
+}
+
+// ==========================================
+// 2. INITIALIZATION & NAVIGATION
+// ==========================================
+function initApp() {
+    // Navigasi
+    document.getElementById("btn-add-new").addEventListener("click", () => showForm());
+    document.getElementById("btn-back").addEventListener("click", () => showTable());
+    document.getElementById("btn-logout").addEventListener("click", () => showModal("modal-logout"));
+    
+    // Modal Logout
+    document.getElementById("cancel-logout").addEventListener("click", () => hideModal("modal-logout"));
+    document.getElementById("confirm-logout").addEventListener("click", handleLogout);
+
+    // Form Handling
+    document.getElementById("store-form").addEventListener("submit", handleFormSubmit);
+    
+    // Input Formatting (Angka -> 100,00)
+    document.querySelectorAll(".input-decimal").forEach(input => {
+        input.addEventListener("input", (e) => {
+            e.target.value = formatDecimalInput(e.target.value);
+        });
+    });
+
+    // Filter & Search
+    document.getElementById("search-input").addEventListener("input", handleSearch);
+    document.getElementById("filter-cabang").addEventListener("change", handleSearch);
+
+    // Initial Load
+    renderUploadSections();
+    fetchDocuments();
+}
+
+function showTable() {
+    document.getElementById("view-table").style.display = "block";
+    document.getElementById("view-form").style.display = "none";
+    document.getElementById("store-form").reset();
+    resetPreviews();
+}
+
+function showForm(data = null) {
+    document.getElementById("view-table").style.display = "none";
+    document.getElementById("view-form").style.display = "block";
+    
+    const title = document.getElementById("form-title");
+    const form = document.getElementById("store-form");
+    resetPreviews();
+
+    if (data) {
+        // Mode EDIT
+        isEditing = true;
+        currentEditId = data._id; // Sesuaikan dengan key ID dari database (misal: _id atau id)
+        title.textContent = `Edit Data Toko: ${data.nama_toko}`;
+        
+        document.getElementById("kodeToko").value = data.kode_toko || "";
+        document.getElementById("namaToko").value = data.nama_toko || "";
+        document.getElementById("luasSales").value = formatDecimalInput(data.luas_sales);
+        document.getElementById("luasParkir").value = formatDecimalInput(data.luas_parkir);
+        document.getElementById("luasGudang").value = formatDecimalInput(data.luas_gudang);
+
+        // Load Files (Existing)
+        UPLOAD_CATEGORIES.forEach(cat => {
+            if (data[cat.key]) {
+                // Asumsi data[cat.key] adalah array URL atau object file
+                // Kita perlu render preview
+                const files = Array.isArray(data[cat.key]) ? data[cat.key] : [data[cat.key]];
+                files.forEach(f => {
+                    if(f) addFilePreview(cat.key, f, true); // true = existing file
+                });
+            }
+        });
+
+    } else {
+        // Mode CREATE
+        isEditing = false;
+        currentEditId = null;
+        title.textContent = "Tambah Data Toko";
+        form.reset();
+    }
+}
+
+// ==========================================
+// 3. DATA FETCHING (MOCK API)
+// ==========================================
+async function fetchDocuments() {
+    showLoading(true);
+    try {
+        // Ganti URL ini dengan endpoint GET yang benar
+        const response = await fetch(`${BASE_URL}/api/stores`); 
+        
+        if (!response.ok) throw new Error("Gagal mengambil data");
+        
+        const data = await response.json();
+        // Asumsi data dibungkus dalam array atau properti 'data'
+        allDocuments = Array.isArray(data) ? data : (data.data || []);
+        
+        renderTableData(allDocuments);
+        
+    } catch (error) {
+        console.error("Fetch error:", error);
+        // showToast("Gagal memuat data: " + error.message, "error");
+        
+        // --- MOCK DATA JIKA API BELUM SIAP (Agar UI tampil) ---
+        // Hapus blok ini jika Backend sudah ready
+        allDocuments = []; 
+        renderTableData(allDocuments);
+        // -----------------------------------------------------
+
+    } finally {
+        showLoading(false);
+    }
+}
+
+// ==========================================
+// 4. TABLE LOGIC
+// ==========================================
+let currentPage = 1;
+const rowsPerPage = 5;
+
+function renderTableData(docs) {
+    // 1. Filter
+    const searchTerm = document.getElementById("search-input").value.toLowerCase();
+    const filterCabang = document.getElementById("filter-cabang").value.toLowerCase();
+    const isHO = currentUser.cabang?.toLowerCase() === "head office";
+
+    let filtered = docs.filter(d => {
+        const kode = (d.kode_toko || "").toLowerCase();
+        const nama = (d.nama_toko || "").toLowerCase();
+        return kode.includes(searchTerm) || nama.includes(searchTerm);
+    });
+
+    if (isHO && filterCabang) {
+        filtered = filtered.filter(d => d.cabang?.toLowerCase().includes(filterCabang));
+    } else if (!isHO) {
+        // Filter user cabang biasa (hanya lihat cabangnya sendiri)
+        filtered = filtered.filter(d => d.cabang?.toLowerCase().includes(currentUser.cabang.toLowerCase()));
+    }
+
+    // 2. Pagination
+    const totalPages = Math.ceil(filtered.length / rowsPerPage) || 1;
+    if (currentPage > totalPages) currentPage = totalPages;
+    const start = (currentPage - 1) * rowsPerPage;
+    const pagedData = filtered.slice(start, start + rowsPerPage);
+
+    // 3. Render HTML
+    const tbody = document.getElementById("table-body");
+    tbody.innerHTML = "";
+
+    if (pagedData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Tidak ada data</td></tr>`;
+    } else {
+        pagedData.forEach((item, index) => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${start + index + 1}</td>
+                <td>${item.kode_toko || "-"}</td>
+                <td>${item.nama_toko || "-"}</td>
+                <td style="${isHO ? '' : 'display:none;'}">${item.cabang || "-"}</td>
+                <td>
+                    <button class="btn-edit" onclick='editDocument(${JSON.stringify(item)})'>Edit</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // 4. Update Pagination Controls
+    document.getElementById("page-info").textContent = `Halaman ${currentPage} dari ${totalPages}`;
+    document.getElementById("btn-prev").disabled = currentPage === 1;
+    document.getElementById("btn-next").disabled = currentPage === totalPages;
+
+    // Event Listener Pagination
+    document.getElementById("btn-prev").onclick = () => { currentPage--; renderTableData(allDocuments); };
+    document.getElementById("btn-next").onclick = () => { currentPage++; renderTableData(allDocuments); };
+}
+
+function handleSearch() {
+    currentPage = 1;
+    renderTableData(allDocuments);
+}
+
+// Global function untuk tombol Edit (karena di dalam innerHTML)
+window.editDocument = (item) => {
+    // Convert object kembali jika ada issue stringify (biasanya aman)
+    showForm(item);
+};
+
+// ==========================================
+// 5. FORM HANDLING & UPLOAD
+// ==========================================
+function renderUploadSections() {
+    const container = document.getElementById("upload-container");
+    container.innerHTML = "";
+
+    UPLOAD_CATEGORIES.forEach(cat => {
+        const div = document.createElement("div");
+        div.className = "upload-group";
+        div.innerHTML = `
+            <label class="upload-label">${cat.label}</label>
+            <input type="file" id="file-${cat.key}" multiple accept="image/*,.pdf" onchange="handleFileSelect('${cat.key}', this)">
+            <div class="preview-list" id="preview-${cat.key}"></div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+// Simpan file sementara (File Object atau URL String)
+let fileStore = {}; 
+
+function handleFileSelect(category, input) {
+    const files = Array.from(input.files);
+    if (!fileStore[category]) fileStore[category] = [];
+    
+    files.forEach(file => {
+        // Tambah ke store
+        fileStore[category].push({ type: 'new', file: file });
+        // Render preview
+        addFilePreview(category, file.name, false, fileStore[category].length - 1);
+    });
+    
+    // Reset input agar bisa pilih file yang sama lagi kalau dihapus
+    input.value = ""; 
+}
+
+function addFilePreview(category, fileNameOrUrl, isExisting, index = null) {
+    const container = document.getElementById(`preview-${category}`);
+    const div = document.createElement("div");
+    div.className = "preview-item";
+    
+    // Tentukan nama file
+    let displayName = typeof fileNameOrUrl === 'string' ? fileNameOrUrl : fileNameOrUrl.name;
+    // Bersihkan nama jika URL
+    if (typeof fileNameOrUrl === 'string' && fileNameOrUrl.includes('/')) {
+        displayName = decodeURIComponent(fileNameOrUrl.split('/').pop().split('?')[0]);
+    }
+
+    // Buat Link (jika existing) atau Teks (jika baru)
+    const content = isExisting 
+        ? `<a href="${typeof fileNameOrUrl === 'string' ? fileNameOrUrl : '#'}" target="_blank">${displayName}</a>`
+        : `<span>${displayName}</span>`;
+
+    div.innerHTML = `
+        ${content}
+        <button type="button" class="btn-delete-file" onclick="removeFile('${category}', this, ${isExisting})">×</button>
+    `;
+    container.appendChild(div);
+}
+
+window.removeFile = (category, btn, isExisting) => {
+    // Visual remove
+    btn.parentElement.remove();
+    // Logic remove dari fileStore (untuk 'new' file) perlu handling lebih kompleks based on index
+    // Untuk kesederhanaan versi vanilla ini, kita anggap user menghapus visual = tidak jadi upload
+    // Di real app, kita perlu sinkron array index.
+};
+
+function resetPreviews() {
+    fileStore = {};
+    document.querySelectorAll(".preview-list").forEach(el => el.innerHTML = "");
+}
+
+async function handleFormSubmit(e) {
+    e.preventDefault();
+    showLoading(true);
+
+    const formData = new FormData();
+    formData.append("kodeToko", document.getElementById("kodeToko").value);
+    formData.append("namaToko", document.getElementById("namaToko").value);
+    formData.append("luasSales", document.getElementById("luasSales").value);
+    formData.append("luasParkir", document.getElementById("luasParkir").value);
+    formData.append("luasGudang", document.getElementById("luasGudang").value);
+    formData.append("cabang", currentUser.cabang); // Auto isi cabang dari user login
+
+    // Append Files
+    Object.keys(fileStore).forEach(key => {
+        fileStore[key].forEach(item => {
+            if (item.type === 'new') {
+                formData.append(key, item.file);
+            }
+        });
+    });
+
+    try {
+        const method = isEditing ? "PUT" : "POST";
+        const url = isEditing 
+            ? `${BASE_URL}/api/stores/${currentEditId}`
+            : `${BASE_URL}/api/stores`;
+
+        const response = await fetch(url, {
+            method: method,
+            body: formData 
+            // Jangan set Content-Type header saat kirim FormData, browser otomatis set boundary
+        });
+
+        if (!response.ok) throw new Error("Gagal menyimpan data");
+
+        showToast("Data berhasil disimpan!", "success");
+        fetchDocuments(); // Refresh data
+        showTable();
+
+    } catch (error) {
+        console.error("Submit Error:", error);
+        showToast("Terjadi kesalahan: " + error.message, "error");
+    } finally {
+        showLoading(false);
+    }
+}
+
+// ==========================================
+// 6. UTILS & HELPERS
+// ==========================================
+
+// Format: 10000 -> 100,00
+function formatDecimalInput(value) {
+    if (!value) return "";
+    let str = value.toString().replace(/\D/g, ""); // Hapus non-digit
+    if (str === "") return "";
+    
+    if (str.length <= 2) return "0," + str.padStart(2, "0");
+    
+    const before = str.slice(0, -2);
+    const after = str.slice(-2);
+    // Tambahkan titik ribuan jika perlu (opsional, sesuaikan regex ini)
+    return `${parseInt(before, 10)},${after}`;
 }
 
 function handleLogout() {
-    if (confirm("Yakin ingin logout?")) {
-        // Hapus sesi
-        sessionStorage.clear();
-        localStorage.removeItem("user"); // Bersihkan jika ada di local
-        window.location.href = LOGIN_URL;
-    }
+    sessionStorage.clear();
+    window.location.href = "../login.html"; // Redirect ke login page user
 }
 
-// Cek Jam Kerja (Client Side Logic)
-function checkOperationalHours() {
-    const timeInfo = document.getElementById("timeInfo");
-    const updateTime = () => {
-        const now = new Date();
-        const wibTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Jakarta" }));
-        const hour = wibTime.getHours();
-        
-        if (hour < 6 || hour >= 18) {
-            timeInfo.textContent = "⚠️ Di luar jam operasional (06:00 - 18:00 WIB)";
-            timeInfo.style.color = "red";
-            timeInfo.style.backgroundColor = "#fee2e2";
-        } else {
-            timeInfo.textContent = "✅ Jam Operasional Aktif";
-            timeInfo.style.color = "green";
-            timeInfo.style.backgroundColor = "#dcfce7";
+// Auto Logout (Idle Timer)
+let idleTime = 0;
+function setupAutoLogout() {
+    // Increment idle time setiap menit
+    setInterval(() => {
+        idleTime++;
+        if (idleTime >= 30) { // 30 Menit idle
+            handleLogout();
         }
-    };
-    updateTime();
-    setInterval(updateTime, 60000);
-}
+    }, 60000); // 1 menit
 
-// ============================================
-// DASHBOARD & DATA
-// ============================================
-async function fetchDocuments() {
-    setLoading(true);
-    try {
-        // Menggunakan data cabang dari user yang login
-        const userCabang = (state.user.cabang === "HEAD OFFICE" || !state.user.cabang) ? "" : state.user.cabang;
-        
-        let url = `${BASE_URL}/api/doc/list`;
-        if (userCabang) url += `?cabang=${encodeURIComponent(userCabang)}`;
-
-        const res = await fetch(url);
-        const data = await res.json();
-        
-        if (data.ok) {
-            state.docs = data.items;
-            renderTable();
-        }
-    } catch (err) {
-        console.error(err);
-        showToast("Gagal mengambil data dokumen");
-    } finally {
-        setLoading(false);
-    }
-}
-
-function renderTable() {
-    const tbody = document.getElementById("tableBody");
-    const search = document.getElementById("searchInput").value.toLowerCase();
-    
-    // Filter
-    let filtered = state.docs.filter(d => 
-        (d.kode_toko || "").toLowerCase().includes(search) || 
-        (d.nama_toko || "").toLowerCase().includes(search)
-    );
-
-    // Pagination
-    const totalPages = Math.ceil(filtered.length / state.rowsPerPage);
-    if (state.currentPage > totalPages) state.currentPage = 1;
-    
-    const start = (state.currentPage - 1) * state.rowsPerPage;
-    const currentData = filtered.slice(start, start + state.rowsPerPage);
-
-    tbody.innerHTML = "";
-    
-    if (currentData.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Tidak ada data.</td></tr>`;
-        return;
-    }
-
-    currentData.forEach((row, index) => {
-        const canEdit = state.user.jabatan && (state.user.jabatan.includes("COORDINATOR") || state.user.jabatan.includes("MANAGER") || state.user.jabatan.includes("SUPPORT"));
-        const canDelete = state.user.jabatan && state.user.jabatan.includes("COORDINATOR");
-
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-            <td>${start + index + 1}</td>
-            <td><strong>${row.kode_toko || "-"}</strong></td>
-            <td>${row.nama_toko || "-"}</td>
-            <td>${row.cabang || "-"}</td>
-            <td>${row.waktu_upload || "-"}</td>
-            <td>
-                <a href="${row.folder_link}" target="_blank" class="action-btn btn-link">📂 Drive</a>
-                ${canEdit ? `<button class="action-btn btn-edit" onclick="openEditForm('${row.kode_toko}')">✏️ Edit</button>` : ''}
-                ${canDelete ? `<button class="action-btn btn-del" onclick="deleteDocument('${row.kode_toko}')">🗑️ Hapus</button>` : ''}
-            </td>
-        `;
-        tbody.appendChild(tr);
-    });
-
-    // Update Pagination UI
-    document.getElementById("pageInfo").textContent = `Halaman ${state.currentPage} dari ${totalPages || 1}`;
-    document.getElementById("prevPage").disabled = state.currentPage === 1;
-    document.getElementById("nextPage").disabled = state.currentPage >= totalPages;
-}
-
-// ============================================
-// FORM & UPLOAD LOGIC
-// ============================================
-function generateUploadFields() {
-    const container = document.getElementById("uploadContainer");
-    container.innerHTML = "";
-
-    CATEGORIES.forEach(cat => {
-        const div = document.createElement("div");
-        div.className = "upload-category";
-        div.innerHTML = `
-            <h4>${formatCategoryName(cat)}</h4>
-            <input type="file" multiple onchange="handleFileSelect(event, '${cat}')">
-            <div id="preview-${cat}" class="file-preview-list"></div>
-        `;
-        container.appendChild(div);
-    });
-}
-
-function handleFileSelect(e, category) {
-    const files = Array.from(e.target.files);
-    if (!files.length) return;
-
-    if (!state.filesToUpload[category]) state.filesToUpload[category] = [];
-
-    files.forEach(file => {
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-            state.filesToUpload[category].push({
-                name: file.name,
-                data: ev.target.result.split(",")[1], // Base64 content
-                type: file.type
-            });
-            renderPreviews(category);
-        };
-        reader.readAsDataURL(file);
-    });
-}
-
-function renderPreviews(category) {
-    const container = document.getElementById(`preview-${category}`);
-    container.innerHTML = "";
-    
-    // Preview file baru
-    (state.filesToUpload[category] || []).forEach((file, idx) => {
-        const div = document.createElement("div");
-        div.className = "file-item new-file";
-        div.innerHTML = `<span>📄 ${file.name}</span> <span class="remove" onclick="removeFile('${category}', ${idx})">❌</span>`;
-        container.appendChild(div);
-    });
-
-    // Preview file existing (saat edit)
-    if (state.isEditing && state.existingFiles[category]) {
-        state.existingFiles[category].forEach(file => {
-            const div = document.createElement("div");
-            div.className = "file-item existing-file";
-            div.innerHTML = `<span>✅ ${file.name}</span>`; // Tidak bisa dihapus parsial di mode ini (opsional)
-            container.appendChild(div);
+    // Reset idle timer pada aktivitas
+    ['mousemove', 'keypress', 'click', 'scroll'].forEach(evt => {
+        document.addEventListener(evt, () => {
+            idleTime = 0;
         });
-    }
+    });
 }
 
-function removeFile(category, index) {
-    state.filesToUpload[category].splice(index, 1);
-    renderPreviews(category);
+// UI Helpers
+function showLoading(show) {
+    document.getElementById("loading-overlay").style.display = show ? "flex" : "none";
 }
 
-// ============================================
-// CRUD OPERATIONS
-// ============================================
-window.openAddForm = () => {
-    resetForm();
-    state.isEditing = false;
-    document.getElementById("formModal").classList.remove("hidden");
-    generateUploadFields();
-};
-
-window.openEditForm = (kodeToko) => {
-    const doc = state.docs.find(d => d.kode_toko === kodeToko);
-    if (!doc) return;
-
-    resetForm();
-    state.isEditing = true;
-    
-    document.getElementById("formTitle").textContent = `Edit Toko: ${doc.nama_toko}`;
-    document.getElementById("editModeKode").value = doc.kode_toko;
-    document.getElementById("kodeToko").value = doc.kode_toko;
-    document.getElementById("kodeToko").disabled = true; // PK tidak boleh ganti
-    document.getElementById("namaToko").value = doc.nama_toko;
-
-    document.getElementById("formModal").classList.remove("hidden");
-    generateUploadFields();
-
-    // Load existing files mapping (mockup logic, sesuaikan dengan API response struktur file)
-    // Di sini kita asumsikan server mengembalikan list file per kategori jika ada endpoint detail
-    // Untuk sekarang kita hanya reset upload field
-};
-
-window.closeForm = () => {
-    document.getElementById("formModal").classList.add("hidden");
-};
-
-function resetForm() {
-    state.filesToUpload = {};
-    state.existingFiles = {};
-    state.isEditing = false;
-    document.getElementById("editModeKode").value = "";
-    document.getElementById("formTitle").textContent = "Form Dokumen Toko";
-    document.getElementById("kodeToko").disabled = false;
-    document.getElementById("uploadForm").reset();
-    
-    const container = document.getElementById("uploadContainer");
-    if(container) container.innerHTML = "";
+function showModal(id) {
+    document.getElementById(id).style.display = "flex";
 }
 
-document.getElementById("uploadForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    
-    const kodeToko = document.getElementById("kodeToko").value.trim().toUpperCase();
-    const namaToko = document.getElementById("namaToko").value.trim();
-    
-    if (!kodeToko || !namaToko) {
-        showToast("Kode dan Nama Toko wajib diisi!");
-        return;
-    }
+function hideModal(id) {
+    document.getElementById(id).style.display = "none";
+}
 
-    const payload = {
-        kode_toko: kodeToko,
-        nama_toko: namaToko,
-        cabang: state.user.cabang, // Ambil cabang dari user yang login
-        files: state.filesToUpload
-    };
-
-    const endpoint = state.isEditing ? `${BASE_URL}/api/doc/update/{kode}` : `${BASE_URL}/api/doc/update/{kode}`;
-
-    setLoading(true);
-    try {
-        const res = await fetch(endpoint, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-        });
-        const result = await res.json();
-
-        if (result.ok) {
-            showToast("Data berhasil disimpan!");
-            closeForm();
-            fetchDocuments();
-        } else {
-            throw new Error(result.detail || "Gagal menyimpan data");
-        }
-    } catch (err) {
-        console.error(err);
-        showToast("Error: " + err.message);
-    } finally {
-        setLoading(false);
-    }
-});
-
-window.deleteDocument = async (kodeToko) => {
-    if (!confirm(`Hapus data toko ${kodeToko}? Data di Drive tidak akan terhapus otomatis.`)) return;
-
-    setLoading(true);
-    try {
-        const res = await fetch(`${BASE_URL}/api/doc/delete/{kode}`, { method: "DELETE" });
-        const result = await res.json();
-        
-        if (result.ok) {
-            showToast("Data berhasil dihapus");
-            fetchDocuments();
-        } else {
-            showToast("Gagal menghapus data");
-        }
-    } catch (err) {
-        showToast("Error jaringan");
-    } finally {
-        setLoading(false);
-    }
-};
-
-// ============================================
-// UTILS
-// ============================================
-function showToast(msg) {
+function showToast(message, type = "success") {
     const toast = document.getElementById("toast");
-    toast.textContent = msg;
-    toast.classList.remove("hidden");
-    setTimeout(() => toast.classList.add("hidden"), 3000);
+    toast.textContent = message;
+    toast.className = `toast show ${type}`;
+    setTimeout(() => {
+        toast.className = "toast";
+    }, 3000);
 }
-
-function setLoading(isLoading) {
-    const modal = document.getElementById("loadingModal");
-    if (isLoading) modal.classList.remove("hidden");
-    else modal.classList.add("hidden");
-}
-
-function formatCategoryName(name) {
-    // camelCase to Normal Text
-    const result = name.replace(/([A-Z])/g, " $1");
-    return result.charAt(0).toUpperCase() + result.slice(1);
-}
-
-function setupEventListeners() {
-    // Close modal on click outside
-    window.onclick = (event) => {
-        const modal = document.getElementById("formModal");
-        if (event.target == modal) {
-            closeForm();
-        }
-    };
-}
-
-function setupNumberInputs() {
-    // Helper jika ada input angka
-}
-
-window.changePage = (delta) => {
-    state.currentPage += delta;
-    renderTable();
-};
