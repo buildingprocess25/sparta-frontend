@@ -4,11 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Penyimpanan Dokumen Toko</title>
-    <link rel="icon" href="../assets/favicon.ico" type="image/x-icon">
+    <link rel="icon" href="../../assets/favicon.ico" type="image/x-icon">
+    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="style.css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -22,21 +24,29 @@
     </div>
 
     <header>
-        <a href="#">
-            <img src="../assets/Alfamart-Emblem.png" alt="Alfamart Logo" class="header-logo"/>
+        <a href="/">
+            <img src="../../assets/Alfamart-Emblem.png" alt="Alfamart Logo" class="header-logo"/>
         </a>
         <h1>Penyimpanan Dokumen</h1>
-        </header>
+        
+        <a href="../../dashboard/pic/index.html" id="backToDashboardBtn" class="btn-back-header">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            <span>Kembali</span>
+        </a>
+    </header>
 
     <div class="container">
         
-        <div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
-            <div style="flex: 2;">
-                <label for="searchInput" style="font-weight: 600; display: block; margin-bottom: 0.5rem; color: #4a5568;">Cari Dokumen</label>
+        <div class="filter-section">
+            <div class="input-group">
+                <label for="searchInput">Cari Dokumen</label>
                 <input type="text" id="searchInput" placeholder="Cari nama dokumen...">
             </div>
-            <div style="flex: 1; min-width: 200px;">
-                <label for="roleFilter" style="font-weight: 600; display: block; margin-bottom: 0.5rem; color: #4a5568;">Filter Role</label>
+            <div class="input-group">
+                <label for="roleFilter">Filter Role</label>
                 <select id="roleFilter">
                     <option value="">Semua Role</option>
                     <option value="Kontraktor">Kontraktor</option>
@@ -45,18 +55,18 @@
             </div>
         </div>
 
-        <h2 class="text-lg font-semibold mb-4 text-gray-700">Daftar Dokumen Tersimpan</h2>
+        <h2 class="section-title">Daftar Dokumen Tersimpan</h2>
         
         <div class="table-container">
             <table id="docTable">
                 <thead>
                     <tr>
-                        <th style="width: 5%; text-align: center;">No</th>
+                        <th style="width: 50px; text-align: center;">No</th>
                         <th>Nama Dokumen</th>
                         <th>Diunggah Oleh</th>
                         <th>Role</th>
                         <th>Tanggal</th>
-                        <th style="text-align: center;">Aksi</th>
+                        <th style="text-align: center; width: 150px;">Aksi</th>
                     </tr>
                 </thead>
                 <tbody id="docTableBody">
@@ -67,7 +77,6 @@
         <div id="emptyMessage" class="hidden" style="text-align: center; padding: 2rem; color: #718096;">
             Tidak ada dokumen yang ditemukan.
         </div>
-
     </div>
 
     <script src="script.js"></script>

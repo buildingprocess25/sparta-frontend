@@ -2,19 +2,15 @@
 // KONFIGURASI & STATE
 // ============================================
 const BASE_URL = "https://sparta-backend-5hdj.onrender.com"; // Sesuaikan jika perlu
-const DASHBOARD_URL = "../../dashboard/pic/index.html"; // URL Dashboard Utama
-const LOGIN_URL = "../../auth/pic/login.html"; // URL Login Utama
-
-const CATEGORIES = ["fotoAsal", "fotoRenovasi", "me", "sipil", "sketsaAwal", "pendukung"];
+// Sesuaikan URL dashboard/login relatif terhadap file ini
+const DASHBOARD_URL = "../../dashboard/pic/index.html"; 
+const LOGIN_URL = "../../auth/pic/login.html"; 
 
 const state = {
-    user: null, // Akan diisi dari Session/Local Storage
+    user: null, 
     docs: [],
     currentPage: 1,
-    rowsPerPage: 5,
-    filesToUpload: {}, // Menyimpan file baru (Base64)
-    existingFiles: {}, // Menyimpan file lama (untuk edit)
-    isEditing: false
+    rowsPerPage: 10 // Bisa disesuaikan
 };
 
 // ============================================
@@ -24,386 +20,212 @@ document.addEventListener("DOMContentLoaded", () => {
     // 1. Cek Integrasi Auth
     checkAuthIntegration();
     
-    // 2. Setup Event Listeners
+    // 2. Setup Event Listeners (Search & Filter)
     setupEventListeners();
-    setupNumberInputs();
 
-    // 3. Tombol Kembali ke Dashboard
+    // 3. (Opsional) Setup tombol kembali jika menggunakan button JS, 
+    // tapi di HTML sudah pakai <a href> jadi ini hanya pelengkap.
     const backBtn = document.getElementById('backToDashboardBtn');
     if(backBtn) {
-        backBtn.addEventListener('click', () => {
-            window.location.href = DASHBOARD_URL;
+        backBtn.addEventListener('click', (e) => {
+            // Biarkan default behavior <a> tag bekerja, atau override jika perlu logika khusus
+            // e.preventDefault();
+            // window.location.href = DASHBOARD_URL; 
         });
     }
 });
 
 function checkAuthIntegration() {
-    // UBAHAN: Mengambil data sesuai dengan key yang diset di login_script.js
     const isAuthenticated = sessionStorage.getItem("authenticated");
     const email = sessionStorage.getItem("loggedInUserEmail");
-    const cabang = sessionStorage.getItem("loggedInUserCabang");
     const role = sessionStorage.getItem("userRole");
 
-    // Cek apakah user sudah terautentikasi
+    // Jika tidak login, lempar ke login
     if (!isAuthenticated || isAuthenticated !== "true") {
-        alert("Sesi Anda telah berakhir atau Anda belum login. Silakan login kembali.");
+        // alert("Sesi berakhir. Silakan login kembali."); // Opsional, bisa di-uncomment
         window.location.href = LOGIN_URL;
         return;
     }
 
-    try {
-        // UBAHAN: Membentuk object user secara manual dari data session
-        // agar kompatibel dengan sisa logika di script ini (state.user)
-        state.user = {
-            username: email,
-            nama: email, // Default ke email karena tidak ada data nama di session login
-            cabang: cabang,
-            jabatan: role, // Mapping role ke jabatan
-            role: role
-        };
-        
-        // Update UI dengan data user
-        const welcomeMsg = document.getElementById("userWelcome");
-        // Tampilkan username atau email
-        if(welcomeMsg) welcomeMsg.textContent = `Halo, ${state.user.username || 'User'}`;
-
-        // Lanjut load data
-        checkOperationalHours();
-        fetchDocuments();
-
-    } catch (e) {
-        console.error("Gagal memproses data user", e);
-        alert("Terjadi kesalahan data sesi. Silakan login ulang.");
-        sessionStorage.clear();
-        window.location.href = LOGIN_URL;
-    }
-}
-
-function handleLogout() {
-    if (confirm("Yakin ingin logout?")) {
-        // Hapus sesi
-        sessionStorage.clear();
-        localStorage.removeItem("user"); // Bersihkan jika ada di local
-        window.location.href = LOGIN_URL;
-    }
-}
-
-// Cek Jam Kerja (Client Side Logic)
-function checkOperationalHours() {
-    const timeInfo = document.getElementById("timeInfo");
-    const updateTime = () => {
-        const now = new Date();
-        const wibTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Jakarta" }));
-        const hour = wibTime.getHours();
-        
-        if (hour < 6 || hour >= 18) {
-            timeInfo.textContent = "⚠️ Di luar jam operasional (06:00 - 18:00 WIB)";
-            timeInfo.style.color = "red";
-            timeInfo.style.backgroundColor = "#fee2e2";
-        } else {
-            timeInfo.textContent = "✅ Jam Operasional Aktif";
-            timeInfo.style.color = "green";
-            timeInfo.style.backgroundColor = "#dcfce7";
-        }
+    // Set state user
+    state.user = {
+        username: email,
+        role: role
     };
-    updateTime();
-    setInterval(updateTime, 60000);
+
+    // Load Data
+    fetchDocuments();
+    
+    // Jam kerja (checkOperationalHours) DIHAPUS atau dimatikan agar tidak error
+    // karena elemen UI jam kerja tidak ada di style RAB.
+}
+
+function setupEventListeners() {
+    const searchInput = document.getElementById('searchInput');
+    const roleFilter = document.getElementById('roleFilter');
+
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            const keyword = e.target.value.toLowerCase();
+            filterDocuments(keyword, roleFilter ? roleFilter.value : "");
+        });
+    }
+
+    if (roleFilter) {
+        roleFilter.addEventListener('change', (e) => {
+            const role = e.target.value;
+            filterDocuments(searchInput ? searchInput.value.toLowerCase() : "", role);
+        });
+    }
 }
 
 // ============================================
-// DASHBOARD & DATA
+// FETCH & RENDER DATA
 // ============================================
 async function fetchDocuments() {
-    setLoading(true);
+    showLoading(true);
     try {
-        // Menggunakan data cabang dari user yang login
-        const userCabang = (state.user.cabang === "HEAD OFFICE" || !state.user.cabang) ? "" : state.user.cabang;
+        const response = await fetch(`${BASE_URL}/api/upload/list`); // Sesuaikan endpoint backend Anda
+        if (!response.ok) throw new Error("Gagal mengambil data");
         
-        let url = `${BASE_URL}/api/doc/list`;
-        if (userCabang) url += `?cabang=${encodeURIComponent(userCabang)}`;
-
-        const res = await fetch(url);
-        const data = await res.json();
+        const data = await response.json();
         
-        if (data.ok) {
-            state.docs = data.items;
-            renderTable();
-        }
-    } catch (err) {
-        console.error(err);
-        showToast("Gagal mengambil data dokumen");
+        // Asumsi data backend berupa array object dokumen
+        // Sesuaikan mapping ini dengan response JSON asli Anda
+        state.docs = Array.isArray(data) ? data : (data.files || []); 
+        
+        renderTable(state.docs);
+    } catch (error) {
+        console.error("Error fetching docs:", error);
+        showToast("Gagal memuat dokumen: " + error.message);
+        
+        // Fallback data kosong agar tabel tidak error
+        renderTable([]); 
     } finally {
-        setLoading(false);
+        showLoading(false);
     }
 }
 
-function renderTable() {
-    const tbody = document.getElementById("tableBody");
-    const search = document.getElementById("searchInput").value.toLowerCase();
+function renderTable(dataDocs) {
+    const tbody = document.getElementById('docTableBody');
+    const emptyMsg = document.getElementById('emptyMessage');
     
-    // Filter
-    let filtered = state.docs.filter(d => 
-        (d.kode_toko || "").toLowerCase().includes(search) || 
-        (d.nama_toko || "").toLowerCase().includes(search)
-    );
+    if (!tbody) return; // Mencegah error jika elemen hilang
 
-    // Pagination
-    const totalPages = Math.ceil(filtered.length / state.rowsPerPage);
-    if (state.currentPage > totalPages) state.currentPage = 1;
-    
-    const start = (state.currentPage - 1) * state.rowsPerPage;
-    const currentData = filtered.slice(start, start + state.rowsPerPage);
+    tbody.innerHTML = '';
 
-    tbody.innerHTML = "";
-    
-    if (currentData.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Tidak ada data.</td></tr>`;
+    if (dataDocs.length === 0) {
+        if (emptyMsg) emptyMsg.classList.remove('hidden');
         return;
     }
+    
+    if (emptyMsg) emptyMsg.classList.add('hidden');
 
-    currentData.forEach((row, index) => {
-        const canEdit = state.user.jabatan && (state.user.jabatan.includes("COORDINATOR") || state.user.jabatan.includes("MANAGER") || state.user.jabatan.includes("SUPPORT"));
-        const canDelete = state.user.jabatan && state.user.jabatan.includes("COORDINATOR");
+    dataDocs.forEach((doc, index) => {
+        const tr = document.createElement('tr');
+        
+        // Format Tanggal
+        const dateStr = doc.createdAt || doc.tanggal || new Date().toISOString();
+        const dateObj = new Date(dateStr);
+        const formattedDate = dateObj.toLocaleDateString('id-ID', {
+            day: 'numeric', month: 'short', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        });
 
-        const tr = document.createElement("tr");
+        // Mapping Data (Sesuaikan key dengan response backend Anda)
+        const docName = doc.fileName || doc.nama_dokumen || "Tanpa Nama";
+        const uploader = doc.uploader || doc.user_email || "Anonim";
+        const role = doc.role || "-";
+        const fileId = doc._id || doc.id; // ID untuk download/hapus
+
         tr.innerHTML = `
-            <td>${start + index + 1}</td>
-            <td><strong>${row.kode_toko || "-"}</strong></td>
-            <td>${row.nama_toko || "-"}</td>
-            <td>${row.cabang || "-"}</td>
-            <td>${row.waktu_upload || "-"}</td>
-            <td>
-                <a href="${row.folder_link}" target="_blank" class="action-btn btn-link">📂 Drive</a>
-                ${canEdit ? `<button class="action-btn btn-edit" onclick="openEditForm('${row.kode_toko}')">✏️ Edit</button>` : ''}
-                ${canDelete ? `<button class="action-btn btn-del" onclick="deleteDocument('${row.kode_toko}')">🗑️ Hapus</button>` : ''}
+            <td style="text-align: center;">${index + 1}</td>
+            <td style="font-weight: 500;">${docName}</td>
+            <td>${uploader}</td>
+            <td><span class="badge-role">${role}</span></td>
+            <td>${formattedDate}</td>
+            <td style="text-align: center;">
+                <button class="btn-action btn-download" onclick="downloadDoc('${fileId}', '${docName}')" title="Download">
+                    ⬇
+                </button>
+                <button class="btn-action btn-delete" onclick="deleteDoc('${fileId}')" title="Hapus">
+                    🗑
+                </button>
             </td>
         `;
         tbody.appendChild(tr);
     });
-
-    // Update Pagination UI
-    document.getElementById("pageInfo").textContent = `Halaman ${state.currentPage} dari ${totalPages || 1}`;
-    document.getElementById("prevPage").disabled = state.currentPage === 1;
-    document.getElementById("nextPage").disabled = state.currentPage >= totalPages;
 }
 
-// ============================================
-// FORM & UPLOAD LOGIC
-// ============================================
-function generateUploadFields() {
-    const container = document.getElementById("uploadContainer");
-    container.innerHTML = "";
-
-    CATEGORIES.forEach(cat => {
-        const div = document.createElement("div");
-        div.className = "upload-category";
-        div.innerHTML = `
-            <h4>${formatCategoryName(cat)}</h4>
-            <input type="file" multiple onchange="handleFileSelect(event, '${cat}')">
-            <div id="preview-${cat}" class="file-preview-list"></div>
-        `;
-        container.appendChild(div);
+function filterDocuments(keyword, role) {
+    const filtered = state.docs.filter(doc => {
+        const nameMatch = (doc.fileName || "").toLowerCase().includes(keyword);
+        const roleMatch = role === "" || (doc.role || "") === role;
+        return nameMatch && roleMatch;
     });
-}
-
-function handleFileSelect(e, category) {
-    const files = Array.from(e.target.files);
-    if (!files.length) return;
-
-    if (!state.filesToUpload[category]) state.filesToUpload[category] = [];
-
-    files.forEach(file => {
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-            state.filesToUpload[category].push({
-                name: file.name,
-                data: ev.target.result.split(",")[1], // Base64 content
-                type: file.type
-            });
-            renderPreviews(category);
-        };
-        reader.readAsDataURL(file);
-    });
-}
-
-function renderPreviews(category) {
-    const container = document.getElementById(`preview-${category}`);
-    container.innerHTML = "";
-    
-    // Preview file baru
-    (state.filesToUpload[category] || []).forEach((file, idx) => {
-        const div = document.createElement("div");
-        div.className = "file-item new-file";
-        div.innerHTML = `<span>📄 ${file.name}</span> <span class="remove" onclick="removeFile('${category}', ${idx})">❌</span>`;
-        container.appendChild(div);
-    });
-
-    // Preview file existing (saat edit)
-    if (state.isEditing && state.existingFiles[category]) {
-        state.existingFiles[category].forEach(file => {
-            const div = document.createElement("div");
-            div.className = "file-item existing-file";
-            div.innerHTML = `<span>✅ ${file.name}</span>`; // Tidak bisa dihapus parsial di mode ini (opsional)
-            container.appendChild(div);
-        });
-    }
-}
-
-function removeFile(category, index) {
-    state.filesToUpload[category].splice(index, 1);
-    renderPreviews(category);
+    renderTable(filtered);
 }
 
 // ============================================
-// CRUD OPERATIONS
+// AKSI (DOWNLOAD & DELETE)
 // ============================================
-window.openAddForm = () => {
-    resetForm();
-    state.isEditing = false;
-    document.getElementById("formModal").classList.remove("hidden");
-    generateUploadFields();
-};
-
-window.openEditForm = (kodeToko) => {
-    const doc = state.docs.find(d => d.kode_toko === kodeToko);
-    if (!doc) return;
-
-    resetForm();
-    state.isEditing = true;
-    
-    document.getElementById("formTitle").textContent = `Edit Toko: ${doc.nama_toko}`;
-    document.getElementById("editModeKode").value = doc.kode_toko;
-    document.getElementById("kodeToko").value = doc.kode_toko;
-    document.getElementById("kodeToko").disabled = true; // PK tidak boleh ganti
-    document.getElementById("namaToko").value = doc.nama_toko;
-
-    document.getElementById("formModal").classList.remove("hidden");
-    generateUploadFields();
-
-    // Load existing files mapping (mockup logic, sesuaikan dengan API response struktur file)
-    // Di sini kita asumsikan server mengembalikan list file per kategori jika ada endpoint detail
-    // Untuk sekarang kita hanya reset upload field
-};
-
-window.closeForm = () => {
-    document.getElementById("formModal").classList.add("hidden");
-};
-
-function resetForm() {
-    state.filesToUpload = {};
-    state.existingFiles = {};
-    state.isEditing = false;
-    document.getElementById("editModeKode").value = "";
-    document.getElementById("formTitle").textContent = "Form Dokumen Toko";
-    document.getElementById("kodeToko").disabled = false;
-    document.getElementById("uploadForm").reset();
-    
-    const container = document.getElementById("uploadContainer");
-    if(container) container.innerHTML = "";
-}
-
-document.getElementById("uploadForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    
-    const kodeToko = document.getElementById("kodeToko").value.trim().toUpperCase();
-    const namaToko = document.getElementById("namaToko").value.trim();
-    
-    if (!kodeToko || !namaToko) {
-        showToast("Kode dan Nama Toko wajib diisi!");
-        return;
-    }
-
-    const payload = {
-        kode_toko: kodeToko,
-        nama_toko: namaToko,
-        cabang: state.user.cabang, // Ambil cabang dari user yang login
-        files: state.filesToUpload
-    };
-
-    const endpoint = state.isEditing ? `${BASE_URL}/api/doc/update/{kode}` : `${BASE_URL}/api/doc/update/{kode}`;
-
-    setLoading(true);
+async function downloadDoc(id, name) {
+    // Implementasi Download
+    // Jika backend mengirim file blob:
+    /*
     try {
-        const res = await fetch(endpoint, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-        });
-        const result = await res.json();
-
-        if (result.ok) {
-            showToast("Data berhasil disimpan!");
-            closeForm();
-            fetchDocuments();
-        } else {
-            throw new Error(result.detail || "Gagal menyimpan data");
-        }
-    } catch (err) {
-        console.error(err);
-        showToast("Error: " + err.message);
-    } finally {
-        setLoading(false);
+        window.open(`${BASE_URL}/api/upload/download/${id}`, '_blank');
+    } catch (e) {
+        showToast("Gagal mendownload file");
     }
-});
+    */
+    showToast(`Mendownload ${name}...`);
+    // Contoh sederhana redirect ke URL download
+    window.open(`${BASE_URL}/api/upload/download/${id}`, '_blank');
+}
 
-window.deleteDocument = async (kodeToko) => {
-    if (!confirm(`Hapus data toko ${kodeToko}? Data di Drive tidak akan terhapus otomatis.`)) return;
+async function deleteDoc(id) {
+    if (!confirm("Apakah Anda yakin ingin menghapus dokumen ini?")) return;
 
-    setLoading(true);
+    showLoading(true);
     try {
-        const res = await fetch(`${BASE_URL}/api/doc/delete/{kode}`, { method: "DELETE" });
-        const result = await res.json();
-        
-        if (result.ok) {
-            showToast("Data berhasil dihapus");
-            fetchDocuments();
+        const response = await fetch(`${BASE_URL}/api/upload/delete/${id}`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            showToast("Dokumen berhasil dihapus");
+            fetchDocuments(); // Refresh data
         } else {
-            showToast("Gagal menghapus data");
+            throw new Error("Gagal menghapus");
         }
-    } catch (err) {
-        showToast("Error jaringan");
+    } catch (e) {
+        showToast("Error: " + e.message);
     } finally {
-        setLoading(false);
+        showLoading(false);
     }
-};
+}
 
 // ============================================
-// UTILS
+// UTILITIES (TOAST & LOADING)
 // ============================================
-function showToast(msg) {
-    const toast = document.getElementById("toast");
-    toast.textContent = msg;
-    toast.classList.remove("hidden");
-    setTimeout(() => toast.classList.add("hidden"), 3000);
+function showLoading(show) {
+    const modal = document.getElementById('loadingModal');
+    if (modal) {
+        if (show) modal.classList.remove('hidden');
+        else modal.classList.add('hidden');
+    }
 }
 
-function setLoading(isLoading) {
-    const modal = document.getElementById("loadingModal");
-    if (isLoading) modal.classList.remove("hidden");
-    else modal.classList.add("hidden");
+function showToast(message) {
+    const toast = document.getElementById('toast');
+    if (toast) {
+        toast.textContent = message;
+        toast.classList.remove('hidden');
+        setTimeout(() => {
+            toast.classList.add('hidden');
+        }, 3000);
+    } else {
+        alert(message); // Fallback jika elemen toast hilang
+    }
 }
-
-function formatCategoryName(name) {
-    // camelCase to Normal Text
-    const result = name.replace(/([A-Z])/g, " $1");
-    return result.charAt(0).toUpperCase() + result.slice(1);
-}
-
-function setupEventListeners() {
-    // Close modal on click outside
-    window.onclick = (event) => {
-        const modal = document.getElementById("formModal");
-        if (event.target == modal) {
-            closeForm();
-        }
-    };
-}
-
-function setupNumberInputs() {
-    // Helper jika ada input angka
-}
-
-window.changePage = (delta) => {
-    state.currentPage += delta;
-    renderTable();
-};
