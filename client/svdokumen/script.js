@@ -38,33 +38,43 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function checkAuthIntegration() {
-    // Mencoba mengambil data user dari sessionStorage (prioritas) atau localStorage
-    // Ini mengasumsikan auth/pic menyimpan data user dengan key 'user' atau 'user_data'
-    // Sesuaikan key ini dengan apa yang disimpan oleh login_script.js di auth/pic
-    const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
+    // UBAHAN: Mengambil data sesuai dengan key yang diset di login_script.js
+    const isAuthenticated = sessionStorage.getItem("authenticated");
+    const email = sessionStorage.getItem("loggedInUserEmail");
+    const cabang = sessionStorage.getItem("loggedInUserCabang");
+    const role = sessionStorage.getItem("userRole");
 
-    if (!storedUser) {
+    // Cek apakah user sudah terautentikasi
+    if (!isAuthenticated || isAuthenticated !== "true") {
         alert("Sesi Anda telah berakhir atau Anda belum login. Silakan login kembali.");
         window.location.href = LOGIN_URL;
         return;
     }
 
     try {
-        state.user = JSON.parse(storedUser);
+        // UBAHAN: Membentuk object user secara manual dari data session
+        // agar kompatibel dengan sisa logika di script ini (state.user)
+        state.user = {
+            username: email,
+            nama: email, // Default ke email karena tidak ada data nama di session login
+            cabang: cabang,
+            jabatan: role, // Mapping role ke jabatan
+            role: role
+        };
         
         // Update UI dengan data user
         const welcomeMsg = document.getElementById("userWelcome");
-        if(welcomeMsg) welcomeMsg.textContent = `Halo, ${state.user.username || state.user.nama || 'User'}`;
+        // Tampilkan username atau email
+        if(welcomeMsg) welcomeMsg.textContent = `Halo, ${state.user.username || 'User'}`;
 
         // Lanjut load data
         checkOperationalHours();
         fetchDocuments();
 
     } catch (e) {
-        console.error("Gagal memparsing data user", e);
+        console.error("Gagal memproses data user", e);
         alert("Terjadi kesalahan data sesi. Silakan login ulang.");
-        localStorage.removeItem("user");
-        sessionStorage.removeItem("user");
+        sessionStorage.clear();
         window.location.href = LOGIN_URL;
     }
 }
