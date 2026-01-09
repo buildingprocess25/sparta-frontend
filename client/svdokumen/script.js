@@ -125,20 +125,31 @@ function showForm(data = null) {
     document.getElementById("view-form").style.display = "block";
     const title = document.getElementById("form-title");
     const form = document.getElementById("store-form");
-
+    const btnSave = document.getElementById("btn-save");
+    
     // Reset form & error
     form.reset();
     document.getElementById("error-msg").textContent = "";
     resetPreviews();
 
-    if (data) {
-        // === MODE EDIT ===
-        isEditing = true;
-        // Backend tidak kirim _id, gunakan kode_toko sebagai identifier
-        currentEditId = data._id || data.id || data.doc_id || data.kode_toko;
-        console.log("Edit Mode - currentEditId:", currentEditId, "Data:", data); // Debug
-        title.textContent = `Edit Data Toko: ${data.nama_toko}`;
+    // Dapatkan semua input field dan file input
+    const inputs = form.querySelectorAll("input");
+    const fileInputs = form.querySelectorAll("input[type='file']");
+    const isHeadOffice = currentUser.cabang?.toLowerCase() === "head office";
 
+    // --- RESET STATE (Default: Mode Edit/Input Biasa) ---
+    // Aktifkan semua input kembali
+    inputs.forEach(input => input.disabled = false);
+    // Tampilkan tombol simpan
+    btnSave.style.display = "inline-block";
+    // Tampilkan input file
+    fileInputs.forEach(input => input.style.display = "block");
+
+    if (data) {
+        // === MODE EDIT / LIHAT ===
+        isEditing = true;
+        currentEditId = data._id || data.id || data.doc_id || data.kode_toko;
+        
         // Isi Text Inputs
         document.getElementById("kodeToko").value = data.kode_toko || "";
         document.getElementById("namaToko").value = data.nama_toko || "";
@@ -150,8 +161,27 @@ function showForm(data = null) {
         if (data.file_links) {
             renderExistingFiles(data.file_links);
         }
+
+        // === LOGIKA KHUSUS HEAD OFFICE (READ ONLY) ===
+        if (isHeadOffice) {
+            title.textContent = `Detail Data Toko: ${data.nama_toko}`;
+            
+            // Disable semua input text
+            inputs.forEach(input => input.disabled = true);
+            
+            // Sembunyikan tombol simpan
+            btnSave.style.display = "none";
+            
+            // Sembunyikan tombol upload file (hanya bisa lihat file yg sudah ada)
+            fileInputs.forEach(input => input.style.display = "none");
+        } else {
+            // Mode Edit Biasa (Bukan HO)
+            title.textContent = `Edit Data Toko: ${data.nama_toko}`;
+        }
+
     } else {
         // === MODE TAMBAH BARU ===
+        // (Head Office seharusnya tidak bisa akses ini karena tombol + disembunyikan di checkAuth)
         isEditing = false;
         currentEditId = null;
         title.textContent = "Tambah Data Toko Baru";
@@ -261,11 +291,13 @@ function renderTable() {
         return;
     }
 
-    // Tampilkan semua data tanpa pagination
+    // Cek apakah user adalah Head Office
+    const isHeadOffice = currentUser.cabang?.toLowerCase() === "head office";
+
+    // Tampilkan semua data
     filteredDocuments.forEach((doc, index) => {
         const row = document.createElement("tr");
 
-        // Pastikan kita mengakses field dengan aman
         const kode = doc.kode_toko || doc.store_code || "-";
         const nama = doc.nama_toko || doc.store_name || "-";
         const cabang = doc.cabang || "-";
@@ -274,13 +306,18 @@ function renderTable() {
             ? `<a href="${driveLink}" target="_blank" style="text-decoration: none; color: #007bff; font-weight: 500;">Buka Folder</a>`
             : `<span style="color: #aaa;">-</span>`;
 
+        // Tentukan Label dan Class tombol berdasarkan Role
+        const actionLabel = isHeadOffice ? "Lihat" : "Edit";
+        const actionClass = isHeadOffice ? "btn-view" : "btn-edit"; // Kita akan tambahkan style btn-view nanti
+
         row.innerHTML = `
             <td>${index + 1}</td>
             <td>${kode}</td>
             <td>${nama}</td>
             <td>${cabang}</td>
-            <td>${linkHtml}</td>  <td>
-                <button class="btn-action btn-edit" onclick="handleEditClick(${index})">Edit</button>
+            <td>${linkHtml}</td>
+            <td>
+                <button class="btn-action ${actionClass}" onclick="handleEditClick(${index})">${actionLabel}</button>
             </td>
         `;
         tbody.appendChild(row);

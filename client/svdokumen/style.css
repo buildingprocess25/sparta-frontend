@@ -246,6 +246,28 @@ header h1 {
     color: white;
 }
 
+.btn-view {
+    background: none;
+    border: 1px solid #28a745; /* Warna Hijau */
+    color: #28a745;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.btn-view:hover {
+    background: #28a745;
+    color: white;
+}
+
+input:disabled {
+    background-color: #f9f9f9;
+    color: #555;
+    border-color: #ddd;
+    cursor: not-allowed;
+}
+
 /* === PAGINATION === */
 .pagination {
     display: flex;
