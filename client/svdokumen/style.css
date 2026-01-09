@@ -54,23 +54,27 @@ header {
 header h1 {
     margin: 0;
     font-size: 1.75rem;
-    font-weight: 700;
-    letter-spacing: -0.5px;
-    color: white;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    line-height: 1.2; /* Merapatkan baris jika judul panjang */
+}
+
+.header-content-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px; /* Jarak antara Judul dan User Info */
 }
 
 .user-info {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    max-width: 1200px;
-    margin: 0 auto;
-    font-size: 0.95rem; 
+    display: block;
+    max-width: none;
+    margin: 0;
+    font-size: 0.9rem;
     font-weight: 500;
+    color: rgba(255, 255, 255, 0.9); /* Putih sedikit transparan agar tidak menyaingi Judul */
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
 }
 
-/* Style Tombol Kembali (Pengganti Logout) */
 .btn-back-header {
     position: absolute;
     right: 25px;
