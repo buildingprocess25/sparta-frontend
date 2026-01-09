@@ -47,8 +47,16 @@ function checkAuth() {
 
     // Tampilkan tombol Tambah Data hanya jika BUKAN Head Office
     const btnAddNew = document.getElementById("btn-add-new");
-    if (btnAddNew && currentUser.cabang?.toLowerCase() !== "head office") {
-        btnAddNew.style.display = "inline-block";
+    const filterCabang = document.getElementById("filter-cabang");
+
+    if (currentUser.cabang?.toLowerCase() === "head office") {
+        // Head Office: tampilkan filter, sembunyikan tombol tambah
+        if (filterCabang) filterCabang.style.display = "inline-block";
+        if (btnAddNew) btnAddNew.style.display = "none";
+    } else {
+        // Cabang lain: sembunyikan filter, tampilkan tombol tambah
+        if (filterCabang) filterCabang.style.display = "none";
+        if (btnAddNew) btnAddNew.style.display = "inline-block";
     }
 
     // Populate filter cabang dropdown
