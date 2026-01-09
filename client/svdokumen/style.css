@@ -214,12 +214,12 @@ header h1 {
 }
 
 .table th {
-    background: #ffe5e5;
-    color: var(--neutral-700);
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    color: white;
     text-align: left;
     padding: 12px;
     font-weight: 700;
-    border-bottom: 2px solid var(--primary);
+    border-bottom: 2px solid #dc2626;
 }
 
 .table td {
