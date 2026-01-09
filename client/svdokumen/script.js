@@ -37,12 +37,11 @@ function checkAuth() {
     currentUser = {
         email: sessionStorage.getItem("loggedInUserEmail"),
         cabang: sessionStorage.getItem("loggedInUserCabang"),
-        role: sessionStorage.getItem("userRole"),
-        nama: sessionStorage.getItem("loggedInUserNama")
+        role: sessionStorage.getItem("userRole")
     };
-    
+
     if (document.getElementById("user-name"))
-        document.getElementById("user-name").textContent = currentUser.nama || "User";
+        document.getElementById("user-name").textContent = currentUser.email || "User";
     if (document.getElementById("user-branch"))
         document.getElementById("user-branch").textContent = currentUser.cabang || "Cabang";
 
