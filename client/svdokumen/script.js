@@ -449,7 +449,7 @@ async function handleFormSubmit(e) {
         });
 
         // 3. Tentukan URL & Method
-        let url = `${BASE_URL}/api/doc/upload`;
+        let url = `${BASE_URL}/api/doc/save`;
         let method = "POST";
 
         if (isEditing && currentEditId) {
