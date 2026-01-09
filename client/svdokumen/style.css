@@ -25,41 +25,66 @@ body {
 }
 
 /* === HEADER === */
-.app-header {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+header {
+    /* Background Gradient Merah Alfamart */
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
     color: white;
-    padding: 0.75rem 1rem;
-    box-shadow: var(--shadow);
-    position: sticky;
-    top: 0;
+    text-align: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    /* Menimpa style sticky lama jika perlu */
+    top: auto; 
     z-index: 100;
 }
 
-.header-top { text-align: center; margin-bottom: 0.5rem; }
-.header-top h1 { font-size: 1.2rem; font-weight: 700; }
+.header-logo {
+    width: 140px;
+    height: auto;
+    position: absolute;
+    left: 25px;
+    top: 50%;
+    transform: translateY(-50%);
+}
 
-.header-bottom {
+header h1 {
+    margin: 0;
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: white;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Style Tombol Kembali (Pengganti Logout) */
+.btn-back-header {
+    position: absolute;
+    right: 25px;
+    top: 50%;
+    transform: translateY(-50%);
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    max-width: 1200px;
-    margin: 0 auto;
-}
-
-.header-left { font-size: 0.95rem; font-weight: 500; }
-
-.btn-logout {
-    background: #fff;
-    color: var(--primary-dark);
-    border: none;
-    padding: 0.4rem 1rem;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 6px;
+    color: white;
+    text-decoration: none;
     font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: transform 0.2s;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(4px);
 }
-.btn-logout:hover { transform: scale(1.05); }
+
+.btn-back-header:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-50%) scale(1.02);
+}
 
 /* === CONTAINER === */
 .container {
