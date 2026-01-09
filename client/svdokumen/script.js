@@ -112,6 +112,11 @@ function showTable() {
     document.getElementById("store-form").reset();
     document.getElementById("error-msg").textContent = "";
     resetPreviews(); // Bersihkan file preview
+
+    // Reset edit state
+    isEditing = false;
+    currentEditId = null;
+
     fetchDocuments(); // Refresh data
 }
 
@@ -129,7 +134,8 @@ function showForm(data = null) {
     if (data) {
         // === MODE EDIT ===
         isEditing = true;
-        currentEditId = data._id; // Pastikan backend kirim _id
+        currentEditId = data._id || data.id || data.doc_id; // Support berbagai nama field ID
+        console.log("Edit Mode - currentEditId:", currentEditId, "Data:", data); // Debug
         title.textContent = `Edit Data Toko: ${data.nama_toko}`;
 
         // Isi Text Inputs
@@ -263,8 +269,8 @@ function renderTable() {
         const nama = doc.nama_toko || doc.store_name || "-";
         const cabang = doc.cabang || "-";
         const driveLink = doc.folder_link || doc.folder_drive || doc["folder link"] || "";
-        const linkHtml = driveLink 
-            ? `<a href="${driveLink}" target="_blank" style="text-decoration: none; color: #007bff; font-weight: 500;">Buka Folder</a>` 
+        const linkHtml = driveLink
+            ? `<a href="${driveLink}" target="_blank" style="text-decoration: none; color: #007bff; font-weight: 500;">Buka Folder</a>`
             : `<span style="color: #aaa;">-</span>`;
 
         row.innerHTML = `
@@ -377,22 +383,22 @@ function renderUploadSections() {
                 files.forEach(file => {
                     if (file.type.startsWith('image/')) {
                         const reader = new FileReader();
-                        reader.onload = function(event) {
+                        reader.onload = function (event) {
                             const img = document.createElement("img");
                             img.src = event.target.result;
                             img.className = "preview-thumb";
                             img.title = file.name;
                             previewDiv.appendChild(img);
                         }
-                        
+
                         reader.readAsDataURL(file);
                     }
                     else {
                         const fileBlock = document.createElement("div");
                         fileBlock.className = "preview-file-item";
                         let icon = "📄";
-                        if(file.type.includes('pdf')) icon = "📕";
-                        else if(file.type.includes('sheet') || file.type.includes('excel')) icon = "📊";
+                        if (file.type.includes('pdf')) icon = "📕";
+                        else if (file.type.includes('sheet') || file.type.includes('excel')) icon = "📊";
                         fileBlock.innerHTML = `
                             <span class="preview-file-icon">${icon}</span>
                             <span class="preview-file-name">${file.name}</span>
@@ -499,7 +505,7 @@ async function handleFormSubmit(e) {
 
         // 3. Loop Categories dan Proses File
         const filePromises = [];
-        
+
         UPLOAD_CATEGORIES.forEach(cat => {
             const input = document.getElementById(`file-${cat.key}`);
             if (input && input.files.length > 0) {
