@@ -279,7 +279,7 @@ function renderTable() {
             <td>${nama}</td>
             <td>${cabang}</td>
             <td>${linkHtml}</td>  <td>
-                <button class="btn-action btn-edit" onclick='handleEditClick(${JSON.stringify(doc).replace(/'/g, "&apos;")})'>Edit</button>
+                <button class="btn-action btn-edit" onclick="handleEditClick(${index})">Edit</button>
             </td>
         `;
         tbody.appendChild(row);
@@ -287,7 +287,9 @@ function renderTable() {
 }
 
 // Global function agar bisa dipanggil dari onclick HTML string
-window.handleEditClick = function (doc) {
+window.handleEditClick = function (index) {
+    const doc = filteredDocuments[index];
+    console.log("handleEditClick - index:", index, "doc:", doc);
     showForm(doc);
 };
 
@@ -479,6 +481,11 @@ async function handleFormSubmit(e) {
     e.preventDefault();
     showLoading(true);
     document.getElementById("error-msg").textContent = "";
+
+    // DEBUG: Cek state editing
+    console.log("=== SUBMIT DEBUG ===");
+    console.log("isEditing:", isEditing);
+    console.log("currentEditId:", currentEditId);
 
     try {
         // 1. Siapkan Data Dasar
