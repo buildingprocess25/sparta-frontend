@@ -41,7 +41,7 @@ function checkAuth() {
     };
 
     if (document.getElementById("user-name"))
-        document.getElementById("user-name").textContent = currentUser.email || "User";
+        document.getElementById("user-name").textContent = currentUser.email || "Nama";
     if (document.getElementById("user-branch"))
         document.getElementById("user-branch").textContent = currentUser.cabang || "Cabang";
 
