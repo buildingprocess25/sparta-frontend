@@ -45,11 +45,14 @@ function checkAuth() {
     if (document.getElementById("user-branch"))
         document.getElementById("user-branch").textContent = currentUser.cabang || "Cabang";
 
-    if (currentUser.cabang?.toLowerCase() === "head office") {
-        const colCabang = document.querySelector(".col-cabang");
-        if (colCabang) colCabang.style.display = "table-cell";
-        document.getElementById("filter-cabang").style.display = "block";
+    // Tampilkan tombol Tambah Data hanya jika BUKAN Head Office
+    const btnAddNew = document.getElementById("btn-add-new");
+    if (btnAddNew && currentUser.cabang?.toLowerCase() !== "head office") {
+        btnAddNew.style.display = "inline-block";
     }
+
+    // Populate filter cabang dropdown
+    populateCabangFilter();
 }
 
 // ==========================================
@@ -57,7 +60,10 @@ function checkAuth() {
 // ==========================================
 function initApp() {
     // Navigasi
-    document.getElementById("btn-add-new").addEventListener("click", () => showForm());
+    const btnAddNew = document.getElementById("btn-add-new");
+    if (btnAddNew) {
+        btnAddNew.addEventListener("click", () => showForm());
+    }
     document.getElementById("btn-back").addEventListener("click", () => showTable());
 
     // Modal Actions
@@ -193,6 +199,9 @@ async function fetchDocuments() {
             console.warn("Format data tidak dikenali. Pastikan backend mengirim Array.");
         }
 
+        // Update dropdown filter cabang dengan data yang ada
+        updateCabangFilterOptions();
+
         // Jalankan search awal untuk menampilkan tabel
         handleSearch("");
     } catch (err) {
@@ -209,21 +218,19 @@ async function fetchDocuments() {
 
 function handleSearch(keyword) {
     const term = keyword.toLowerCase();
-    const filterCabang = document.getElementById("filter-cabang").value.toLowerCase();
-    const isHO = currentUser.cabang?.toLowerCase() === "head office";
+    const filterCabang = document.getElementById("filter-cabang").value;
 
     filteredDocuments = allDocuments.filter(doc => {
         const kode = (doc.kode_toko || "").toLowerCase();
         const nama = (doc.nama_toko || "").toLowerCase();
-        const cabangDoc = (doc.cabang || "").toLowerCase();
+        const cabangDoc = doc.cabang || "";
 
         const matchText = kode.includes(term) || nama.includes(term);
-        const matchCabang = isHO ? (filterCabang === "" || cabangDoc.includes(filterCabang)) : true;
+        const matchCabang = filterCabang === "" || cabangDoc === filterCabang;
 
         return matchText && matchCabang;
     });
 
-    currentPage = 1; // Reset ke halaman 1 setiap search
     renderTable();
 }
 
@@ -232,53 +239,33 @@ function renderTable() {
     tbody.innerHTML = "";
 
     const totalDocs = filteredDocuments.length;
-    const totalPages = Math.ceil(totalDocs / rowsPerPage);
 
     // Tampilkan pesan jika data kosong
     if (totalDocs === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px;">Tidak ada data ditemukan (Cek Console F12 jika error)</td></tr>`;
-        renderPaginationControls(0);
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 20px;">Tidak ada data ditemukan</td></tr>`;
         return;
     }
 
-    // Logic Pagination
-    const startIndex = (currentPage - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    const pageDocs = filteredDocuments.slice(startIndex, endIndex);
-
-    const isHO = currentUser.cabang?.toLowerCase() === "head office";
-
-    pageDocs.forEach((doc, index) => {
+    // Tampilkan semua data tanpa pagination
+    filteredDocuments.forEach((doc, index) => {
         const row = document.createElement("tr");
 
         // Pastikan kita mengakses field dengan aman (gunakan || "-")
-        // Sesuaikan nama field (kode_toko, nama_toko) dengan output di Console
         const kode = doc.kode_toko || doc.store_code || "-";
         const nama = doc.nama_toko || doc.store_name || "-";
         const cabang = doc.cabang || "-";
-        const tglUpdate = doc.updated_at ? new Date(doc.updated_at).toLocaleDateString("id-ID") : "-";
-
-        // Kolom Cabang (Hanya tampil untuk HO)
-        const cellCabang = isHO ? `<td>${cabang}</td>` : "";
 
         row.innerHTML = `
-            <td>${startIndex + index + 1}</td>
+            <td>${index + 1}</td>
             <td>${kode}</td>
             <td>${nama}</td>
-            ${cellCabang}
-            <td>${tglUpdate}</td>
+            <td>${cabang}</td>
             <td>
                 <button class="btn-action btn-edit" onclick='handleEditClick(${JSON.stringify(doc).replace(/'/g, "&apos;")})'>Edit</button>
             </td>
         `;
         tbody.appendChild(row);
     });
-
-    if (isHO) {
-        document.querySelectorAll(".col-cabang").forEach(el => el.style.display = "table-cell");
-    }
-
-    renderPaginationControls(totalPages);
 }
 
 // Global function agar bisa dipanggil dari onclick HTML string
@@ -286,40 +273,40 @@ window.handleEditClick = function (doc) {
     showForm(doc);
 };
 
-function renderPaginationControls(totalPages) {
-    // Cek apakah container pagination sudah ada, jika belum buat
-    let paginationContainer = document.getElementById("pagination-container");
-    if (!paginationContainer) {
-        paginationContainer = document.createElement("div");
-        paginationContainer.id = "pagination-container";
-        paginationContainer.className = "pagination-actions";
-        // Insert setelah tabel
-        const tableContainer = document.querySelector(".table-container");
-        tableContainer.parentNode.insertBefore(paginationContainer, tableContainer.nextSibling);
+// Populate dropdown filter cabang dari data yang ada
+function populateCabangFilter() {
+    const select = document.getElementById("filter-cabang");
+    // Akan dipopulate setelah data di-fetch
+}
+
+function updateCabangFilterOptions() {
+    const select = document.getElementById("filter-cabang");
+    const currentValue = select.value;
+
+    // Get unique cabang values from data
+    const cabangSet = new Set();
+    allDocuments.forEach(doc => {
+        if (doc.cabang) {
+            cabangSet.add(doc.cabang);
+        }
+    });
+
+    // Clear and rebuild options
+    select.innerHTML = '<option value="">Semua Cabang</option>';
+
+    // Sort alphabetically
+    const sortedCabang = Array.from(cabangSet).sort();
+    sortedCabang.forEach(cabang => {
+        const option = document.createElement("option");
+        option.value = cabang;
+        option.textContent = cabang;
+        select.appendChild(option);
+    });
+
+    // Restore previous selection if still valid
+    if (currentValue && cabangSet.has(currentValue)) {
+        select.value = currentValue;
     }
-
-    paginationContainer.innerHTML = "";
-    if (totalPages <= 1) return;
-
-    // Tombol Prev
-    const btnPrev = document.createElement("button");
-    btnPrev.textContent = "Previous";
-    btnPrev.disabled = currentPage === 1;
-    btnPrev.onclick = () => { if (currentPage > 1) { currentPage--; renderTable(); } };
-
-    // Info Halaman
-    const spanInfo = document.createElement("span");
-    spanInfo.textContent = ` Page ${currentPage} of ${totalPages} `;
-
-    // Tombol Next
-    const btnNext = document.createElement("button");
-    btnNext.textContent = "Next";
-    btnNext.disabled = currentPage === totalPages;
-    btnNext.onclick = () => { if (currentPage < totalPages) { currentPage++; renderTable(); } };
-
-    paginationContainer.appendChild(btnPrev);
-    paginationContainer.appendChild(spanInfo);
-    paginationContainer.appendChild(btnNext);
 }
 
 // ==========================================
