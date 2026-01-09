@@ -13,12 +13,12 @@ let currentPage = 1;
 const rowsPerPage = 5;
 
 const UPLOAD_CATEGORIES = [
-    { key: "fotoAsal", label: "Foto Toko Asal" },
+    { key: "fotoAsal", label: "Foto Toko Existing" },
     { key: "fotoRenovasi", label: "Foto Proses Renovasi" },
     { key: "me", label: "Gambar ME" },
     { key: "sipil", label: "Gambar Sipil" },
     { key: "sketsaAwal", label: "Sketsa Awal (Layout)" },
-    { key: "pendukung", label: "Dokumen Pendukung Lainnya" },
+    { key: "pendukung", label: "Dokumen Pendukung (NIOI, SLO, dll))" },
 ];
 
 document.addEventListener("DOMContentLoaded", () => {
