@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
             'menu-dokumentasi', 'menu-opname', 'menu-gantt', 'menu-svdokumen'
         ],
         'KONTRAKTOR': [
-            'menu-rab', 'menu-materai', 'menu-opname'
+            'menu-rab', 'menu-materai', 'menu-opname', 'menu-gantt'
         ]
     };
 
