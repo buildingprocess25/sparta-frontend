@@ -9,10 +9,8 @@ let isEditing = false;
 let currentEditId = null;
 
 // === STATE MANAGEMENT UNTUK FILE ===
-let newFilesBuffer = {};
-let deletedFilesList = [];
-let originalFileLinks = ""; // Simpan file_links asli saat edit
-let existingFilesFromUI = []; // Backup: track file dari UI rendering
+let newFilesBuffer = {}; 
+let deletedFilesList = []; 
 
 const UPLOAD_CATEGORIES = [
     { key: "fotoAsal", label: "Foto Toko Existing" },
@@ -20,7 +18,7 @@ const UPLOAD_CATEGORIES = [
     { key: "me", label: "Gambar ME" },
     { key: "sipil", label: "Gambar Sipil" },
     { key: "sketsaAwal", label: "Sketsa Awal (Layout)" },
-    { key: "pendukung", label: "Dokumen Pendukung (NIDI, SLO, dll)" },
+    { key: "pendukung", label: "Dokumen Pendukung (NIOI, SLO, dll)" },
 ];
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -87,15 +85,15 @@ function initApp() {
 
     // Search & Filter
     const searchInput = document.getElementById("search-input");
-    if (searchInput) {
+    if(searchInput) {
         searchInput.addEventListener("input", (e) => handleSearch(e.target.value));
     }
-
+    
     const filterSelect = document.getElementById("filter-cabang");
-    if (filterSelect) {
+    if(filterSelect) {
         filterSelect.addEventListener("change", () => {
-            const keyword = document.getElementById("search-input") ? document.getElementById("search-input").value : "";
-            handleSearch(keyword);
+             const keyword = document.getElementById("search-input") ? document.getElementById("search-input").value : "";
+             handleSearch(keyword);
         });
     }
 
@@ -110,14 +108,12 @@ function resetFormState() {
         newFilesBuffer[cat.key] = [];
     });
     deletedFilesList = [];
-    originalFileLinks = ""; // Reset file_links asli
-    existingFilesFromUI = []; // Reset backup tracking
 
     // Reset UI Elements
     document.querySelectorAll(".file-preview").forEach(el => el.innerHTML = "");
     document.querySelectorAll(".existing-files-list").forEach(el => el.innerHTML = "");
     document.querySelectorAll("input[type='file']").forEach(el => el.value = "");
-
+    
     document.getElementById("store-form").reset();
     document.getElementById("error-msg").textContent = "";
 }
@@ -126,10 +122,10 @@ function showTable() {
     document.getElementById("view-table").style.display = "block";
     document.getElementById("view-form").style.display = "none";
     resetFormState();
-
+    
     isEditing = false;
     currentEditId = null;
-
+    
     // Refresh data saat kembali ke tabel
     fetchDocuments();
 }
@@ -137,8 +133,8 @@ function showTable() {
 function showForm(data = null) {
     document.getElementById("view-table").style.display = "none";
     document.getElementById("view-form").style.display = "block";
-
-    resetFormState();
+    
+    resetFormState(); 
 
     const title = document.getElementById("form-title");
     const inputs = document.querySelectorAll("#store-form input");
@@ -146,9 +142,9 @@ function showForm(data = null) {
     const isHeadOffice = currentUser.cabang?.toLowerCase() === "head office";
 
     inputs.forEach(input => input.disabled = false);
-    if (btnSave) btnSave.style.display = "inline-block";
-
-    renderUploadSections(isHeadOffice);
+    if(btnSave) btnSave.style.display = "inline-block";
+    
+    renderUploadSections(isHeadOffice); 
 
     if (data) {
         // === MODE EDIT ===
@@ -162,10 +158,6 @@ function showForm(data = null) {
         document.getElementById("luasParkir").value = formatDecimalInput(data.luas_parkir);
         document.getElementById("luasGudang").value = formatDecimalInput(data.luas_gudang);
 
-        // PENTING: Simpan file_links asli SEKARANG, bukan saat submit
-        originalFileLinks = data.file_links || "";
-        console.log("Original File Links saved:", originalFileLinks);
-
         if (data.file_links) {
             renderExistingFiles(data.file_links);
         }
@@ -173,10 +165,10 @@ function showForm(data = null) {
         if (isHeadOffice) {
             title.textContent = `Detail Data Toko: ${data.nama_toko}`;
             inputs.forEach(input => input.disabled = true);
-            if (btnSave) btnSave.style.display = "none";
+            if(btnSave) btnSave.style.display = "none";
         } else {
             title.textContent = `Edit Data Toko: ${data.nama_toko}`;
-            document.getElementById("kodeToko").disabled = true;
+            document.getElementById("kodeToko").disabled = true; 
         }
     } else {
         // === MODE TAMBAH ===
@@ -191,8 +183,8 @@ function showForm(data = null) {
 // ==========================================
 function renderUploadSections(isReadOnly = false) {
     const container = document.getElementById("upload-container");
-    if (!container) return;
-
+    if(!container) return;
+    
     container.innerHTML = "";
 
     const groups = [
@@ -205,7 +197,7 @@ function renderUploadSections(isReadOnly = false) {
         const groupWrapper = document.createElement("div");
         groupWrapper.className = "upload-section-group";
         groupWrapper.innerHTML = `<h4 class="upload-section-title">📂 ${group.title}</h4>`;
-
+        
         const gridDiv = document.createElement("div");
         gridDiv.className = "upload-grid";
 
@@ -217,7 +209,7 @@ function renderUploadSections(isReadOnly = false) {
 
             const section = document.createElement("div");
             section.className = "upload-group";
-
+            
             const displayInput = isReadOnly ? "none" : "block";
 
             section.innerHTML = `
@@ -251,7 +243,7 @@ function renderUploadSections(isReadOnly = false) {
                     });
 
                     updatePreviewUI(cat.key);
-                    input.value = "";
+                    input.value = ""; 
                 });
             }
         });
@@ -260,7 +252,7 @@ function renderUploadSections(isReadOnly = false) {
 
 function updatePreviewUI(categoryKey) {
     const previewDiv = document.getElementById(`preview-${categoryKey}`);
-    if (!previewDiv) return;
+    if(!previewDiv) return;
     previewDiv.innerHTML = "";
 
     const files = newFilesBuffer[categoryKey];
@@ -304,10 +296,6 @@ function renderExistingFiles(fileLinksString) {
     const entries = fileLinksString.split(",").map(s => s.trim()).filter(Boolean);
     const isHeadOffice = currentUser.cabang?.toLowerCase() === "head office";
 
-    // BACKUP: Simpan entries asli ke existingFilesFromUI
-    existingFilesFromUI = [...entries];
-    console.log("Rendered existing files (backup):", existingFilesFromUI);
-
     entries.forEach(entry => {
         const parts = entry.split("|");
         let category = "pendukung";
@@ -330,7 +318,7 @@ function renderExistingFiles(fileLinksString) {
         if (container) {
             const fileItem = document.createElement("div");
             fileItem.className = "existing-file-item";
-
+            
             let deleteBtnHtml = "";
             if (!isHeadOffice) {
                 // Perbaikan: URL kita trim untuk konsistensi
@@ -346,25 +334,14 @@ function renderExistingFiles(fileLinksString) {
     });
 }
 
-window.markFileForDeletion = function (btnElement, fileUrl, fileName) {
-    // Validasi URL tidak kosong atau invalid
-    if (!fileUrl || fileUrl === "#" || fileUrl.trim() === "") {
-        alert("URL file tidak valid, tidak dapat dihapus.");
-        return;
-    }
-
+window.markFileForDeletion = function(btnElement, fileUrl, fileName) {
     if (confirm(`Hapus file "${fileName}"?\nFile akan hilang permanen setelah Anda klik tombol Simpan.`)) {
-        // Simpan URL yang akan dihapus (dengan trim untuk konsistensi)
-        const cleanUrl = fileUrl.trim();
-
-        // Cegah duplikasi
-        if (!deletedFilesList.includes(cleanUrl)) {
-            deletedFilesList.push(cleanUrl);
-        }
-
+        // Simpan URL yang akan dihapus
+        deletedFilesList.push(fileUrl);
+        
         const parent = btnElement.closest(".existing-file-item");
         if (parent) parent.style.display = "none";
-
+        
         console.log("List Delete:", deletedFilesList);
     }
 };
@@ -384,14 +361,9 @@ async function fetchDocuments() {
 
         const res = await fetch(url);
         if (!res.ok) throw new Error("Gagal mengambil data dari server");
-
+        
         const rawData = await res.json();
         console.log("Data received:", rawData);
-
-        // DEBUG: Cek apakah file_links ada di response
-        if (Array.isArray(rawData) && rawData.length > 0) {
-            console.log("Sample file_links from first doc:", rawData[0]?.file_links);
-        }
 
         if (Array.isArray(rawData)) {
             allDocuments = rawData;
@@ -404,7 +376,7 @@ async function fetchDocuments() {
         }
 
         updateCabangFilterOptions();
-
+        
         const searchInput = document.getElementById("search-input");
         const keyword = searchInput ? searchInput.value : "";
         handleSearch(keyword);
@@ -421,7 +393,7 @@ async function fetchDocuments() {
 
 function handleSearch(keyword) {
     if (typeof keyword !== 'string') keyword = "";
-
+    
     const term = keyword.toLowerCase();
     const filterSelect = document.getElementById("filter-cabang");
     const filterCabang = filterSelect ? filterSelect.value : "";
@@ -429,21 +401,21 @@ function handleSearch(keyword) {
     filteredDocuments = allDocuments.filter(doc => {
         const kode = (doc.kode_toko || "").toString().toLowerCase();
         const nama = (doc.nama_toko || "").toString().toLowerCase();
-        const cabang = (doc.cabang || "").toString();
+        const cabang = (doc.cabang || "").toString(); 
 
         const matchText = kode.includes(term) || nama.includes(term);
         const matchCabang = filterCabang === "" || cabang === filterCabang;
         return matchText && matchCabang;
     });
 
-    filteredDocuments.reverse();
+    filteredDocuments.reverse(); 
     renderTable();
 }
 
 function renderTable() {
     const tbody = document.getElementById("table-body");
-    if (!tbody) return;
-
+    if(!tbody) return;
+    
     tbody.innerHTML = "";
 
     if (filteredDocuments.length === 0) {
@@ -457,10 +429,10 @@ function renderTable() {
 
     filteredDocuments.forEach((doc, index) => {
         const row = document.createElement("tr");
-
+        
         const folderUrl = doc.folder_link || doc.folder_drive || doc.folder_url || "";
-        const linkHtml = folderUrl
-            ? `<a href="${folderUrl}" target="_blank" style="text-decoration: none; color: #007bff; font-weight:500;">📂 Buka Folder</a>`
+        const linkHtml = folderUrl 
+            ? `<a href="${folderUrl}" target="_blank" style="text-decoration: none; color: #007bff; font-weight:500;">📂 Buka Folder</a>` 
             : `<span style="color: #999;">-</span>`;
 
         row.innerHTML = `
@@ -477,15 +449,15 @@ function renderTable() {
     });
 }
 
-window.handleEditClick = function (idOrCode) {
+window.handleEditClick = function(idOrCode) {
     // Kita gunakan String() untuk memastikan perbandingan aman (misal "123" vs 123)
-    const doc = allDocuments.find(d =>
-        String(d._id) === String(idOrCode) ||
-        String(d.id) === String(idOrCode) ||
+    const doc = allDocuments.find(d => 
+        String(d._id) === String(idOrCode) || 
+        String(d.id) === String(idOrCode) || 
         String(d.kode_toko) === String(idOrCode)
     );
-
-    if (doc) {
+    
+    if(doc) {
         showForm(doc);
     } else {
         console.error("Dokumen tidak ditemukan untuk ID:", idOrCode);
@@ -494,17 +466,17 @@ window.handleEditClick = function (idOrCode) {
 
 function updateCabangFilterOptions() {
     const select = document.getElementById("filter-cabang");
-    if (!select) return;
+    if(!select) return;
 
     const currentValue = select.value;
     const cabangSet = new Set();
-
-    allDocuments.forEach(doc => {
-        if (doc.cabang) cabangSet.add(doc.cabang);
+    
+    allDocuments.forEach(doc => { 
+        if (doc.cabang) cabangSet.add(doc.cabang); 
     });
 
     select.innerHTML = '<option value="">Semua Cabang</option>';
-
+    
     Array.from(cabangSet).sort().forEach(cabang => {
         const option = document.createElement("option");
         option.value = cabang;
@@ -530,58 +502,42 @@ async function handleFormSubmit(e) {
         let preservedFileLinks = "";
 
         if (isEditing && currentEditId) {
-            // PERBAIKAN UTAMA: Gunakan originalFileLinks yang sudah disimpan saat showForm()
-            // Fallback ke existingFilesFromUI jika originalFileLinks kosong
+            // PERBAIKAN 1: Gunakan String() untuk pencarian data asli agar Type Safe
+            // Sebelumnya `===` gagal karena id database (int) vs currentEditId (string)
+            const editIdStr = String(currentEditId);
+            
+            const originalDoc = allDocuments.find(d => 
+                String(d._id || "") === editIdStr || 
+                String(d.id || "") === editIdStr || 
+                String(d.kode_toko || "") === editIdStr
+            );
 
-            console.log("=== DEBUG PRESERVATION ===");
-            console.log("Original File Links (from state):", originalFileLinks);
-            console.log("Existing Files From UI (backup):", existingFilesFromUI);
-            console.log("Deleted List:", deletedFilesList);
+            if (originalDoc && originalDoc.file_links) {
+                const rawEntries = originalDoc.file_links.split(",");
+                
+                // PERBAIKAN 2: Logika Filter yang lebih 'loose' tapi aman
+                // Kita cek apakah entry string tersebut *mengandung* salah satu URL yg dihapus
+                const keptEntries = rawEntries.filter(entryString => {
+                    if (!entryString.trim()) return false;
 
-            // SAFEGUARD: Jika originalFileLinks kosong tapi ada file di UI, gunakan backup
-            let fileLinksToUse = originalFileLinks;
-            if ((!fileLinksToUse || fileLinksToUse.trim() === "") && existingFilesFromUI.length > 0) {
-                fileLinksToUse = existingFilesFromUI.join(",");
-                console.log("WARNING: originalFileLinks kosong, menggunakan backup dari UI:", fileLinksToUse);
-            }
+                    // Cek apakah entry ini mengandung URL yang ada di daftar hapus?
+                    const isDeleted = deletedFilesList.some(delUrl => entryString.includes(delUrl));
 
-            if (fileLinksToUse && fileLinksToUse.trim() !== "") {
-                // Jika tidak ada file yang dihapus, langsung gunakan fileLinksToUse
-                if (deletedFilesList.length === 0) {
-                    preservedFileLinks = fileLinksToUse;
-                    console.log("No files deleted, preserving all:", preservedFileLinks);
-                } else {
-                    // Ada file yang dihapus, filter yang perlu dibuang
-                    const rawEntries = fileLinksToUse.split(",");
-
-                    const keptEntries = rawEntries.filter(entryString => {
-                        if (!entryString.trim()) return false;
-
-                        // Extract URL dari entry (format: category|name|url atau name|url atau url saja)
-                        const parts = entryString.split("|");
-                        let entryUrl = "";
-
-                        if (parts.length === 3) {
-                            entryUrl = parts[2].trim();
-                        } else if (parts.length === 2) {
-                            entryUrl = parts[1].trim();
-                        } else {
-                            entryUrl = entryString.trim();
-                        }
-
-                        // Cek EXACT MATCH - apakah URL entry ini ada di daftar hapus?
-                        const isDeleted = deletedFilesList.some(delUrl => {
-                            return delUrl.trim() === entryUrl;
-                        });
-
-                        return !isDeleted;
-                    });
-
-                    preservedFileLinks = keptEntries.join(",");
-                    console.log("Files filtered, preserved:", preservedFileLinks);
-                }
+                    // Jika deleted = true (ketemu), maka buang (return false)
+                    // Jika deleted = false (tidak ketemu), maka simpan (return true)
+                    return !isDeleted;
+                });
+                
+                preservedFileLinks = keptEntries.join(",");
+                
+                // Debugging Logs untuk memastikan data tidak kosong
+                console.log("=== DEBUG PRESERVATION ===");
+                console.log("Original ID:", currentEditId);
+                console.log("Doc Found:", !!originalDoc);
+                console.log("Deleted List:", deletedFilesList);
+                console.log("Result Preserved:", preservedFileLinks);
             } else {
-                console.log("No original file links to preserve.");
+                console.warn("WARNING: Dokumen asli tidak ditemukan di memori saat Edit. Resiko data hilang.");
             }
         }
 
@@ -668,21 +624,21 @@ function formatDecimalInput(value) {
 }
 
 function showModal(id) { document.getElementById(id).style.display = "flex"; }
-function hideModal(id) {
+function hideModal(id) { 
     document.getElementById(id).style.display = "none";
     if (id === "modal-success") {
         showTable();
     }
 }
 
-function showLoading(show) {
+function showLoading(show) { 
     const el = document.getElementById("loading-overlay");
-    if (el) el.style.display = show ? "flex" : "none";
+    if(el) el.style.display = show ? "flex" : "none"; 
 }
 
 function showToast(msg) {
     const toast = document.getElementById("toast");
-    if (!toast) return;
+    if(!toast) return;
     toast.textContent = msg;
     toast.className = "toast show";
     setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
