@@ -9,10 +9,8 @@ let isEditing = false;
 let currentEditId = null;
 
 // === STATE MANAGEMENT UNTUK FILE ===
-// Kita tidak bisa menghapus file dari input[type='file'] secara langsung.
-// Jadi kita gunakan variabel buffer ini untuk menampung file sementara.
-let newFilesBuffer = {}; // Format: { "fotoAsal": [FileObject1, FileObject2], ... }
-let deletedFilesList = []; // Format: ["url_file_1", "nama_file_2"] (Untuk file lama yg dihapus)
+let newFilesBuffer = {}; 
+let deletedFilesList = []; 
 
 const UPLOAD_CATEGORIES = [
     { key: "fotoAsal", label: "Foto Toko Existing" },
@@ -37,9 +35,9 @@ function checkAuth() {
     }
 
     currentUser = {
-        email: sessionStorage.getItem("loggedInUserEmail"),
-        cabang: sessionStorage.getItem("loggedInUserCabang"),
-        role: sessionStorage.getItem("userRole")
+        email: sessionStorage.getItem("loggedInUserEmail") || "",
+        cabang: sessionStorage.getItem("loggedInUserCabang") || "",
+        role: sessionStorage.getItem("userRole") || ""
     };
 
     if (document.getElementById("user-name"))
@@ -50,7 +48,8 @@ function checkAuth() {
     const btnAddNew = document.getElementById("btn-add-new");
     const filterCabang = document.getElementById("filter-cabang");
 
-    if (currentUser.cabang?.toLowerCase() === "head office") {
+    // Logic Role Head Office
+    if (currentUser.cabang.toLowerCase() === "head office") {
         if (filterCabang) filterCabang.style.display = "inline-block";
         if (btnAddNew) btnAddNew.style.display = "none";
     } else {
@@ -77,38 +76,44 @@ function initApp() {
     // Form Handling
     document.getElementById("store-form").addEventListener("submit", handleFormSubmit);
 
-    // Live Formatting
+    // Live Formatting Input Angka
     document.querySelectorAll(".input-decimal").forEach(input => {
         input.addEventListener("input", (e) => {
             e.target.value = formatDecimalInput(e.target.value);
         });
     });
 
-    // Search
-    document.getElementById("search-input").addEventListener("input", (e) => handleSearch(e.target.value));
-    document.getElementById("filter-cabang").addEventListener("change", () => handleSearch(document.getElementById("search-input").value));
+    // Search & Filter
+    const searchInput = document.getElementById("search-input");
+    if(searchInput) {
+        searchInput.addEventListener("input", (e) => handleSearch(e.target.value));
+    }
+    
+    const filterSelect = document.getElementById("filter-cabang");
+    if(filterSelect) {
+        filterSelect.addEventListener("change", () => {
+             const keyword = document.getElementById("search-input") ? document.getElementById("search-input").value : "";
+             handleSearch(keyword);
+        });
+    }
 
-    // Render UI Upload Awal (Kosong)
+    // Load Data Awal
     renderUploadSections();
     fetchDocuments();
 }
 
 function resetFormState() {
-    // 1. Reset Buffer File Baru
     newFilesBuffer = {};
     UPLOAD_CATEGORIES.forEach(cat => {
         newFilesBuffer[cat.key] = [];
     });
-
-    // 2. Reset List File Hapus
     deletedFilesList = [];
 
-    // 3. Reset UI Preview & Input
+    // Reset UI Elements
     document.querySelectorAll(".file-preview").forEach(el => el.innerHTML = "");
     document.querySelectorAll(".existing-files-list").forEach(el => el.innerHTML = "");
     document.querySelectorAll("input[type='file']").forEach(el => el.value = "");
     
-    // 4. Reset Text Inputs
     document.getElementById("store-form").reset();
     document.getElementById("error-msg").textContent = "";
 }
@@ -120,6 +125,8 @@ function showTable() {
     
     isEditing = false;
     currentEditId = null;
+    
+    // Refresh data saat kembali ke tabel
     fetchDocuments();
 }
 
@@ -127,23 +134,22 @@ function showForm(data = null) {
     document.getElementById("view-table").style.display = "none";
     document.getElementById("view-form").style.display = "block";
     
-    resetFormState(); // PENTING: Reset semua buffer sebelum mulai
+    resetFormState(); 
 
     const title = document.getElementById("form-title");
     const inputs = document.querySelectorAll("#store-form input");
     const btnSave = document.getElementById("btn-save");
     const isHeadOffice = currentUser.cabang?.toLowerCase() === "head office";
 
-    // Default: Enable All
     inputs.forEach(input => input.disabled = false);
-    btnSave.style.display = "inline-block";
+    if(btnSave) btnSave.style.display = "inline-block";
     
-    // Re-render upload section untuk memastikan event listener fresh
     renderUploadSections(isHeadOffice); 
 
     if (data) {
         // === MODE EDIT ===
         isEditing = true;
+        // Prioritas ID: _id (Mongo), id (SQL), doc_id, kode_toko
         currentEditId = data._id || data.id || data.doc_id || data.kode_toko;
 
         document.getElementById("kodeToko").value = data.kode_toko || "";
@@ -159,10 +165,10 @@ function showForm(data = null) {
         if (isHeadOffice) {
             title.textContent = `Detail Data Toko: ${data.nama_toko}`;
             inputs.forEach(input => input.disabled = true);
-            btnSave.style.display = "none";
+            if(btnSave) btnSave.style.display = "none";
         } else {
             title.textContent = `Edit Data Toko: ${data.nama_toko}`;
-            document.getElementById("kodeToko").disabled = true; // Kode toko biasanya primary key, sebaiknya disable
+            document.getElementById("kodeToko").disabled = true; 
         }
     } else {
         // === MODE TAMBAH ===
@@ -177,6 +183,8 @@ function showForm(data = null) {
 // ==========================================
 function renderUploadSections(isReadOnly = false) {
     const container = document.getElementById("upload-container");
+    if(!container) return;
+    
     container.innerHTML = "";
 
     const groups = [
@@ -188,7 +196,7 @@ function renderUploadSections(isReadOnly = false) {
     groups.forEach(group => {
         const groupWrapper = document.createElement("div");
         groupWrapper.className = "upload-section-group";
-        groupWrapper.innerHTML = `<h4 class="upload-section-title">唐 ${group.title}</h4>`;
+        groupWrapper.innerHTML = `<h4 class="upload-section-title">📂 ${group.title}</h4>`;
         
         const gridDiv = document.createElement("div");
         gridDiv.className = "upload-grid";
@@ -197,13 +205,11 @@ function renderUploadSections(isReadOnly = false) {
             const cat = UPLOAD_CATEGORIES.find(c => c.key === key);
             if (!cat) return;
 
-            // Pastikan buffer terinisialisasi
             if (!newFilesBuffer[key]) newFilesBuffer[key] = [];
 
             const section = document.createElement("div");
             section.className = "upload-group";
             
-            // Logic display input file: Kalau ReadOnly (HO), sembunyikan input
             const displayInput = isReadOnly ? "none" : "block";
 
             section.innerHTML = `
@@ -221,7 +227,6 @@ function renderUploadSections(isReadOnly = false) {
         container.appendChild(groupWrapper);
     });
 
-    // Attach Event Listeners (Hanya jika tidak readonly)
     if (!isReadOnly) {
         UPLOAD_CATEGORIES.forEach(cat => {
             const input = document.getElementById(`file-${cat.key}`);
@@ -231,7 +236,6 @@ function renderUploadSections(isReadOnly = false) {
                     if (files.length === 0) return;
 
                     files.forEach(f => {
-                        // Prevent Duplicate by Name (Optional)
                         const isDuplicate = newFilesBuffer[cat.key].some(existing => existing.name === f.name);
                         if (!isDuplicate) {
                             newFilesBuffer[cat.key].push(f);
@@ -239,17 +243,17 @@ function renderUploadSections(isReadOnly = false) {
                     });
 
                     updatePreviewUI(cat.key);
-                    input.value = ""; // Reset input agar user bisa pilih file lagi
+                    input.value = ""; 
                 });
             }
         });
     }
 }
 
-// Fungsi Render Preview dari Buffer (Dengan tombol Hapus)
 function updatePreviewUI(categoryKey) {
     const previewDiv = document.getElementById(`preview-${categoryKey}`);
-    previewDiv.innerHTML = ""; // Clear UI
+    if(!previewDiv) return;
+    previewDiv.innerHTML = "";
 
     const files = newFilesBuffer[categoryKey];
 
@@ -257,33 +261,27 @@ function updatePreviewUI(categoryKey) {
         const wrapper = document.createElement("div");
         wrapper.className = "preview-wrapper";
 
-        // Tombol Hapus (Silang Merah)
         const btnRemove = document.createElement("button");
         btnRemove.className = "btn-remove-preview";
         btnRemove.innerHTML = "&times;";
         btnRemove.type = "button";
-        btnRemove.title = "Hapus file ini";
         btnRemove.onclick = () => {
-            // Hapus dari Buffer
             newFilesBuffer[categoryKey].splice(index, 1);
-            // Re-render UI
             updatePreviewUI(categoryKey);
         };
 
         if (file.type.startsWith('image/')) {
             const img = document.createElement("img");
             img.className = "preview-thumb";
-            
             const reader = new FileReader();
             reader.onload = (e) => { img.src = e.target.result; };
             reader.readAsDataURL(file);
-            
             wrapper.appendChild(img);
         } else {
             const docEl = document.createElement("div");
             docEl.className = "preview-file-item";
-            let icon = "塘";
-            if (file.type.includes('pdf')) icon = "燈";
+            let icon = "📄";
+            if (file.type.includes('pdf')) icon = "📕";
             docEl.innerHTML = `<span class="preview-file-icon">${icon}</span> <span class="preview-file-name">${file.name}</span>`;
             wrapper.appendChild(docEl);
         }
@@ -315,7 +313,6 @@ function renderExistingFiles(fileLinksString) {
             url = entry.trim();
         }
 
-        // Cari container yang pas
         const container = document.getElementById(`existing-${category}`) || document.getElementById("existing-pendukung");
 
         if (container) {
@@ -324,12 +321,11 @@ function renderExistingFiles(fileLinksString) {
             
             let deleteBtnHtml = "";
             if (!isHeadOffice) {
-                // Tombol Hapus Existing File (Trigger logic hapus)
                 deleteBtnHtml = `<button type="button" class="btn-delete-existing" onclick="markFileForDeletion(this, '${url}', '${name}')">🗑 Hapus</button>`;
             }
 
             fileItem.innerHTML = `
-                <a href="${url}" target="_blank" class="file-link">迫 ${name}</a>
+                <a href="${url}" target="_blank" class="file-link">📎 ${name}</a>
                 ${deleteBtnHtml}
             `;
             container.appendChild(fileItem);
@@ -337,21 +333,16 @@ function renderExistingFiles(fileLinksString) {
     });
 }
 
-// Global function untuk dipanggil dari HTML string
 window.markFileForDeletion = function(btnElement, fileUrl, fileName) {
     if (confirm(`Hapus file "${fileName}"?\nFile akan hilang permanen setelah Anda klik tombol Simpan.`)) {
-        // 1. Masukkan ke list hapus
         deletedFilesList.push(fileUrl);
-        // 2. Hilangkan dari tampilan UI
         const parent = btnElement.closest(".existing-file-item");
         if (parent) parent.style.display = "none";
-        
-        console.log("File marked for deletion:", deletedFilesList);
     }
 };
 
 // ==========================================
-// 4. DATA FETCHING & TABLE
+// 4. DATA FETCHING & TABLE (DIPERBAIKI)
 // ==========================================
 async function fetchDocuments() {
     showLoading(true);
@@ -361,19 +352,35 @@ async function fetchDocuments() {
             url += `?cabang=${encodeURIComponent(currentUser.cabang)}`;
         }
 
+        console.log("Fetching from URL:", url); // Debugging
+
         const res = await fetch(url);
-        if (!res.ok) throw new Error("Gagal mengambil data");
+        if (!res.ok) throw new Error("Gagal mengambil data dari server");
+        
         const rawData = await res.json();
+        console.log("Data received:", rawData); // Debugging
 
-        if (Array.isArray(rawData)) allDocuments = rawData;
-        else if (rawData.data && Array.isArray(rawData.data)) allDocuments = rawData.data;
-        else allDocuments = [];
+        // NORMALISASI DATA
+        if (Array.isArray(rawData)) {
+            allDocuments = rawData;
+        } else if (rawData.data && Array.isArray(rawData.data)) {
+            allDocuments = rawData.data;
+        } else {
+            allDocuments = [];
+        }
 
+        // UPDATE UI
         updateCabangFilterOptions();
-        handleSearch(document.getElementById("search-input").value);
+        
+        // Ambil value search, pastikan string
+        const searchInput = document.getElementById("search-input");
+        const keyword = searchInput ? searchInput.value : "";
+        
+        handleSearch(keyword);
+
     } catch (err) {
-        console.error(err);
-        showToast("Gagal memuat data");
+        console.error("Error fetching:", err);
+        showToast("Gagal memuat data: " + err.message);
         allDocuments = [];
         renderTable();
     } finally {
@@ -382,27 +389,42 @@ async function fetchDocuments() {
 }
 
 function handleSearch(keyword) {
+    // Safety check jika keyword undefined
+    if (typeof keyword !== 'string') keyword = "";
+    
     const term = keyword.toLowerCase();
-    const filterCabang = document.getElementById("filter-cabang").value;
+    const filterSelect = document.getElementById("filter-cabang");
+    const filterCabang = filterSelect ? filterSelect.value : "";
 
+    // Filtering
     filteredDocuments = allDocuments.filter(doc => {
-        const kode = (doc.kode_toko || "").toLowerCase();
-        const nama = (doc.nama_toko || "").toLowerCase();
-        const cabang = doc.cabang || "";
+        const kode = (doc.kode_toko || "").toString().toLowerCase();
+        const nama = (doc.nama_toko || "").toString().toLowerCase();
+        const cabang = (doc.cabang || "").toString(); // Jangan toLowerCase jika filterCabang case sensitive
+
         const matchText = kode.includes(term) || nama.includes(term);
+        // Jika filter kosong, match semua. Jika tidak, harus sama persis.
         const matchCabang = filterCabang === "" || cabang === filterCabang;
+        
         return matchText && matchCabang;
     });
+
+    // SORTING: Tampilkan data terbaru paling atas (reverse index atau berdasarkan ID)
+    // Asumsi: Data baru ada di akhir array dari backend, kita balik (reverse)
+    // Atau jika ada field created_at, gunakan itu. Default: reverse array.
+    filteredDocuments.reverse(); 
 
     renderTable();
 }
 
 function renderTable() {
     const tbody = document.getElementById("table-body");
+    if(!tbody) return;
+    
     tbody.innerHTML = "";
 
     if (filteredDocuments.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px;">Tidak ada data</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px; color: #666;">Tidak ada data ditemukan</td></tr>`;
         return;
     }
 
@@ -412,35 +434,57 @@ function renderTable() {
 
     filteredDocuments.forEach((doc, index) => {
         const row = document.createElement("tr");
-        const linkHtml = (doc.folder_link || doc.folder_drive) 
-            ? `<a href="${doc.folder_link || doc.folder_drive}" target="_blank" style="text-decoration: none; color: #007bff;">Buka Folder</a>` 
-            : `-`;
+        
+        // Safety check untuk link
+        const folderUrl = doc.folder_link || doc.folder_drive || doc.folder_url || "";
+        const linkHtml = folderUrl 
+            ? `<a href="${folderUrl}" target="_blank" style="text-decoration: none; color: #007bff; font-weight:500;">📂 Buka Folder</a>` 
+            : `<span style="color: #999;">-</span>`;
 
         row.innerHTML = `
             <td>${index + 1}</td>
             <td>${doc.kode_toko || "-"}</td>
-            <td>${doc.nama_toko || "-"}</td>
+            <td><b>${doc.nama_toko || "-"}</b></td>
             <td>${doc.cabang || "-"}</td>
             <td>${linkHtml}</td>
             <td>
-                <button class="btn-action ${actionClass}" onclick="handleEditClick(${index})">${actionLabel}</button>
+                <button class="btn-action ${actionClass}" onclick="handleEditClick('${doc._id || doc.id || doc.kode_toko}')">${actionLabel}</button>
             </td>
         `;
         tbody.appendChild(row);
     });
 }
 
-window.handleEditClick = function(index) {
-    showForm(filteredDocuments[index]);
+// Helper agar onclick bisa membaca fungsi ini
+window.handleEditClick = function(idOrCode) {
+    // Cari dokumen berdasarkan ID atau Kode
+    const doc = allDocuments.find(d => 
+        (d._id && d._id === idOrCode) || 
+        (d.id && d.id === idOrCode) || 
+        (d.kode_toko && d.kode_toko === idOrCode)
+    );
+    
+    if(doc) {
+        showForm(doc);
+    } else {
+        console.error("Dokumen tidak ditemukan untuk ID:", idOrCode);
+    }
 };
 
 function updateCabangFilterOptions() {
     const select = document.getElementById("filter-cabang");
+    if(!select) return;
+
     const currentValue = select.value;
     const cabangSet = new Set();
-    allDocuments.forEach(doc => { if (doc.cabang) cabangSet.add(doc.cabang); });
+    
+    allDocuments.forEach(doc => { 
+        if (doc.cabang) cabangSet.add(doc.cabang); 
+    });
 
+    // Jangan reset total jika user sedang memilih, tapi ini refresh data.
     select.innerHTML = '<option value="">Semua Cabang</option>';
+    
     Array.from(cabangSet).sort().forEach(cabang => {
         const option = document.createElement("option");
         option.value = cabang;
@@ -448,7 +492,10 @@ function updateCabangFilterOptions() {
         select.appendChild(option);
     });
 
-    if (currentValue && cabangSet.has(currentValue)) select.value = currentValue;
+    // Restore value if exists
+    if (currentValue && cabangSet.has(currentValue)) {
+        select.value = currentValue;
+    }
 }
 
 // ==========================================
@@ -469,7 +516,7 @@ async function handleFormSubmit(e) {
             cabang: currentUser.cabang || "",
             pic_name: currentUser.email || "",
             files: [],
-            deleted_files: deletedFilesList // Kirim daftar file yg dihapus
+            deleted_files: deletedFilesList 
         };
 
         const fileToBase64 = (file) => {
@@ -483,7 +530,6 @@ async function handleFormSubmit(e) {
 
         const filePromises = [];
 
-        // LOOPING DARI BUFFER, BUKAN DARI INPUT ELEMENT
         UPLOAD_CATEGORIES.forEach(cat => {
             const filesInBuffer = newFilesBuffer[cat.key] || [];
             filesInBuffer.forEach(file => {
@@ -519,7 +565,8 @@ async function handleFormSubmit(e) {
         if (!res.ok) throw new Error(result.detail || result.message || "Gagal menyimpan data");
 
         showModal("modal-success");
-        showTable();
+        // Kita tidak panggil showTable() di sini agar modal tampil dulu
+        // Nanti user klik "OK" di modal, baru tutup modal & showTable
 
     } catch (err) {
         console.error(err);
@@ -531,11 +578,13 @@ async function handleFormSubmit(e) {
 }
 
 // ==========================================
-// 6. UTILS
+// 6. UTILS & MODAL ACTIONS
 // ==========================================
 function formatDecimalInput(value) {
     if (!value) return "";
+    // Pastikan input jadi string
     let str = value.toString().replace(/[^0-9]/g, "");
+    if (str.length === 0) return "";
     if (str.length <= 2) return "0," + str.padStart(2, "0");
     const before = str.slice(0, -2);
     const after = str.slice(-2);
@@ -543,10 +592,23 @@ function formatDecimalInput(value) {
 }
 
 function showModal(id) { document.getElementById(id).style.display = "flex"; }
-function hideModal(id) { document.getElementById(id).style.display = "none"; }
-function showLoading(show) { document.getElementById("loading-overlay").style.display = show ? "flex" : "none"; }
+function hideModal(id) { 
+    document.getElementById(id).style.display = "none";
+    
+    // Jika modal success ditutup, kembali ke table
+    if (id === "modal-success") {
+        showTable();
+    }
+}
+
+function showLoading(show) { 
+    const el = document.getElementById("loading-overlay");
+    if(el) el.style.display = show ? "flex" : "none"; 
+}
+
 function showToast(msg) {
     const toast = document.getElementById("toast");
+    if(!toast) return;
     toast.textContent = msg;
     toast.className = "toast show";
     setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
