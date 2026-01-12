@@ -11,6 +11,7 @@ let currentEditId = null;
 // === STATE MANAGEMENT UNTUK FILE ===
 let newFilesBuffer = {};
 let deletedFilesList = [];
+let originalFileLinks = ""; // Simpan file_links asli saat edit
 
 const UPLOAD_CATEGORIES = [
     { key: "fotoAsal", label: "Foto Toko Existing" },
@@ -108,6 +109,7 @@ function resetFormState() {
         newFilesBuffer[cat.key] = [];
     });
     deletedFilesList = [];
+    originalFileLinks = ""; // Reset file_links asli
 
     // Reset UI Elements
     document.querySelectorAll(".file-preview").forEach(el => el.innerHTML = "");
@@ -157,6 +159,10 @@ function showForm(data = null) {
         document.getElementById("luasSales").value = formatDecimalInput(data.luas_sales);
         document.getElementById("luasParkir").value = formatDecimalInput(data.luas_parkir);
         document.getElementById("luasGudang").value = formatDecimalInput(data.luas_gudang);
+
+        // PENTING: Simpan file_links asli SEKARANG, bukan saat submit
+        originalFileLinks = data.file_links || "";
+        console.log("Original File Links saved:", originalFileLinks);
 
         if (data.file_links) {
             renderExistingFiles(data.file_links);
@@ -513,57 +519,50 @@ async function handleFormSubmit(e) {
         let preservedFileLinks = "";
 
         if (isEditing && currentEditId) {
-            // PERBAIKAN 1: Gunakan String() untuk pencarian data asli agar Type Safe
-            // Sebelumnya `===` gagal karena id database (int) vs currentEditId (string)
-            const editIdStr = String(currentEditId);
+            // PERBAIKAN UTAMA: Gunakan originalFileLinks yang sudah disimpan saat showForm()
+            // Ini mencegah bug karena allDocuments tidak sinkron atau doc tidak ditemukan
 
-            const originalDoc = allDocuments.find(d =>
-                String(d._id || "") === editIdStr ||
-                String(d.id || "") === editIdStr ||
-                String(d.kode_toko || "") === editIdStr
-            );
+            console.log("=== DEBUG PRESERVATION ===");
+            console.log("Original File Links (from state):", originalFileLinks);
+            console.log("Deleted List:", deletedFilesList);
 
-            if (originalDoc && originalDoc.file_links) {
-                const rawEntries = originalDoc.file_links.split(",");
+            if (originalFileLinks && originalFileLinks.trim() !== "") {
+                // Jika tidak ada file yang dihapus, langsung gunakan originalFileLinks
+                if (deletedFilesList.length === 0) {
+                    preservedFileLinks = originalFileLinks;
+                    console.log("No files deleted, preserving all:", preservedFileLinks);
+                } else {
+                    // Ada file yang dihapus, filter yang perlu dibuang
+                    const rawEntries = originalFileLinks.split(",");
 
-                // PERBAIKAN 2: Gunakan EXACT MATCH pada URL, bukan substring includes()
-                // Extract URL dari entry lalu bandingkan secara exact
-                const keptEntries = rawEntries.filter(entryString => {
-                    if (!entryString.trim()) return false;
+                    const keptEntries = rawEntries.filter(entryString => {
+                        if (!entryString.trim()) return false;
 
-                    // Extract URL dari entry (format: category|name|url atau name|url atau url saja)
-                    const parts = entryString.split("|");
-                    let entryUrl = "";
+                        // Extract URL dari entry (format: category|name|url atau name|url atau url saja)
+                        const parts = entryString.split("|");
+                        let entryUrl = "";
 
-                    if (parts.length === 3) {
-                        entryUrl = parts[2].trim();
-                    } else if (parts.length === 2) {
-                        entryUrl = parts[1].trim();
-                    } else {
-                        entryUrl = entryString.trim();
-                    }
+                        if (parts.length === 3) {
+                            entryUrl = parts[2].trim();
+                        } else if (parts.length === 2) {
+                            entryUrl = parts[1].trim();
+                        } else {
+                            entryUrl = entryString.trim();
+                        }
 
-                    // Cek EXACT MATCH - apakah URL entry ini ada di daftar hapus?
-                    const isDeleted = deletedFilesList.some(delUrl => {
-                        // Bandingkan exact, dengan trim untuk keamanan
-                        return delUrl.trim() === entryUrl;
+                        // Cek EXACT MATCH - apakah URL entry ini ada di daftar hapus?
+                        const isDeleted = deletedFilesList.some(delUrl => {
+                            return delUrl.trim() === entryUrl;
+                        });
+
+                        return !isDeleted;
                     });
 
-                    // Jika deleted = true (ketemu), maka buang (return false)
-                    // Jika deleted = false (tidak ketemu), maka simpan (return true)
-                    return !isDeleted;
-                });
-
-                preservedFileLinks = keptEntries.join(",");
-
-                // Debugging Logs untuk memastikan data tidak kosong
-                console.log("=== DEBUG PRESERVATION ===");
-                console.log("Original ID:", currentEditId);
-                console.log("Doc Found:", !!originalDoc);
-                console.log("Deleted List:", deletedFilesList);
-                console.log("Result Preserved:", preservedFileLinks);
+                    preservedFileLinks = keptEntries.join(",");
+                    console.log("Files filtered, preserved:", preservedFileLinks);
+                }
             } else {
-                console.warn("WARNING: Dokumen asli tidak ditemukan di memori saat Edit. Resiko data hilang.");
+                console.log("No original file links to preserve.");
             }
         }
 
