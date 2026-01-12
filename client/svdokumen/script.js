@@ -485,7 +485,7 @@ function renderTable() {
 
         const folderUrl = doc.folder_link || doc.folder_drive || doc.folder_url || "";
         const linkHtml = folderUrl
-            ? `<a href="${folderUrl}" target="_blank" style="text-decoration: none; color: #007bff; font-weight:500;">唐 Buka Folder</a>`
+            ? `<a href="${folderUrl}" target="_blank" style="text-decoration: none; color: #007bff; font-weight:500;">Buka Folder</a>`
             : `<span style="color: #999;">-</span>`;
 
         // Logika Tombol Hapus: Hanya muncul jika bukan Head Office
