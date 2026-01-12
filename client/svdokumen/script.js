@@ -10,7 +10,7 @@ let currentEditId = null;
 
 // === STATE MANAGEMENT UNTUK FILE ===
 let newFilesBuffer = {};
-let deletedFilesList = [];
+let deletedFilesList = []; // Sekarang menyimpan { category, filename, url }
 let originalFileLinks = ""; // Simpan file_links asli saat edit
 let existingFilesFromUI = []; // Backup: track file dari UI rendering
 
@@ -347,8 +347,11 @@ function renderExistingFiles(fileLinksString) {
 
             let deleteBtnHtml = "";
             if (!isHeadOffice) {
-                // Perbaikan: URL kita trim untuk konsistensi
-                deleteBtnHtml = `<button type="button" class="btn-delete-existing" onclick="markFileForDeletion(this, '${url.trim()}', '${name}')">🗑 Hapus</button>`;
+                // Kirim category, name, dan url untuk delete
+                const safeCategory = category.replace(/'/g, "\\'");
+                const safeName = name.replace(/'/g, "\\'");
+                const safeUrl = url.trim().replace(/'/g, "\\'");
+                deleteBtnHtml = `<button type="button" class="btn-delete-existing" onclick="markFileForDeletion(this, '${safeCategory}', '${safeName}', '${safeUrl}')">🗑 Hapus</button>`;
             }
 
             fileItem.innerHTML = `
@@ -360,7 +363,7 @@ function renderExistingFiles(fileLinksString) {
     });
 }
 
-window.markFileForDeletion = function (btnElement, fileUrl, fileName) {
+window.markFileForDeletion = function (btnElement, category, fileName, fileUrl) {
     // Validasi URL tidak kosong atau invalid
     if (!fileUrl || fileUrl === "#" || fileUrl.trim() === "") {
         alert("URL file tidak valid, tidak dapat dihapus.");
@@ -368,12 +371,20 @@ window.markFileForDeletion = function (btnElement, fileUrl, fileName) {
     }
 
     if (confirm(`Hapus file "${fileName}"?\nFile akan hilang permanen setelah Anda klik tombol Simpan.`)) {
-        // Simpan URL yang akan dihapus (dengan trim untuk konsistensi)
-        const cleanUrl = fileUrl.trim();
+        // Simpan object untuk dikirim ke backend dengan flag deleted: true
+        const deleteItem = {
+            category: category.trim(),
+            filename: fileName.trim(),
+            url: fileUrl.trim()
+        };
 
         // Cegah duplikasi
-        if (!deletedFilesList.includes(cleanUrl)) {
-            deletedFilesList.push(cleanUrl);
+        const isDuplicate = deletedFilesList.some(item =>
+            item.url === deleteItem.url && item.filename === deleteItem.filename
+        );
+
+        if (!isDuplicate) {
+            deletedFilesList.push(deleteItem);
         }
 
         const parent = btnElement.closest(".existing-file-item");
@@ -540,65 +551,7 @@ async function handleFormSubmit(e) {
     document.getElementById("error-msg").textContent = "";
 
     try {
-        // --- LOGIC REKONSTRUKSI FILE ---
-        let preservedFileLinks = "";
-
-        if (isEditing && currentEditId) {
-            // PERBAIKAN UTAMA: Gunakan originalFileLinks yang sudah disimpan saat showForm()
-            // Fallback ke existingFilesFromUI jika originalFileLinks kosong
-
-            console.log("=== DEBUG PRESERVATION ===");
-            console.log("Original File Links (from state):", originalFileLinks);
-            console.log("Existing Files From UI (backup):", existingFilesFromUI);
-            console.log("Deleted List:", deletedFilesList);
-
-            // SAFEGUARD: Jika originalFileLinks kosong tapi ada file di UI, gunakan backup
-            let fileLinksToUse = originalFileLinks;
-            if ((!fileLinksToUse || fileLinksToUse.trim() === "") && existingFilesFromUI.length > 0) {
-                fileLinksToUse = existingFilesFromUI.join(",");
-                console.log("WARNING: originalFileLinks kosong, menggunakan backup dari UI:", fileLinksToUse);
-            }
-
-            if (fileLinksToUse && fileLinksToUse.trim() !== "") {
-                // Jika tidak ada file yang dihapus, langsung gunakan fileLinksToUse
-                if (deletedFilesList.length === 0) {
-                    preservedFileLinks = fileLinksToUse;
-                    console.log("No files deleted, preserving all:", preservedFileLinks);
-                } else {
-                    // Ada file yang dihapus, filter yang perlu dibuang
-                    const rawEntries = fileLinksToUse.split(",");
-
-                    const keptEntries = rawEntries.filter(entryString => {
-                        if (!entryString.trim()) return false;
-
-                        // Extract URL dari entry (format: category|name|url atau name|url atau url saja)
-                        const parts = entryString.split("|");
-                        let entryUrl = "";
-
-                        if (parts.length === 3) {
-                            entryUrl = parts[2].trim();
-                        } else if (parts.length === 2) {
-                            entryUrl = parts[1].trim();
-                        } else {
-                            entryUrl = entryString.trim();
-                        }
-
-                        // Cek EXACT MATCH - apakah URL entry ini ada di daftar hapus?
-                        const isDeleted = deletedFilesList.some(delUrl => {
-                            return delUrl.trim() === entryUrl;
-                        });
-
-                        return !isDeleted;
-                    });
-
-                    preservedFileLinks = keptEntries.join(",");
-                    console.log("Files filtered, preserved:", preservedFileLinks);
-                }
-            } else {
-                console.log("No original file links to preserve.");
-            }
-        }
-
+        // === PAYLOAD SETUP ===
         const payload = {
             kode_toko: document.getElementById("kodeToko").value,
             nama_toko: document.getElementById("namaToko").value,
@@ -607,11 +560,23 @@ async function handleFormSubmit(e) {
             luas_gudang: document.getElementById("luasGudang").value,
             cabang: currentUser.cabang || "",
             pic_name: currentUser.email || "",
-            files: [],
-            deleted_files: deletedFilesList,
-            file_links: preservedFileLinks // Kirim hasil rekonstruksi
+            files: [] // Array untuk file baru dan file yang dihapus
         };
 
+        console.log("=== DEBUG SUBMIT ===");
+        console.log("Is Editing:", isEditing);
+        console.log("Deleted Files List:", deletedFilesList);
+
+        // === TAMBAHKAN FILE YANG DIHAPUS (dengan flag deleted: true) ===
+        deletedFilesList.forEach(item => {
+            payload.files.push({
+                category: item.category,
+                filename: item.filename,
+                deleted: true
+            });
+        });
+
+        // === KONVERSI FILE BARU KE BASE64 ===
         const fileToBase64 = (file) => {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -640,6 +605,15 @@ async function handleFormSubmit(e) {
 
         await Promise.all(filePromises);
 
+        console.log("Payload files count:", payload.files.length);
+        console.log("Payload files:", payload.files.map(f => ({
+            category: f.category,
+            filename: f.filename,
+            deleted: f.deleted || false,
+            hasData: !!f.data
+        })));
+
+        // === KIRIM KE SERVER ===
         let url = `${BASE_URL}/api/doc/save`;
         let method = "POST";
 
@@ -655,6 +629,8 @@ async function handleFormSubmit(e) {
         });
 
         const result = await res.json();
+        console.log("Server response:", result);
+
         if (!res.ok) throw new Error(result.detail || result.message || "Gagal menyimpan data");
 
         showModal("modal-success");
