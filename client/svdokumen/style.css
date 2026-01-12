@@ -14,8 +14,7 @@ body {
 
 /* === VARIABLES === */
 :root {
-    --primary: #d62828;
-    /* Merah Alfamart */
+    --primary: #d62828;      /* Merah Alfamart */
     --primary-dark: #b91c1c;
     --accent: #ffffff;
     --neutral-100: #f7f7f7;
@@ -37,7 +36,6 @@ header {
     justify-content: center;
     position: relative;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    top: auto;
     z-index: 100;
 }
 
@@ -56,6 +54,14 @@ header h1 {
     line-height: 1.2;
 }
 
+.user-greeting-wrapper {
+    text-align: center;
+    margin-top: 20px;
+    margin-bottom: -10px;
+    position: relative;
+    z-index: 10;
+}
+
 .user-info {
     display: inline-block;
     padding: 8px 24px;
@@ -66,38 +72,14 @@ header h1 {
     border: 1px solid #e0e0e0;
     border-radius: 50px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    animation: slideDown 0.4s ease-out;
+    transition: all 0.3s ease;
 }
 
 .user-info:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
     border-color: var(--primary);
-    /* Border jadi merah saat hover */
     color: var(--primary);
-    transition: all 0.3s ease;
-}
-
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.user-greeting-wrapper {
-    text-align: center;
-    margin-top: 20px;
-    /* Jarak dari bawah header */
-    margin-bottom: -10px;
-    /* Mengurangi jarak ke container di bawahnya */
-    position: relative;
-    z-index: 10;
 }
 
 .btn-back-header {
@@ -141,15 +123,8 @@ header h1 {
 }
 
 @keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 /* === TABLE CONTROLS === */
@@ -161,27 +136,17 @@ header h1 {
     align-items: center;
 }
 
-.search-input {
+.search-input, .filter-select {
     padding: 0.6rem 1rem;
     border: 1px solid #ddd;
     border-radius: 6px;
     font-size: 0.95rem;
-    flex: 1;
-    min-width: 200px;
 }
 
-.filter-select {
-    padding: 0.6rem 1rem;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    font-size: 0.95rem;
-    min-width: 180px;
-    background-color: white;
-    cursor: pointer;
-}
+.search-input { flex: 1; min-width: 200px; }
+.filter-select { min-width: 180px; background-color: white; cursor: pointer; }
 
-.filter-select:focus,
-.search-input:focus {
+.filter-select:focus, .search-input:focus {
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 0 2px rgba(214, 40, 40, 0.1);
@@ -203,15 +168,8 @@ header h1 {
 }
 
 /* === TABLE STYLES === */
-.table-container {
-    overflow-x: auto;
-}
-
-.table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 1rem;
-}
+.table-container { overflow-x: auto; }
+.table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
 
 .table th {
     background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
@@ -222,73 +180,22 @@ header h1 {
     border-bottom: 2px solid #dc2626;
 }
 
-.table td {
-    padding: 12px;
-    border-bottom: 1px solid #eee;
-}
+.table td { padding: 12px; border-bottom: 1px solid #eee; }
+.table tr:hover { background-color: #f9f9f9; }
 
-.table tr:hover {
-    background-color: #f9f9f9;
-}
-
-.btn-edit {
+.btn-action {
     background: none;
-    border: 1px solid #007bff;
-    color: #007bff;
     padding: 4px 10px;
     border-radius: 4px;
     cursor: pointer;
     font-size: 0.85rem;
 }
 
-.btn-edit:hover {
-    background: #007bff;
-    color: white;
-}
+.btn-edit { border: 1px solid #007bff; color: #007bff; }
+.btn-edit:hover { background: #007bff; color: white; }
 
-.btn-view {
-    background: none;
-    border: 1px solid #28a745; /* Warna Hijau */
-    color: #28a745;
-    padding: 4px 10px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.85rem;
-}
-
-.btn-view:hover {
-    background: #28a745;
-    color: white;
-}
-
-input:disabled {
-    background-color: #f9f9f9;
-    color: #555;
-    border-color: #ddd;
-    cursor: not-allowed;
-}
-
-/* === PAGINATION === */
-.pagination {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 15px;
-    margin-top: 1rem;
-}
-
-.pagination button {
-    background: #eee;
-    border: none;
-    padding: 5px 15px;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.pagination button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
+.btn-view { border: 1px solid #28a745; color: #28a745; }
+.btn-view:hover { background: #28a745; color: white; }
 
 /* === FORM === */
 .btn-text {
@@ -307,16 +214,8 @@ input:disabled {
     gap: 1.5rem;
 }
 
-.form-group {
-    display: flex;
-    flex-direction: column;
-}
-
-.form-group label {
-    margin-bottom: 0.5rem;
-    font-weight: 600;
-    font-size: 0.9rem;
-}
+.form-group { display: flex; flex-direction: column; }
+.form-group label { margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem; }
 
 .form-group input {
     padding: 0.75rem;
@@ -325,223 +224,10 @@ input:disabled {
     font-size: 1rem;
 }
 
-.form-group input:focus {
-    outline: none;
-    border-color: #4299e1;
-}
+.form-group input:focus { outline: none; border-color: #4299e1; }
+input:disabled { background-color: #f9f9f9; color: #555; border-color: #ddd; cursor: not-allowed; }
 
-.text-muted {
-    color: #666;
-    font-size: 0.85rem;
-    margin-bottom: 1rem;
-}
-
-/* === UPLOAD SECTION === */
-.upload-group {
-    background: #fafafa;
-    border: 1px dashed #ccc;
-    padding: 1rem;
-    border-radius: 8px;
-    margin-bottom: 1rem;
-}
-
-.upload-label {
-    font-weight: 600;
-    display: block;
-    margin-bottom: 8px;
-}
-
-.preview-list {
-    margin-top: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-}
-
-.preview-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: #fff;
-    padding: 5px 10px;
-    border: 1px solid #eee;
-    border-radius: 4px;
-    font-size: 0.85rem;
-}
-
-.preview-item a {
-    color: #007bff;
-    text-decoration: none;
-    max-width: 200px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.btn-delete-file {
-    color: red;
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-weight: bold;
-}
-
-/* === MODALS === */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
-
-.modal-box {
-    background: white;
-    padding: 2rem;
-    border-radius: 12px;
-    width: 90%;
-    max-width: 400px;
-    text-align: center;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-}
-
-.modal-actions {
-    display: flex;
-    justify-content: center;
-    gap: 1rem;
-    margin-top: 1.5rem;
-}
-
-.btn-confirm {
-    background: var(--primary);
-    color: white;
-    border: none;
-    padding: 0.6rem 1.2rem;
-    border-radius: 6px;
-    cursor: pointer;
-}
-
-.btn-cancel {
-    background: #eee;
-    color: #333;
-    border: none;
-    padding: 0.6rem 1.2rem;
-    border-radius: 6px;
-    cursor: pointer;
-}
-
-/* === TOAST === */
-.toast {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background: #333;
-    color: white;
-    padding: 12px 24px;
-    border-radius: 8px;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s;
-    z-index: 2000;
-}
-
-.toast.show {
-    opacity: 1;
-}
-
-.toast.success {
-    background: #48bb78;
-}
-
-.toast.error {
-    background: #f56565;
-}
-
-/* Pagination */
-.pagination-actions {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 1rem;
-    margin-top: 1.5rem;
-}
-
-.pagination-actions button {
-    padding: 0.5rem 1rem;
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.pagination-actions button:disabled {
-    background: #f5f5f5;
-    color: #aaa;
-    cursor: not-allowed;
-}
-
-.existing-files-list {
-    margin-bottom: 0.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-}
-
-.existing-file-item {
-    font-size: 0.9rem;
-    background: #eef2ff;
-    padding: 4px 8px;
-    border-radius: 4px;
-    border-left: 3px solid var(--primary);
-}
-
-.file-link {
-    text-decoration: none;
-    color: var(--primary);
-}
-
-.file-link:hover {
-    text-decoration: underline;
-}
-
-.file-preview p {
-    margin: 0;
-    padding: 2px 0;
-}
-
-/* === SPINNER & LOADING === */
-.loading-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(255, 255, 255, 0.9);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-}
-
-.loading-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 15px;
-}
-
-.loading-content p {
-    margin: 0;
-    font-weight: 600;
-    color: var(--neutral-700);
-    font-size: 1rem;
-}
-
+/* === UPLOAD SECTION NEW === */
 .upload-section-group {
     background: #ffffff;
     border: 1px solid #e0e0e0;
@@ -554,65 +240,79 @@ input:disabled {
 .upload-section-title {
     font-size: 1.1rem;
     font-weight: 700;
-    color: var(--primary); /* Menggunakan Merah Alfamart */
+    color: var(--primary);
     margin-bottom: 1rem;
     padding-bottom: 0.5rem;
     border-bottom: 2px solid #f0f0f0;
-    display: flex;
-    align-items: center;
-    gap: 8px;
 }
 
-/* Mengatur layout grid agar inputan file berjajar rapi */
 .upload-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* Responsif 2 kolom */
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 1.5rem;
 }
 
-/* Modifikasi style upload-group yang lama agar cocok di dalam grid */
 .upload-group {
     background: #fafafa;
     border: 1px dashed #ccc;
     padding: 1rem;
     border-radius: 8px;
-    height: 100%; /* Agar tinggi sama dalam grid */
     display: flex;
     flex-direction: column;
 }
 
-.upload-label {
-    font-weight: 600;
-    display: block;
-    margin-bottom: 8px;
-    font-size: 0.9rem;
-    color: #444;
-}
+.upload-label { font-weight: 600; display: block; margin-bottom: 8px; font-size: 0.9rem; color: #444; }
 
+/* === PREVIEW & DELETE FILES === */
 .file-preview {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 12px;
     margin-top: 10px;
 }
 
-/* Style untuk Thumbnail Gambar */
-.preview-thumb {
-    width: 80px;
-    height: 80px;
-    object-fit: cover; /* Agar gambar tidak gepeng */
-    border-radius: 6px;
-    border: 1px solid #ddd;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+/* Wrapper agar tombol delete bisa position absolute relative ke ini */
+.preview-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+/* Tombol Hapus Preview (Silang Merah) */
+.btn-remove-preview {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: var(--primary);
+    color: white;
+    border: 2px solid white;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    z-index: 10;
     transition: transform 0.2s;
 }
 
-.preview-thumb:hover {
-    transform: scale(1.05); /* Efek zoom sedikit saat hover */
-    border-color: var(--primary);
+.btn-remove-preview:hover {
+    background: darkred;
+    transform: scale(1.1);
 }
 
-/* Style untuk File Non-Gambar (PDF, dll) */
+.preview-thumb {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    background: white;
+}
+
 .preview-file-item {
     display: flex;
     align-items: center;
@@ -623,36 +323,78 @@ input:disabled {
     border: 1px solid #e2e8f0;
     font-size: 0.85rem;
     color: #334155;
-    max-width: 100%;
 }
 
-.preview-file-icon {
-    font-size: 1.2rem;
+/* Existing Files List */
+.existing-files-list {
+    margin-bottom: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
-.preview-file-name {
+.existing-file-item {
+    font-size: 0.9rem;
+    background: #eef2ff;
+    padding: 6px 10px;
+    border-radius: 4px;
+    border-left: 3px solid var(--primary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.file-link {
+    text-decoration: none;
+    color: var(--primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 150px; /* Batasi panjang nama file agar tidak merusak layout */
-    font-weight: 500;
+    max-width: 200px;
 }
+
+.file-link:hover { text-decoration: underline; }
+
+/* Tombol Hapus Existing File (Trash Icon/Text) */
+.btn-delete-existing {
+    background: none;
+    border: 1px solid #f87171;
+    color: #dc2626;
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 8px;
+    transition: all 0.2s;
+}
+
+.btn-delete-existing:hover {
+    background: #fee2e2;
+}
+
+/* === MODAL, LOADING, TOAST === */
+.modal-overlay, .loading-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex; justify-content: center; align-items: center;
+    z-index: 1000;
+}
+.loading-overlay { background: rgba(255, 255, 255, 0.9); z-index: 9999; }
+.modal-box { background: white; padding: 2rem; border-radius: 12px; width: 90%; max-width: 400px; text-align: center; }
+.modal-actions { display: flex; justify-content: center; gap: 1rem; margin-top: 1.5rem; }
+
+.toast {
+    position: fixed; bottom: 20px; right: 20px; background: #333; color: white;
+    padding: 12px 24px; border-radius: 8px; opacity: 0; pointer-events: none;
+    transition: opacity 0.3s; z-index: 2000;
+}
+.toast.show { opacity: 1; }
 
 .spinner {
     border: 4px solid #f3f3f3;
     border-top: 4px solid var(--primary);
     border-radius: 50%;
-    width: 50px;
-    height: 50px;
+    width: 50px; height: 50px;
     animation: spin 1s linear infinite;
 }
-
-@keyframes spin {
-    0% {
-        transform: rotate(0deg);
-    }
-
-    100% {
-        transform: rotate(360deg);
-    }
-}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }

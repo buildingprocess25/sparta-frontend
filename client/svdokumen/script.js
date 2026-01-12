@@ -8,9 +8,11 @@ let filteredDocuments = [];
 let isEditing = false;
 let currentEditId = null;
 
-// Pagination State
-let currentPage = 1;
-const rowsPerPage = 5;
+// === STATE MANAGEMENT UNTUK FILE ===
+// Kita tidak bisa menghapus file dari input[type='file'] secara langsung.
+// Jadi kita gunakan variabel buffer ini untuk menampung file sementara.
+let newFilesBuffer = {}; // Format: { "fotoAsal": [FileObject1, FileObject2], ... }
+let deletedFilesList = []; // Format: ["url_file_1", "nama_file_2"] (Untuk file lama yg dihapus)
 
 const UPLOAD_CATEGORIES = [
     { key: "fotoAsal", label: "Foto Toko Existing" },
@@ -45,22 +47,16 @@ function checkAuth() {
     if (document.getElementById("user-branch"))
         document.getElementById("user-branch").textContent = currentUser.cabang || "Cabang";
 
-    // Tampilkan tombol Tambah Data hanya jika BUKAN Head Office
     const btnAddNew = document.getElementById("btn-add-new");
     const filterCabang = document.getElementById("filter-cabang");
 
     if (currentUser.cabang?.toLowerCase() === "head office") {
-        // Head Office: tampilkan filter, sembunyikan tombol tambah
         if (filterCabang) filterCabang.style.display = "inline-block";
         if (btnAddNew) btnAddNew.style.display = "none";
     } else {
-        // Cabang lain: sembunyikan filter, tampilkan tombol tambah
         if (filterCabang) filterCabang.style.display = "none";
         if (btnAddNew) btnAddNew.style.display = "inline-block";
     }
-
-    // Populate filter cabang dropdown
-    populateCabangFilter();
 }
 
 // ==========================================
@@ -69,9 +65,7 @@ function checkAuth() {
 function initApp() {
     // Navigasi
     const btnAddNew = document.getElementById("btn-add-new");
-    if (btnAddNew) {
-        btnAddNew.addEventListener("click", () => showForm());
-    }
+    if (btnAddNew) btnAddNew.addEventListener("click", () => showForm());
     document.getElementById("btn-back").addEventListener("click", () => showTable());
 
     // Modal Actions
@@ -83,328 +77,142 @@ function initApp() {
     // Form Handling
     document.getElementById("store-form").addEventListener("submit", handleFormSubmit);
 
-    // Format Input Angka (Live formatting)
+    // Live Formatting
     document.querySelectorAll(".input-decimal").forEach(input => {
         input.addEventListener("input", (e) => {
             e.target.value = formatDecimalInput(e.target.value);
         });
     });
 
-    // Search & Filter
-    document.getElementById("search-input").addEventListener("input", (e) => {
-        handleSearch(e.target.value);
-    });
-    document.getElementById("filter-cabang").addEventListener("change", (e) => {
-        handleSearch(document.getElementById("search-input").value);
-    });
+    // Search
+    document.getElementById("search-input").addEventListener("input", (e) => handleSearch(e.target.value));
+    document.getElementById("filter-cabang").addEventListener("change", () => handleSearch(document.getElementById("search-input").value));
 
-    // Initial Load
+    // Render UI Upload Awal (Kosong)
     renderUploadSections();
     fetchDocuments();
 }
 
-// ==========================================
-// 3. UI HELPERS (SHOW/HIDE)
-// ==========================================
+function resetFormState() {
+    // 1. Reset Buffer File Baru
+    newFilesBuffer = {};
+    UPLOAD_CATEGORIES.forEach(cat => {
+        newFilesBuffer[cat.key] = [];
+    });
+
+    // 2. Reset List File Hapus
+    deletedFilesList = [];
+
+    // 3. Reset UI Preview & Input
+    document.querySelectorAll(".file-preview").forEach(el => el.innerHTML = "");
+    document.querySelectorAll(".existing-files-list").forEach(el => el.innerHTML = "");
+    document.querySelectorAll("input[type='file']").forEach(el => el.value = "");
+    
+    // 4. Reset Text Inputs
+    document.getElementById("store-form").reset();
+    document.getElementById("error-msg").textContent = "";
+}
+
 function showTable() {
     document.getElementById("view-table").style.display = "block";
     document.getElementById("view-form").style.display = "none";
-    document.getElementById("store-form").reset();
-    document.getElementById("error-msg").textContent = "";
-    resetPreviews(); // Bersihkan file preview
-
-    // Reset edit state
+    resetFormState();
+    
     isEditing = false;
     currentEditId = null;
-
-    fetchDocuments(); // Refresh data
+    fetchDocuments();
 }
 
 function showForm(data = null) {
     document.getElementById("view-table").style.display = "none";
     document.getElementById("view-form").style.display = "block";
-    const title = document.getElementById("form-title");
-    const form = document.getElementById("store-form");
-    const btnSave = document.getElementById("btn-save");
     
-    // Reset form & error
-    form.reset();
-    document.getElementById("error-msg").textContent = "";
-    resetPreviews();
+    resetFormState(); // PENTING: Reset semua buffer sebelum mulai
 
-    // Dapatkan semua input field dan file input
-    const inputs = form.querySelectorAll("input");
-    const fileInputs = form.querySelectorAll("input[type='file']");
+    const title = document.getElementById("form-title");
+    const inputs = document.querySelectorAll("#store-form input");
+    const btnSave = document.getElementById("btn-save");
     const isHeadOffice = currentUser.cabang?.toLowerCase() === "head office";
 
-    // --- RESET STATE (Default: Mode Edit/Input Biasa) ---
-    // Aktifkan semua input kembali
+    // Default: Enable All
     inputs.forEach(input => input.disabled = false);
-    // Tampilkan tombol simpan
     btnSave.style.display = "inline-block";
-    // Tampilkan input file
-    fileInputs.forEach(input => input.style.display = "block");
+    
+    // Re-render upload section untuk memastikan event listener fresh
+    renderUploadSections(isHeadOffice); 
 
     if (data) {
-        // === MODE EDIT / LIHAT ===
+        // === MODE EDIT ===
         isEditing = true;
         currentEditId = data._id || data.id || data.doc_id || data.kode_toko;
-        
-        // Isi Text Inputs
+
         document.getElementById("kodeToko").value = data.kode_toko || "";
         document.getElementById("namaToko").value = data.nama_toko || "";
         document.getElementById("luasSales").value = formatDecimalInput(data.luas_sales);
         document.getElementById("luasParkir").value = formatDecimalInput(data.luas_parkir);
         document.getElementById("luasGudang").value = formatDecimalInput(data.luas_gudang);
 
-        // Render File Lama
         if (data.file_links) {
             renderExistingFiles(data.file_links);
         }
 
-        // === LOGIKA KHUSUS HEAD OFFICE (READ ONLY) ===
         if (isHeadOffice) {
             title.textContent = `Detail Data Toko: ${data.nama_toko}`;
-            
-            // Disable semua input text
             inputs.forEach(input => input.disabled = true);
-            
-            // Sembunyikan tombol simpan
             btnSave.style.display = "none";
-            
-            // Sembunyikan tombol upload file (hanya bisa lihat file yg sudah ada)
-            fileInputs.forEach(input => input.style.display = "none");
         } else {
-            // Mode Edit Biasa (Bukan HO)
             title.textContent = `Edit Data Toko: ${data.nama_toko}`;
+            document.getElementById("kodeToko").disabled = true; // Kode toko biasanya primary key, sebaiknya disable
         }
-
     } else {
-        // === MODE TAMBAH BARU ===
-        // (Head Office seharusnya tidak bisa akses ini karena tombol + disembunyikan di checkAuth)
+        // === MODE TAMBAH ===
         isEditing = false;
         currentEditId = null;
         title.textContent = "Tambah Data Toko Baru";
     }
 }
 
-function showModal(id) {
-    document.getElementById(id).style.display = "flex";
-}
-
-function hideModal(id) {
-    document.getElementById(id).style.display = "none";
-}
-
-function showLoading(show) {
-    const loader = document.getElementById("loading-overlay");
-    if (loader) loader.style.display = show ? "flex" : "none";
-}
-
-function showToast(message) {
-    const toast = document.getElementById("toast");
-    toast.textContent = message;
-    toast.className = "toast show";
-    setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
-}
-
 // ==========================================
-// 4. DATA FETCHING & TABLE LOGIC
+// 3. UI HELPERS & RENDERERS
 // ==========================================
-async function fetchDocuments() {
-    showLoading(true);
-    try {
-        let url = `${BASE_URL}/api/doc/list`;
-
-        // Cek filter cabang user
-        if (currentUser.cabang && currentUser.cabang.toLowerCase() !== "head office") {
-            url += `?cabang=${encodeURIComponent(currentUser.cabang)}`;
-        }
-
-        console.log("Fetching URL:", url); // Debug URL
-
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`Gagal mengambil data (Status: ${res.status})`);
-
-        const rawData = await res.json();
-        console.log("Response Backend:", rawData); // Cek isi data di Console Browser (F12)
-
-        // === PERBAIKAN UTAMA DISINI ===
-        // Kode ini akan mengecek apakah data langsung array, atau dibungkus object
-        if (Array.isArray(rawData)) {
-            allDocuments = rawData;
-        } else if (rawData.items && Array.isArray(rawData.items)) {
-            allDocuments = rawData.items; // Jika formatnya { ok: true, items: [...] }
-        } else if (rawData.data && Array.isArray(rawData.data)) {
-            allDocuments = rawData.data; // Jika formatnya { data: [...] }
-        } else if (rawData.documents && Array.isArray(rawData.documents)) {
-            allDocuments = rawData.documents; // Jika formatnya { documents: [...] }
-        } else {
-            allDocuments = [];
-            console.warn("Format data tidak dikenali. Pastikan backend mengirim Array.");
-        }
-
-        // Update dropdown filter cabang dengan data yang ada
-        updateCabangFilterOptions();
-
-        // Jalankan search awal untuk menampilkan tabel
-        handleSearch("");
-    } catch (err) {
-        console.error("Error Fetching:", err);
-        showToast("Gagal memuat data: " + err.message);
-
-        // Pastikan tabel kosong jika error, jangan biarkan loading berputar
-        allDocuments = [];
-        renderTable();
-    } finally {
-        showLoading(false);
-    }
-}
-
-function handleSearch(keyword) {
-    const term = keyword.toLowerCase();
-    const filterCabang = document.getElementById("filter-cabang").value;
-
-    filteredDocuments = allDocuments.filter(doc => {
-        const kode = (doc.kode_toko || "").toLowerCase();
-        const nama = (doc.nama_toko || "").toLowerCase();
-        const cabangDoc = doc.cabang || "";
-
-        const matchText = kode.includes(term) || nama.includes(term);
-        const matchCabang = filterCabang === "" || cabangDoc === filterCabang;
-
-        return matchText && matchCabang;
-    });
-
-    renderTable();
-}
-
-function renderTable() {
-    const tbody = document.getElementById("table-body");
-    tbody.innerHTML = "";
-
-    const totalDocs = filteredDocuments.length;
-
-    // Tampilkan pesan jika data kosong
-    if (totalDocs === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px;">Tidak ada data ditemukan</td></tr>`;
-        return;
-    }
-
-    // Cek apakah user adalah Head Office
-    const isHeadOffice = currentUser.cabang?.toLowerCase() === "head office";
-
-    // Tampilkan semua data
-    filteredDocuments.forEach((doc, index) => {
-        const row = document.createElement("tr");
-
-        const kode = doc.kode_toko || doc.store_code || "-";
-        const nama = doc.nama_toko || doc.store_name || "-";
-        const cabang = doc.cabang || "-";
-        const driveLink = doc.folder_link || doc.folder_drive || doc["folder link"] || "";
-        const linkHtml = driveLink
-            ? `<a href="${driveLink}" target="_blank" style="text-decoration: none; color: #007bff; font-weight: 500;">Buka Folder</a>`
-            : `<span style="color: #aaa;">-</span>`;
-
-        // Tentukan Label dan Class tombol berdasarkan Role
-        const actionLabel = isHeadOffice ? "Lihat" : "Edit";
-        const actionClass = isHeadOffice ? "btn-view" : "btn-edit"; // Kita akan tambahkan style btn-view nanti
-
-        row.innerHTML = `
-            <td>${index + 1}</td>
-            <td>${kode}</td>
-            <td>${nama}</td>
-            <td>${cabang}</td>
-            <td>${linkHtml}</td>
-            <td>
-                <button class="btn-action ${actionClass}" onclick="handleEditClick(${index})">${actionLabel}</button>
-            </td>
-        `;
-        tbody.appendChild(row);
-    });
-}
-
-// Global function agar bisa dipanggil dari onclick HTML string
-window.handleEditClick = function (index) {
-    const doc = filteredDocuments[index];
-    console.log("handleEditClick - index:", index, "doc:", doc);
-    showForm(doc);
-};
-
-// Populate dropdown filter cabang dari data yang ada
-function populateCabangFilter() {
-    const select = document.getElementById("filter-cabang");
-    // Akan dipopulate setelah data di-fetch
-}
-
-function updateCabangFilterOptions() {
-    const select = document.getElementById("filter-cabang");
-    const currentValue = select.value;
-
-    // Get unique cabang values from data
-    const cabangSet = new Set();
-    allDocuments.forEach(doc => {
-        if (doc.cabang) {
-            cabangSet.add(doc.cabang);
-        }
-    });
-
-    // Clear and rebuild options
-    select.innerHTML = '<option value="">Semua Cabang</option>';
-
-    // Sort alphabetically
-    const sortedCabang = Array.from(cabangSet).sort();
-    sortedCabang.forEach(cabang => {
-        const option = document.createElement("option");
-        option.value = cabang;
-        option.textContent = cabang;
-        select.appendChild(option);
-    });
-
-    // Restore previous selection if still valid
-    if (currentValue && cabangSet.has(currentValue)) {
-        select.value = currentValue;
-    }
-}
-
-// ==========================================
-// 5. FORM & UPLOAD LOGIC
-// ==========================================
-function renderUploadSections() {
+function renderUploadSections(isReadOnly = false) {
     const container = document.getElementById("upload-container");
     container.innerHTML = "";
+
     const groups = [
-        {
-            title: "Foto (JPG, JPEG, PNG)",
-            keys: ["fotoAsal", "fotoRenovasi"]
-        },
-        {
-            title: "Gambar (PDF, JPG, JPEG, PNG, AutoCAD)",
-            keys: ["me", "sipil", "sketsaAwal"]
-        },
-        {
-            title: "Dokumen (PDF, JPG, JPEG, PNG)",
-            keys: ["pendukung"]
-        }
+        { title: "Foto (JPG, JPEG, PNG)", keys: ["fotoAsal", "fotoRenovasi"] },
+        { title: "Gambar (PDF, Gambar)", keys: ["me", "sipil", "sketsaAwal"] },
+        { title: "Dokumen (PDF, Gambar)", keys: ["pendukung"] }
     ];
+
     groups.forEach(group => {
         const groupWrapper = document.createElement("div");
         groupWrapper.className = "upload-section-group";
-        const groupTitle = document.createElement("h4");
-        groupTitle.className = "upload-section-title";
-        groupTitle.innerHTML = `📂 ${group.title}`;
-        groupWrapper.appendChild(groupTitle);
+        groupWrapper.innerHTML = `<h4 class="upload-section-title">唐 ${group.title}</h4>`;
+        
         const gridDiv = document.createElement("div");
         gridDiv.className = "upload-grid";
+
         group.keys.forEach(key => {
             const cat = UPLOAD_CATEGORIES.find(c => c.key === key);
             if (!cat) return;
+
+            // Pastikan buffer terinisialisasi
+            if (!newFilesBuffer[key]) newFilesBuffer[key] = [];
+
             const section = document.createElement("div");
-            section.className = "upload-group"; // Class lama tetap dipakai untuk styling input
+            section.className = "upload-group";
+            
+            // Logic display input file: Kalau ReadOnly (HO), sembunyikan input
+            const displayInput = isReadOnly ? "none" : "block";
+
             section.innerHTML = `
                 <label class="upload-label">${cat.label}</label>
                 <div id="existing-${cat.key}" class="existing-files-list"></div>
-                <input type="file" id="file-${cat.key}" multiple accept="image/*,.pdf" style="margin-top: auto;">
+                
+                <input type="file" id="file-${cat.key}" multiple accept="image/*,.pdf" 
+                       style="margin-top: auto; display: ${displayInput};">
+                
                 <div class="file-preview" id="preview-${cat.key}"></div>
             `;
             gridDiv.appendChild(section);
@@ -412,54 +220,85 @@ function renderUploadSections() {
         groupWrapper.appendChild(gridDiv);
         container.appendChild(groupWrapper);
     });
-    UPLOAD_CATEGORIES.forEach(cat => {
-        const input = document.getElementById(`file-${cat.key}`);
-        if (input) {
-            input.addEventListener("change", (e) => {
-                const previewDiv = document.getElementById(`preview-${cat.key}`);
-                previewDiv.innerHTML = "";
-                const files = Array.from(e.target.files);
-                if (files.length === 0) return;
-                files.forEach(file => {
-                    if (file.type.startsWith('image/')) {
-                        const reader = new FileReader();
-                        reader.onload = function (event) {
-                            const img = document.createElement("img");
-                            img.src = event.target.result;
-                            img.className = "preview-thumb";
-                            img.title = file.name;
-                            previewDiv.appendChild(img);
-                        }
 
-                        reader.readAsDataURL(file);
-                    }
-                    else {
-                        const fileBlock = document.createElement("div");
-                        fileBlock.className = "preview-file-item";
-                        let icon = "📄";
-                        if (file.type.includes('pdf')) icon = "📕";
-                        else if (file.type.includes('sheet') || file.type.includes('excel')) icon = "📊";
-                        fileBlock.innerHTML = `
-                            <span class="preview-file-icon">${icon}</span>
-                            <span class="preview-file-name">${file.name}</span>
-                        `;
-                        previewDiv.appendChild(fileBlock);
-                    }
+    // Attach Event Listeners (Hanya jika tidak readonly)
+    if (!isReadOnly) {
+        UPLOAD_CATEGORIES.forEach(cat => {
+            const input = document.getElementById(`file-${cat.key}`);
+            if (input) {
+                input.addEventListener("change", (e) => {
+                    const files = Array.from(e.target.files);
+                    if (files.length === 0) return;
+
+                    files.forEach(f => {
+                        // Prevent Duplicate by Name (Optional)
+                        const isDuplicate = newFilesBuffer[cat.key].some(existing => existing.name === f.name);
+                        if (!isDuplicate) {
+                            newFilesBuffer[cat.key].push(f);
+                        }
+                    });
+
+                    updatePreviewUI(cat.key);
+                    input.value = ""; // Reset input agar user bisa pilih file lagi
                 });
-            });
+            }
+        });
+    }
+}
+
+// Fungsi Render Preview dari Buffer (Dengan tombol Hapus)
+function updatePreviewUI(categoryKey) {
+    const previewDiv = document.getElementById(`preview-${categoryKey}`);
+    previewDiv.innerHTML = ""; // Clear UI
+
+    const files = newFilesBuffer[categoryKey];
+
+    files.forEach((file, index) => {
+        const wrapper = document.createElement("div");
+        wrapper.className = "preview-wrapper";
+
+        // Tombol Hapus (Silang Merah)
+        const btnRemove = document.createElement("button");
+        btnRemove.className = "btn-remove-preview";
+        btnRemove.innerHTML = "&times;";
+        btnRemove.type = "button";
+        btnRemove.title = "Hapus file ini";
+        btnRemove.onclick = () => {
+            // Hapus dari Buffer
+            newFilesBuffer[categoryKey].splice(index, 1);
+            // Re-render UI
+            updatePreviewUI(categoryKey);
+        };
+
+        if (file.type.startsWith('image/')) {
+            const img = document.createElement("img");
+            img.className = "preview-thumb";
+            
+            const reader = new FileReader();
+            reader.onload = (e) => { img.src = e.target.result; };
+            reader.readAsDataURL(file);
+            
+            wrapper.appendChild(img);
+        } else {
+            const docEl = document.createElement("div");
+            docEl.className = "preview-file-item";
+            let icon = "塘";
+            if (file.type.includes('pdf')) icon = "燈";
+            docEl.innerHTML = `<span class="preview-file-icon">${icon}</span> <span class="preview-file-name">${file.name}</span>`;
+            wrapper.appendChild(docEl);
         }
+
+        wrapper.appendChild(btnRemove);
+        previewDiv.appendChild(wrapper);
     });
 }
 
 function renderExistingFiles(fileLinksString) {
-    // Format dari backend biasanya string panjang dipisah koma
-    // Contoh item: "fotoAsal|namafile.jpg|http://url..." 
     if (!fileLinksString) return;
-
     const entries = fileLinksString.split(",").map(s => s.trim()).filter(Boolean);
+    const isHeadOffice = currentUser.cabang?.toLowerCase() === "head office";
 
     entries.forEach(entry => {
-        // Parsing logika (disamakan dengan React)
         const parts = entry.split("|");
         let category = "pendukung";
         let name = "File";
@@ -476,57 +315,151 @@ function renderExistingFiles(fileLinksString) {
             url = entry.trim();
         }
 
-        // Cari container yang sesuai kategori
+        // Cari container yang pas
         const container = document.getElementById(`existing-${category}`) || document.getElementById("existing-pendukung");
 
         if (container) {
             const fileItem = document.createElement("div");
             fileItem.className = "existing-file-item";
+            
+            let deleteBtnHtml = "";
+            if (!isHeadOffice) {
+                // Tombol Hapus Existing File (Trigger logic hapus)
+                deleteBtnHtml = `<button type="button" class="btn-delete-existing" onclick="markFileForDeletion(this, '${url}', '${name}')">🗑 Hapus</button>`;
+            }
+
             fileItem.innerHTML = `
-                <a href="${url}" target="_blank" class="file-link">🔗 ${name}</a>
+                <a href="${url}" target="_blank" class="file-link">迫 ${name}</a>
+                ${deleteBtnHtml}
             `;
             container.appendChild(fileItem);
         }
     });
 }
 
-function resetPreviews() {
-    // Clear selected files text
-    document.querySelectorAll(".file-preview").forEach(el => el.innerHTML = "");
-    // Clear input values
-    document.querySelectorAll("input[type='file']").forEach(el => el.value = "");
-    // Clear existing files display
-    document.querySelectorAll(".existing-files-list").forEach(el => el.innerHTML = "");
+// Global function untuk dipanggil dari HTML string
+window.markFileForDeletion = function(btnElement, fileUrl, fileName) {
+    if (confirm(`Hapus file "${fileName}"?\nFile akan hilang permanen setelah Anda klik tombol Simpan.`)) {
+        // 1. Masukkan ke list hapus
+        deletedFilesList.push(fileUrl);
+        // 2. Hilangkan dari tampilan UI
+        const parent = btnElement.closest(".existing-file-item");
+        if (parent) parent.style.display = "none";
+        
+        console.log("File marked for deletion:", deletedFilesList);
+    }
+};
+
+// ==========================================
+// 4. DATA FETCHING & TABLE
+// ==========================================
+async function fetchDocuments() {
+    showLoading(true);
+    try {
+        let url = `${BASE_URL}/api/doc/list`;
+        if (currentUser.cabang && currentUser.cabang.toLowerCase() !== "head office") {
+            url += `?cabang=${encodeURIComponent(currentUser.cabang)}`;
+        }
+
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Gagal mengambil data");
+        const rawData = await res.json();
+
+        if (Array.isArray(rawData)) allDocuments = rawData;
+        else if (rawData.data && Array.isArray(rawData.data)) allDocuments = rawData.data;
+        else allDocuments = [];
+
+        updateCabangFilterOptions();
+        handleSearch(document.getElementById("search-input").value);
+    } catch (err) {
+        console.error(err);
+        showToast("Gagal memuat data");
+        allDocuments = [];
+        renderTable();
+    } finally {
+        showLoading(false);
+    }
 }
 
-function formatDecimalInput(value) {
-    if (!value) return "";
-    let str = value.toString().replace(/[^0-9]/g, ""); // Hanya angka
+function handleSearch(keyword) {
+    const term = keyword.toLowerCase();
+    const filterCabang = document.getElementById("filter-cabang").value;
 
-    // Logic: 2 angka terakhir adalah desimal
-    if (str.length <= 2) return "0," + str.padStart(2, "0");
+    filteredDocuments = allDocuments.filter(doc => {
+        const kode = (doc.kode_toko || "").toLowerCase();
+        const nama = (doc.nama_toko || "").toLowerCase();
+        const cabang = doc.cabang || "";
+        const matchText = kode.includes(term) || nama.includes(term);
+        const matchCabang = filterCabang === "" || cabang === filterCabang;
+        return matchText && matchCabang;
+    });
 
-    const before = str.slice(0, -2);
-    const after = str.slice(-2);
-    // Tambahkan titik ribuan (opsional) - sederhana tanpa titik dulu untuk value input
-    return `${parseInt(before, 10)},${after}`;
+    renderTable();
+}
+
+function renderTable() {
+    const tbody = document.getElementById("table-body");
+    tbody.innerHTML = "";
+
+    if (filteredDocuments.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px;">Tidak ada data</td></tr>`;
+        return;
+    }
+
+    const isHeadOffice = currentUser.cabang?.toLowerCase() === "head office";
+    const actionLabel = isHeadOffice ? "Lihat" : "Edit";
+    const actionClass = isHeadOffice ? "btn-view" : "btn-edit";
+
+    filteredDocuments.forEach((doc, index) => {
+        const row = document.createElement("tr");
+        const linkHtml = (doc.folder_link || doc.folder_drive) 
+            ? `<a href="${doc.folder_link || doc.folder_drive}" target="_blank" style="text-decoration: none; color: #007bff;">Buka Folder</a>` 
+            : `-`;
+
+        row.innerHTML = `
+            <td>${index + 1}</td>
+            <td>${doc.kode_toko || "-"}</td>
+            <td>${doc.nama_toko || "-"}</td>
+            <td>${doc.cabang || "-"}</td>
+            <td>${linkHtml}</td>
+            <td>
+                <button class="btn-action ${actionClass}" onclick="handleEditClick(${index})">${actionLabel}</button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+window.handleEditClick = function(index) {
+    showForm(filteredDocuments[index]);
+};
+
+function updateCabangFilterOptions() {
+    const select = document.getElementById("filter-cabang");
+    const currentValue = select.value;
+    const cabangSet = new Set();
+    allDocuments.forEach(doc => { if (doc.cabang) cabangSet.add(doc.cabang); });
+
+    select.innerHTML = '<option value="">Semua Cabang</option>';
+    Array.from(cabangSet).sort().forEach(cabang => {
+        const option = document.createElement("option");
+        option.value = cabang;
+        option.textContent = cabang;
+        select.appendChild(option);
+    });
+
+    if (currentValue && cabangSet.has(currentValue)) select.value = currentValue;
 }
 
 // ==========================================
-// 6. SUBMIT HANDLER
+// 5. SUBMIT HANDLER
 // ==========================================
 async function handleFormSubmit(e) {
     e.preventDefault();
     showLoading(true);
     document.getElementById("error-msg").textContent = "";
 
-    // DEBUG: Cek state editing
-    console.log("=== SUBMIT DEBUG ===");
-    console.log("isEditing:", isEditing);
-    console.log("currentEditId:", currentEditId);
-
     try {
-        // 1. Siapkan Data Dasar
         const payload = {
             kode_toko: document.getElementById("kodeToko").value,
             nama_toko: document.getElementById("namaToko").value,
@@ -535,10 +468,10 @@ async function handleFormSubmit(e) {
             luas_gudang: document.getElementById("luasGudang").value,
             cabang: currentUser.cabang || "",
             pic_name: currentUser.email || "",
-            files: [] // Kita akan isi ini dengan file base64
+            files: [],
+            deleted_files: deletedFilesList // Kirim daftar file yg dihapus
         };
 
-        // 2. Helper Function untuk Convert File ke Base64
         const fileToBase64 = (file) => {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -548,31 +481,26 @@ async function handleFormSubmit(e) {
             });
         };
 
-        // 3. Loop Categories dan Proses File
         const filePromises = [];
 
+        // LOOPING DARI BUFFER, BUKAN DARI INPUT ELEMENT
         UPLOAD_CATEGORIES.forEach(cat => {
-            const input = document.getElementById(`file-${cat.key}`);
-            if (input && input.files.length > 0) {
-                Array.from(input.files).forEach(file => {
-                    // Tambahkan proses convert ke antrian
-                    const promise = fileToBase64(file).then(base64String => {
-                        payload.files.push({
-                            category: cat.key,
-                            filename: file.name,
-                            type: file.type,
-                            data: base64String // String base64 lengkap
-                        });
+            const filesInBuffer = newFilesBuffer[cat.key] || [];
+            filesInBuffer.forEach(file => {
+                const promise = fileToBase64(file).then(base64String => {
+                    payload.files.push({
+                        category: cat.key,
+                        filename: file.name,
+                        type: file.type,
+                        data: base64String
                     });
-                    filePromises.push(promise);
                 });
-            }
+                filePromises.push(promise);
+            });
         });
 
-        // Tunggu semua file selesai dikonversi
         await Promise.all(filePromises);
 
-        // 4. Tentukan URL & Method
         let url = `${BASE_URL}/api/doc/save`;
         let method = "POST";
 
@@ -581,22 +509,15 @@ async function handleFormSubmit(e) {
             method = "PUT";
         }
 
-        // 5. Kirim Request sebagai JSON
         const res = await fetch(url, {
             method: method,
-            headers: {
-                "Content-Type": "application/json" // Header Wajib untuk request.get_json()
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
         });
 
         const result = await res.json();
+        if (!res.ok) throw new Error(result.detail || result.message || "Gagal menyimpan data");
 
-        if (!res.ok) {
-            throw new Error(result.detail || result.message || "Gagal menyimpan data");
-        }
-
-        // Sukses
         showModal("modal-success");
         showTable();
 
@@ -610,8 +531,27 @@ async function handleFormSubmit(e) {
 }
 
 // ==========================================
-// 7. UTILS
+// 6. UTILS
 // ==========================================
+function formatDecimalInput(value) {
+    if (!value) return "";
+    let str = value.toString().replace(/[^0-9]/g, "");
+    if (str.length <= 2) return "0," + str.padStart(2, "0");
+    const before = str.slice(0, -2);
+    const after = str.slice(-2);
+    return `${parseInt(before, 10)},${after}`;
+}
+
+function showModal(id) { document.getElementById(id).style.display = "flex"; }
+function hideModal(id) { document.getElementById(id).style.display = "none"; }
+function showLoading(show) { document.getElementById("loading-overlay").style.display = show ? "flex" : "none"; }
+function showToast(msg) {
+    const toast = document.getElementById("toast");
+    toast.textContent = msg;
+    toast.className = "toast show";
+    setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
+}
+
 function handleLogout() {
     sessionStorage.clear();
     window.location.href = "sparta-alfamart.vercel.app";
@@ -621,12 +561,7 @@ let idleTime = 0;
 function setupAutoLogout() {
     setInterval(() => {
         idleTime++;
-        if (idleTime >= 30) { // 30 Menit
-            handleLogout();
-        }
+        if (idleTime >= 30) handleLogout();
     }, 60000);
-
-    ['mousemove', 'keypress', 'click', 'scroll'].forEach(evt => {
-        document.addEventListener(evt, () => idleTime = 0);
-    });
+    ['mousemove', 'keypress', 'click', 'scroll'].forEach(evt => document.addEventListener(evt, () => idleTime = 0));
 }
