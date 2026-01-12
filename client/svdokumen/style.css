@@ -483,6 +483,52 @@ input:disabled { background-color: #f9f9f9; color: #555; border-color: #ddd; cur
     animation: spin 1s linear infinite;
 }
 
+/* === MODAL BUTTON STYLES === */
+
+/* Tombol Konfirmasi (OK / Ya, Logout) - Gaya Utama */
+.btn-confirm {
+    background-color: var(--primary); /* Merah Alfamart */
+    color: white;
+    border: none;
+    padding: 10px 32px; /* Padding luas agar tombol terlihat "pasti" */
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 6px rgba(214, 40, 40, 0.2); /* Shadow halus merah */
+    min-width: 100px; /* Lebar minimum agar tidak terlalu kecil */
+}
+
+.btn-confirm:hover {
+    background-color: var(--primary-dark);
+    transform: translateY(-2px); /* Efek naik sedikit saat hover */
+    box-shadow: 0 6px 12px rgba(214, 40, 40, 0.3);
+}
+
+.btn-confirm:active {
+    transform: translateY(0); /* Efek ditekan */
+    box-shadow: 0 2px 4px rgba(214, 40, 40, 0.2);
+}
+
+.btn-cancel {
+    background-color: white;
+    color: #64748b;
+    border: 1px solid #cbd5e1;
+    padding: 10px 24px;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-cancel:hover {
+    background-color: #f1f5f9;
+    color: #334155;
+    border-color: #94a3b8;
+}
+
 #kodeToko, 
 #namaToko {
     text-transform: uppercase;
