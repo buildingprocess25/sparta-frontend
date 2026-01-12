@@ -24,7 +24,7 @@ let suffixRenov;
 const PYTHON_API_BASE_URL = "https://sparta-backend-5hdj.onrender.com"
 
 if (!sessionStorage.getItem('loggedInUserCabang')) {
-    window.location.replace('../../auth/kontraktor/login.html');
+    window.location.replace('../../auth/index.html');
 }
 
 const sipilCategoryOrder = [
