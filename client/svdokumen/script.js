@@ -12,6 +12,7 @@ let currentEditId = null;
 let newFilesBuffer = {};
 let deletedFilesList = [];
 let originalFileLinks = ""; // Simpan file_links asli saat edit
+let existingFilesFromUI = []; // Backup: track file dari UI rendering
 
 const UPLOAD_CATEGORIES = [
     { key: "fotoAsal", label: "Foto Toko Existing" },
@@ -110,6 +111,7 @@ function resetFormState() {
     });
     deletedFilesList = [];
     originalFileLinks = ""; // Reset file_links asli
+    existingFilesFromUI = []; // Reset backup tracking
 
     // Reset UI Elements
     document.querySelectorAll(".file-preview").forEach(el => el.innerHTML = "");
@@ -302,6 +304,10 @@ function renderExistingFiles(fileLinksString) {
     const entries = fileLinksString.split(",").map(s => s.trim()).filter(Boolean);
     const isHeadOffice = currentUser.cabang?.toLowerCase() === "head office";
 
+    // BACKUP: Simpan entries asli ke existingFilesFromUI
+    existingFilesFromUI = [...entries];
+    console.log("Rendered existing files (backup):", existingFilesFromUI);
+
     entries.forEach(entry => {
         const parts = entry.split("|");
         let category = "pendukung";
@@ -381,6 +387,11 @@ async function fetchDocuments() {
 
         const rawData = await res.json();
         console.log("Data received:", rawData);
+
+        // DEBUG: Cek apakah file_links ada di response
+        if (Array.isArray(rawData) && rawData.length > 0) {
+            console.log("Sample file_links from first doc:", rawData[0]?.file_links);
+        }
 
         if (Array.isArray(rawData)) {
             allDocuments = rawData;
@@ -520,20 +531,28 @@ async function handleFormSubmit(e) {
 
         if (isEditing && currentEditId) {
             // PERBAIKAN UTAMA: Gunakan originalFileLinks yang sudah disimpan saat showForm()
-            // Ini mencegah bug karena allDocuments tidak sinkron atau doc tidak ditemukan
+            // Fallback ke existingFilesFromUI jika originalFileLinks kosong
 
             console.log("=== DEBUG PRESERVATION ===");
             console.log("Original File Links (from state):", originalFileLinks);
+            console.log("Existing Files From UI (backup):", existingFilesFromUI);
             console.log("Deleted List:", deletedFilesList);
 
-            if (originalFileLinks && originalFileLinks.trim() !== "") {
-                // Jika tidak ada file yang dihapus, langsung gunakan originalFileLinks
+            // SAFEGUARD: Jika originalFileLinks kosong tapi ada file di UI, gunakan backup
+            let fileLinksToUse = originalFileLinks;
+            if ((!fileLinksToUse || fileLinksToUse.trim() === "") && existingFilesFromUI.length > 0) {
+                fileLinksToUse = existingFilesFromUI.join(",");
+                console.log("WARNING: originalFileLinks kosong, menggunakan backup dari UI:", fileLinksToUse);
+            }
+
+            if (fileLinksToUse && fileLinksToUse.trim() !== "") {
+                // Jika tidak ada file yang dihapus, langsung gunakan fileLinksToUse
                 if (deletedFilesList.length === 0) {
-                    preservedFileLinks = originalFileLinks;
+                    preservedFileLinks = fileLinksToUse;
                     console.log("No files deleted, preserving all:", preservedFileLinks);
                 } else {
                     // Ada file yang dihapus, filter yang perlu dibuang
-                    const rawEntries = originalFileLinks.split(",");
+                    const rawEntries = fileLinksToUse.split(",");
 
                     const keptEntries = rawEntries.filter(entryString => {
                         if (!entryString.trim()) return false;
