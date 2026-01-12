@@ -321,15 +321,12 @@ function renderExistingFiles(fileLinksString) {
             
             let deleteBtnHtml = "";
             if (!isHeadOffice) {
-                // UPDATE: Menambahkan escape pada URL dan Name untuk mencegah error syntax jika ada tanda kutip (')
-                const safeUrl = url.replace(/'/g, "\\'");
-                const safeName = name.replace(/'/g, "\\'");
-                
-                deleteBtnHtml = `<button type="button" class="btn-delete-existing" onclick="markFileForDeletion(this, '${safeUrl}', '${safeName}')">卵 Hapus</button>`;
+                // Perbaikan: Pastikan URL dikirim dengan benar ke fungsi
+                deleteBtnHtml = `<button type="button" class="btn-delete-existing" onclick="markFileForDeletion(this, '${url}', '${name}')">🗑 Hapus</button>`;
             }
 
             fileItem.innerHTML = `
-                <a href="${url}" target="_blank" class="file-link">梼 ${name}</a>
+                <a href="${url}" target="_blank" class="file-link">📎 ${name}</a>
                 ${deleteBtnHtml}
             `;
             container.appendChild(fileItem);
@@ -498,10 +495,12 @@ async function handleFormSubmit(e) {
     document.getElementById("error-msg").textContent = "";
 
     try {
-        // --- LOGIC REKONSTRUKSI FILE EXISTING (DIPERBAIKI) ---
+        // --- LOGIC REKONSTRUKSI FILE EXISTING ---
+        // Tujuan: Mengirim kembali semua file lama KECUALI yang di dalam 'deletedFilesList'
         let preservedFileLinks = "";
 
         if (isEditing && currentEditId) {
+            // 1. Cari data dokumen asli saat ini
             const originalDoc = allDocuments.find(d => 
                 (d._id && d._id === currentEditId) || 
                 (d.id && d.id === currentEditId) || 
@@ -509,53 +508,43 @@ async function handleFormSubmit(e) {
             );
 
             if (originalDoc && originalDoc.file_links) {
+                // 2. Pecah string menjadi array individual
                 const rawEntries = originalDoc.file_links.split(",");
                 
+                // 3. Filter dengan parsing URL yang ketat
                 const keptEntries = rawEntries.filter(entryString => {
+                    // Bersihkan whitespace
                     const cleanEntry = entryString.trim();
                     if(!cleanEntry) return false;
 
-                    // Parse entry dari data asli
+                    // Parse entry untuk mendapatkan URL saja
+                    // Format: "Category | Name | URL" atau "Name | URL" atau "URL"
                     const parts = cleanEntry.split("|");
                     let entryUrl = "";
                     
                     if (parts.length === 3) entryUrl = parts[2].trim();
                     else if (parts.length === 2) entryUrl = parts[1].trim();
-                    else entryUrl = cleanEntry;
+                    else entryUrl = cleanEntry; // Fallback jika cuma URL
 
-                    // --- PERBAIKAN UTAMA DI SINI ---
-                    // Cek apakah URL ini ada di daftar hapus dengan perbandingan yang lebih ROBUST
-                    const isDeleted = deletedFilesList.some(deletedUrl => {
-                        // 1. Cek Exact Match (Sama Persis)
-                        if (deletedUrl === entryUrl) return true;
-                        
-                        // 2. Cek Decode (Mengatasi masalah %20 vs Spasi)
-                        // Contoh: deletedUrl=".../file%20saya.jpg" vs entryUrl=".../file saya.jpg"
-                        try {
-                            if (decodeURIComponent(deletedUrl) === decodeURIComponent(entryUrl)) return true;
-                        } catch(e) { /* Abaikan jika error decode */ }
+                    // Cek apakah URL ini ada di daftar hapus?
+                    // Kita gunakan includes() pada array deletedFilesList
+                    const isDeleted = deletedFilesList.includes(entryUrl);
 
-                        // 3. Cek Encode (Kebalikannya)
-                        try {
-                            if (encodeURI(deletedUrl) === encodeURI(entryUrl)) return true;
-                        } catch(e) { /* Abaikan */ }
-                        
-                        return false;
-                    });
-
-                    // Jika deleted = true, buang dari list (return false). 
-                    // Jika deleted = false, simpan (return true).
+                    // Jika deleted = true, kita return false (buang dari list)
+                    // Jika deleted = false, kita return true (simpan entry asli)
                     return !isDeleted;
                 });
                 
+                // 4. Gabungkan kembali array yang tersisa menjadi string
                 preservedFileLinks = keptEntries.join(",");
                 
-                console.log("Deleted List:", deletedFilesList);
-                console.log("Final Preserved String:", preservedFileLinks);
+                console.log("Original Files:", originalDoc.file_links);
+                console.log("Deleted Request:", deletedFilesList);
+                console.log("Preserved Files:", preservedFileLinks);
             }
         }
-        
-        // Payload Construction
+        // --------------------------------------------------------
+
         const payload = {
             kode_toko: document.getElementById("kodeToko").value,
             nama_toko: document.getElementById("namaToko").value,
@@ -565,11 +554,10 @@ async function handleFormSubmit(e) {
             cabang: currentUser.cabang || "",
             pic_name: currentUser.email || "",
             files: [],
-            deleted_files: deletedFilesList, // Array URL yang akan dihapus fisik oleh backend (jika didukung)
-            file_links: preservedFileLinks   // String update untuk database
+            deleted_files: deletedFilesList,
+            file_links: preservedFileLinks // Kirim string hasil rekonstruksi
         };
 
-        // --- SISA KODE SAMA SEPERTI SEBELUMNYA ---
         const fileToBase64 = (file) => {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
