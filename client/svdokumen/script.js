@@ -497,6 +497,13 @@ function handleSearch(keyword) {
 
 function renderTable() {
     const tbody = document.getElementById("table-body");
+    const totalBadge = document.getElementById("total-records");
+    const totalCountVal = document.getElementById("total-count-val");
+
+    if (totalBadge && totalCountVal) {
+        totalBadge.style.display = "flex"; 
+        totalCountVal.textContent = filteredDocuments.length; 
+    }
     if (!tbody) return;
 
     tbody.innerHTML = "";
