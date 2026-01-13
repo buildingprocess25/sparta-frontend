@@ -228,7 +228,7 @@ header h1 {
 .table th:nth-child(3), 
 .table td:nth-child(3) {
     min-width: 250px; /* Minimal lebar kolom nama toko */
-    text-align: left; /* Nama toko rata kiri lebih enak dibaca */
+    text-align: center;
 }
 
 .table th:last-child, 
