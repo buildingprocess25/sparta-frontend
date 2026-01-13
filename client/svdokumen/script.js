@@ -500,7 +500,7 @@ function handleSearch(keyword) {
 
 // Fungsi Helper: Cek Kelengkapan Dokumen
 function checkDocumentCompleteness(fileLinksString) {
-    const mandatoryCategories = [
+    const mandatoryKeys = [
         "fotoAsal", 
         "fotoRenovasi", 
         "me", 
@@ -512,19 +512,25 @@ function checkDocumentCompleteness(fileLinksString) {
     ];
 
     if (!fileLinksString) {
-        return { complete: false, missingCount: mandatoryCategories.length, missingList: mandatoryCategories };
+        const allMissingLabels = mandatoryKeys.map(key => {
+            const cat = UPLOAD_CATEGORIES.find(c => c.key === key);
+            return cat ? cat.label : key;
+        });
+        return { complete: false, missingCount: mandatoryKeys.length, missingList: allMissingLabels };
     }
 
     const uploadedLower = fileLinksString.toLowerCase();
-
-    const missing = mandatoryCategories.filter(catKey => {
-        return !uploadedLower.includes(catKey.toLowerCase());
-    });
+    const missingLabels = mandatoryKeys
+        .filter(key => !uploadedLower.includes(key.toLowerCase())) // Cek key hilang
+        .map(key => {
+            const cat = UPLOAD_CATEGORIES.find(c => c.key === key);
+            return cat ? cat.label : key;
+        });
 
     return {
-        complete: missing.length === 0,
-        missingCount: missing.length,
-        missingList: missing
+        complete: missingLabels.length === 0,
+        missingCount: missingLabels.length,
+        missingList: missingLabels
     };
 }
 
@@ -581,10 +587,12 @@ function renderTable() {
         let statusBadgeHtml = "";
 
         if (!docStatus.complete) {
+            const missingText = docStatus.missingList.join(', ');
+
             statusBadgeHtml = `
-                <div class="doc-status-badge">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                    <span>Belum Lengkap (${docStatus.missingCount})</span>
+                <div class="doc-status-badge tooltip" data-tooltip="Kurang: ${missingText}">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                    Belum Lengkap (${docStatus.missingCount})
                 </div>
             `;
         }
