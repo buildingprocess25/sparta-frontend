@@ -710,6 +710,7 @@ async function handleFormSubmit(e) {
             cabang: currentUser.cabang || "",
             email: currentUser.email || "",
             pic_name: currentUser.email || "",
+            email: currentUser.email || "",
             files: [] // Array untuk file baru dan file yang dihapus
         };
 
