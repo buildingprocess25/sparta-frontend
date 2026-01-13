@@ -109,9 +109,9 @@ header h1 {
 
 /* === CONTAINER === */
 .container {
-    max-width: 1200px;
+    max-width: 98%;
     margin: 2rem auto;
-    padding: 0 1rem;
+    padding: 0 2rem;
 }
 
 .view-section {
@@ -201,34 +201,50 @@ header h1 {
 
 /* === TABLE STYLES === */
 .table-container {
-    overflow-x: auto;
+    width: 100%;
+    overflow-x: hidden; /* Sembunyikan scrollbar horizontal */
+    background: white;
     border-radius: var(--radius);
-    box-shadow: 0 0 0 1px #e5e5e5; /* Halus border luar table */
+    box-shadow: 0 0 0 1px #e5e5e5;
 }
 
 .table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 0; /* Hapus margin bawah agar pas di container */
+    table-layout: auto; /* Biarkan browser mengatur lebar kolom secara alami */
 }
 
 .table th {
     background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
     color: white;
-    text-align: center; /* REQUEST: Judul kolom rata tengah */
-    padding: 14px 16px;
+    text-align: center;
+    padding: 14px 10px;
     font-weight: 600;
     font-size: 0.95rem;
-    white-space: nowrap;
     border-bottom: 2px solid #991b1b;
+    white-space: nowrap; /* Header tetap satu baris agar rapi */
 }
 
-/* Mengatur alignment isi tabel */
+.table th:nth-child(3), 
+.table td:nth-child(3) {
+    min-width: 250px; /* Minimal lebar kolom nama toko */
+    text-align: left; /* Nama toko rata kiri lebih enak dibaca */
+}
+
+.table th:last-child, 
+.table td:last-child {
+    min-width: 180px; 
+    white-space: nowrap; /* Tombol aksi jangan sampai terpotong */
+}
+
 .table td {
-    padding: 14px 16px;
+    padding: 12px 10px;
     border-bottom: 1px solid #eee;
     vertical-align: middle;
     color: var(--neutral-700);
+    font-size: 0.95rem;
+    white-space: normal; 
+    word-wrap: break-word;
 }
 
 /* Kolom No, Kode, Cabang, dan Aksi sebaiknya rata tengah isinya juga */
