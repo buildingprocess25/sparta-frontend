@@ -7,6 +7,8 @@ let allDocuments = [];
 let filteredDocuments = [];
 let isEditing = false;
 let currentEditId = null;
+let currentPage = 1;
+const itemsPerPage = 10;
 
 // === STATE MANAGEMENT UNTUK FILE ===
 let newFilesBuffer = {};
@@ -492,6 +494,7 @@ function handleSearch(keyword) {
     });
 
     filteredDocuments.reverse();
+    currentPage = 1;
     renderTable();
 }
 
@@ -510,14 +513,19 @@ function renderTable() {
 
     if (filteredDocuments.length === 0) {
         tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 20px; color: #666;">Tidak ada data ditemukan</td></tr>`;
+        renderPagination();
         return;
     }
+
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedItems = filteredDocuments.slice(startIndex, endIndex);
 
     const isHeadOffice = currentUser.cabang?.toLowerCase() === "head office";
     const actionLabel = isHeadOffice ? "Lihat" : "Edit";
     const actionClass = isHeadOffice ? "btn-view" : "btn-edit";
 
-    filteredDocuments.forEach((doc, index) => {
+    paginatedItems.forEach((doc, index) => {
         const row = document.createElement("tr");
 
         const folderUrl = doc.folder_link || doc.folder_drive || doc.folder_url || "";
@@ -525,10 +533,8 @@ function renderTable() {
             ? `<a href="${folderUrl}" target="_blank" style="text-decoration: none; color: #007bff; font-weight:500;">Buka Folder</a>`
             : `<span style="color: #999;">-</span>`;
 
-        // Logika Tombol Hapus: Hanya muncul jika bukan Head Office
         let deleteBtnHtml = "";
         if (!isHeadOffice) {
-            // Kita pass kode_toko secara spesifik karena endpoint membutuhkannya
             deleteBtnHtml = `
                 <button class="btn-action btn-delete" 
                         onclick="handleDeleteClick('${doc.kode_toko}')" 
@@ -540,8 +546,11 @@ function renderTable() {
         const timestamp = doc.timestamp || "-";
         const editor = doc.last_edit || "-";
 
+        // Perbaikan Nomor Urut: (Index loop + 1) + (Index awal halaman)
+        const realNumber = index + 1 + startIndex;
+
         row.innerHTML = `
-            <td>${index + 1}</td>
+            <td>${realNumber}</td>
             <td>${doc.kode_toko || "-"}</td>
             <td><b>${doc.nama_toko || "-"}</b></td>
             <td>${doc.cabang || "-"}</td>
@@ -555,6 +564,48 @@ function renderTable() {
         `;
         tbody.appendChild(row);
     });
+    renderPagination();
+}
+
+function renderPagination() {
+    const container = document.getElementById("pagination-controls");
+    if (!container) return;
+
+    const totalPages = Math.ceil(filteredDocuments.length / itemsPerPage);
+    
+    // Jika tidak ada data atau cuma 1 halaman, sembunyikan pagination tapi tetap rapi
+    if (totalPages <= 1) {
+        container.style.display = "none";
+        return;
+    }
+    
+    container.style.display = "flex";
+    
+    // Update Info Halaman
+    const pageInfo = document.getElementById("page-info");
+    if(pageInfo) pageInfo.textContent = `Halaman ${currentPage} dari ${totalPages}`;
+
+    // Update State Tombol Prev
+    const btnPrev = document.getElementById("btn-prev");
+    if(btnPrev) {
+        btnPrev.disabled = currentPage === 1;
+        btnPrev.onclick = () => changePage(currentPage - 1);
+    }
+
+    // Update State Tombol Next
+    const btnNext = document.getElementById("btn-next");
+    if(btnNext) {
+        btnNext.disabled = currentPage === totalPages;
+        btnNext.onclick = () => changePage(currentPage + 1);
+    }
+}
+
+function changePage(newPage) {
+    const totalPages = Math.ceil(filteredDocuments.length / itemsPerPage);
+    if (newPage < 1 || newPage > totalPages) return;
+    
+    currentPage = newPage;
+    renderTable();
 }
 
 window.handleEditClick = function (idOrCode) {
