@@ -782,64 +782,6 @@ input:disabled { background-color: #f9f9f9; color: #555; border-color: #ddd; cur
     flex-shrink: 0;
 }
 
-/* === FILE PREVIEW MODAL === */
-.modal-preview-box {
-    background: white;
-    width: 90%;
-    height: 90%;
-    max-width: 1000px;
-    border-radius: 12px;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-}
-
-.modal-preview-header {
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid #e2e8f0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: #f8fafc;
-}
-
-.preview-actions {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.btn-close-preview {
-    background: none;
-    border: none;
-    font-size: 2rem;
-    line-height: 1;
-    color: #64748b;
-    cursor: pointer;
-    padding: 0 0.5rem;
-    transition: color 0.2s;
-}
-
-.btn-close-preview:hover {
-    color: var(--primary);
-}
-
-.modal-preview-content {
-    flex: 1;
-    background-color: #f1f5f9;
-    position: relative;
-    padding: 0;
-    overflow: hidden;
-}
-
-#preview-frame {
-    width: 100%;
-    height: 100%;
-    display: block;
-    background-color: #fff;
-}
-
 /* Style Tombol Hapus Existing (Lebih Elegan) */
 .btn-delete-existing {
     background-color: #fff1f2; /* Latar merah sangat muda */

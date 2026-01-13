@@ -364,6 +364,7 @@ function renderExistingFiles(fileLinksString) {
             const fileItem = document.createElement("div");
             fileItem.className = "existing-file-item";
 
+            // Tentukan Ikon berdasarkan ekstensi (simple logic)
             let iconCode = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>`; // Default File Icon
             
             if (url.toLowerCase().match(/\.(jpg|jpeg|png|gif)$/)) {
@@ -384,10 +385,8 @@ function renderExistingFiles(fileLinksString) {
                 </button>`;
             }
 
-            const safeUrl = url.replace(/'/g, "%27"); // Sanitasi sederhana untuk petik satu
-            const safeName = name.replace(/'/g, "\\'");
             fileItem.innerHTML = `
-                <a href="javascript:void(0)" onclick="handlePreviewFile('${safeUrl}', '${safeName}')" class="file-link">
+                <a href="${url}" target="_blank" class="file-link">
                     <div class="file-icon-placeholder">${iconCode}</div>
                     <span title="${name}">${name}</span>
                 </a>
@@ -829,39 +828,6 @@ function showToast(msg) {
     toast.className = "toast show";
     setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
 }
-
-// === FUNGSI BARU: PREVIEW FILE ===
-window.handlePreviewFile = function(url, filename) {
-    if (!url || url === "#") return;
-
-    const modal = document.getElementById("modal-file-preview");
-    const iframe = document.getElementById("preview-frame");
-    const title = document.getElementById("preview-filename");
-    const btnNewTab = document.getElementById("btn-download-original");
-
-    // 1. Manipulasi URL untuk Google Drive
-    let previewUrl = url;
-    if (url.includes("drive.google.com") && url.includes("/view")) {
-        previewUrl = url.replace(/\/view.*/, "/preview");
-    }
-
-    // 2. Set Content
-    title.textContent = filename || "Preview Dokumen";
-    iframe.src = previewUrl;
-
-    btnNewTab.href = url; 
-
-    // 3. Tampilkan Modal
-    modal.style.display = "flex";
-};
-
-window.closeFilePreview = function() {
-    const modal = document.getElementById("modal-file-preview");
-    const iframe = document.getElementById("preview-frame");
-    
-    modal.style.display = "none";
-    iframe.src = "";
-};
 
 function handleLogout() {
     sessionStorage.clear();
