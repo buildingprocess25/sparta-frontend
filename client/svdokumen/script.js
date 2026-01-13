@@ -507,7 +507,8 @@ function checkDocumentCompleteness(fileLinksString) {
         "sipil", 
         "sketsaAwal", 
         "spk", 
-        "rab"
+        "rab",
+        "pendukung"
     ];
 
     if (!fileLinksString) {
