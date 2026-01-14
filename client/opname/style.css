@@ -1,9 +1,9 @@
-/* === VARIABLES (Diambil dari svdokumen) === */
+/* === VARIABLES (Sama seperti sebelumnya) === */
 :root {
-    --primary: #d62828;       /* Merah Alfamart */
+    --primary: #d62828;
     --primary-dark: #b91c1c;
-    --primary-blue: #005a9e;  /* Biru untuk Login/Info */
-    --secondary-yellow: #facc15; /* Kuning Alfamart Modern */
+    --primary-blue: #005a9e;
+    --secondary-yellow: #facc15;
     
     --accent: #ffffff;
     --neutral-100: #f7f7f7;
@@ -21,25 +21,25 @@
 
 body {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    background-color: #f8fafc; /* Slate-50 sangat muda */
+    background-color: #f8fafc;
     color: var(--neutral-700);
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
 }
 
-/* === HEADER (Persis svdokumen) === */
+/* === HEADER (Revised) === */
 .app-header {
     background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
     color: white;
     text-align: center;
-    padding: 0 1.5rem; /* Padding horizontal */
+    padding: 0 1.5rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     align-items: center;
     justify-content: center;
     position: relative;
     box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
-    height: 80px; /* Tinggi fix agar rapi */
+    height: 80px;
     z-index: 50;
 }
 
@@ -50,7 +50,8 @@ body {
     left: 25px;
     top: 50%;
     transform: translateY(-50%);
-    filter: brightness(0) invert(1); /* Putihkan logo */
+    /* HAPUS FILTER INI AGAR WARNA LOGO ASLI MUNCUL */
+    /* filter: brightness(0) invert(1); */
 }
 
 .app-header h3, .app-header h1 {
@@ -68,26 +69,35 @@ body {
     margin-top: 2px;
 }
 
+/* Updated Logout Button Style to Match svdokumen .btn-back-header */
 .header-logout {
     position: absolute;
     right: 25px;
     top: 50%;
     transform: translateY(-50%);
-    background: rgba(255, 255, 255, 0.15);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    
+    /* Style disamakan dengan svdokumen */
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px; /* Bukan pill (50px) lagi, tapi 6px */
     color: white;
-    padding: 8px 20px;
-    border-radius: 50px; /* Pill shape */
+    
+    padding: 8px 16px;
     font-size: 0.9rem;
-    font-weight: 600;
+    font-weight: 500;
     cursor: pointer;
     backdrop-filter: blur(4px);
     transition: all 0.3s ease;
+    
+    /* Flex untuk icon dan text */
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .header-logout:hover {
-    background: rgba(255, 255, 255, 0.3);
-    transform: translateY(-50%) scale(1.05);
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-50%) scale(1.02);
 }
 
 /* === LAYOUT & CARD === */
@@ -113,7 +123,7 @@ body {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* === BUTTONS (Style Modern) === */
+/* === BUTTONS === */
 .btn {
     padding: 0.75rem 1.5rem;
     border: none;
@@ -150,16 +160,10 @@ body {
     border-color: #cbd5e1;
 }
 
-.btn-success {
-    background-color: #10b981; /* Emerald 500 */
-    color: white;
-}
+.btn-success { background-color: #10b981; color: white; }
 .btn-success:hover { background-color: #059669; }
 
-.btn-info {
-    background-color: #3b82f6; /* Blue 500 */
-    color: white;
-}
+.btn-info { background-color: #3b82f6; color: white; }
 .btn-info:hover { background-color: #2563eb; }
 
 .btn-back {
@@ -202,7 +206,7 @@ body {
     box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
 }
 
-/* === TABLE (Clean Style) === */
+/* === TABLE === */
 .table-container {
     overflow-x: auto;
     border-radius: 8px;
@@ -240,7 +244,7 @@ tr:hover td { background-color: #f8fafc; }
 .text-center { text-align: center; }
 .font-bold { font-weight: 700; }
 
-/* === LOGIN SPECIFIC (Beautified) === */
+/* === LOGIN SPECIFIC === */
 .login-wrapper {
     min-height: 100vh;
     display: flex;
