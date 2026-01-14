@@ -2,7 +2,7 @@
    1. Global Configuration & State
    ========================================= */
 const CONFIG = {
-  API_BASE_URL: "https://opname-mgbe.onrender.com", // Sesuaikan dengan environment variable jika ada
+  API_BASE_URL: "https://opnamebnm-mgbe.onrender.com", // Sesuaikan dengan environment variable jika ada
   INACTIVITY_LIMIT_MS: 60 * 60 * 1000, // 1 jam
 };
 
