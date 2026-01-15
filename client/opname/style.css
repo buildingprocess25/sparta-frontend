@@ -298,7 +298,60 @@ tr:hover td { background-color: #f8fafc; }
     transition: background 0.2s;
     margin-top: 1rem;
 }
-.btn-submit-custom:hover { background: var(--primary-dark); }
+.btn-submit-custom:hover {
+    background: var(--primary-dark);
+}
+
+/* === TAMBAHAN UNTUK LOGIN STYLE === */
+
+/* Tombol Kembali (Back Link) */
+.btn-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    color: #4a5568; /* var(--login-label) */
+    font-weight: 500;
+    font-size: 0.95rem;
+    margin-bottom: 2rem;
+    transition: all 0.2s ease;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+}
+
+.btn-back-link:hover {
+    color: var(--primary-blue); /* Menggunakan biru sesuai repo */
+    transform: translateX(-5px);
+}
+
+/* Penyesuaian Login Button agar Biru (Sesuai Repo) */
+.login-card .btn-submit-custom {
+    background-color: var(--primary-blue); /* #005a9e */
+}
+.login-card .btn-submit-custom:hover {
+    background-color: #004494;
+}
+
+/* Penyesuaian Header Text di Login */
+.login-header h1 {
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: #2d3748;
+    margin: 0;
+}
+.login-header h3 {
+    margin-top: 10px;
+    font-weight: 600;
+    font-size: 1.2rem;
+    color: #2d3748;
+}
+
+/* Pastikan input focus berwarna biru di halaman login */
+.login-card .input-custom:focus {
+    border-color: #4299e1;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
+}
 
 .password-wrapper { position: relative; }
 .toggle-password-btn {
