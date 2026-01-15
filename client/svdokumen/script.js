@@ -17,13 +17,17 @@ let originalFileLinks = ""; // Simpan file_links asli saat edit
 let existingFilesFromUI = []; // Backup: track file dari UI rendering
 
 const UPLOAD_CATEGORIES = [
-    { key: "fotoAsal", label: "Foto Toko Existing" },
+    { key: "fotoExisting", label: "Foto Toko Existing" },
     { key: "fotoRenovasi", label: "Foto Proses Renovasi" },
     { key: "me", label: "Gambar ME" },
     { key: "sipil", label: "Gambar Sipil" },
     { key: "sketsaAwal", label: "Sketsa Awal (Layout)" },
     { key: "spk", label: "Dokumen SPK" },
     { key: "rab", label: "Dokumen RAB & Penawaran" },
+    { key: "iL", label: "Instruksi Lapangan" },
+    { key: "pengawasan", label: "Berkas Pengawasan" },
+    { key: "aanwijzing", label: "Aanwijzing" },
+    { key: "kerjaTambahKurang", label: "Kerja Tambah Kurang" },
     { key: "pendukung", label: "Dokumen Pendukung (NIDI, SLO, dll)" },
 ];
 
@@ -213,9 +217,9 @@ function renderUploadSections(isReadOnly = false) {
     container.innerHTML = "";
 
     const groups = [
-        { title: "Foto (JPG, JPEG, PNG)", keys: ["fotoAsal", "fotoRenovasi"] },
+        { title: "Foto (JPG, JPEG, PNG)", keys: ["fotoExisting", "fotoRenovasi"] },
         { title: "Gambar (PDF, JPG, JPEG, PNG, Autocad)", keys: ["me", "sipil", "sketsaAwal"] },
-        { title: "Dokumen (PDF, JPG, JPEG, PNG)", keys: ["spk", "rab", "pendukung"] }
+        { title: "Dokumen (PDF, JPG, JPEG, PNG)", keys: ["spk", "rab", "pendukung", "iL", "pengawasan", "aanwijzing", "kerjaTambahKurang"] }
     ];
 
     groups.forEach(group => {
@@ -501,14 +505,18 @@ function handleSearch(keyword) {
 // Fungsi Helper: Cek Kelengkapan Dokumen
 function checkDocumentCompleteness(fileLinksString) {
     const mandatoryKeys = [
-        "fotoAsal", 
+        "fotoExisting", 
         "fotoRenovasi", 
         "me", 
         "sipil", 
         "sketsaAwal", 
         "spk", 
         "rab",
-        "pendukung"
+        "pendukung",
+        "iL",
+        "pengawasan",
+        "aanwijzing",
+        "kerjaTambahKurang"
     ];
 
     if (!fileLinksString) {
