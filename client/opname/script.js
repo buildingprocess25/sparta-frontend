@@ -155,7 +155,7 @@ const Render = {
             case 'final-opname-selection': Render.storeSelection(contentDiv, 'final-opname'); break;
             case 'final-opname-detail': Render.finalOpnameView(contentDiv); break;
             case 'store-selection-kontraktor': Render.storeSelection(contentDiv, 'approval'); break;
-            case 'approval-detail': Render.placeholder(contentDiv, "Halaman Approval"); break;
+            case 'approval-detail': Render.approvalDetail(contentDiv, "Halaman Approval"); break;
             case 'history-selection-kontraktor': Render.storeSelection(contentDiv, 'history'); break;
             case 'history-detail-kontraktor': Render.finalOpnameView(contentDiv); break;
             default: Render.dashboard(contentDiv);
@@ -753,17 +753,290 @@ const Render = {
         };
     },
     
-    placeholder: (container, text) => {
-        container.innerHTML = `
-            <div class="container" style="padding-top:40px;">
-                <div class="card text-center">
-                    <h3 style="color:var(--text-muted);">${text}</h3>
-                    <p>Halaman ini sedang dalam pengembangan.</p>
-                    <button class="btn btn-back" onclick="AppState.activeView='dashboard'; Render.app()">Kembali</button>
+    approvalDetail: async (container) => {
+        // 1. Cek Data ULOK
+        if (!AppState.selectedUlok) {
+            container.innerHTML = '<div class="container text-center" style="padding-top:40px;"><div class="card"><h3>Memuat Data ULOK...</h3></div></div>';
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/uloks?kode_toko=${AppState.selectedStore.kode_toko}`);
+                const data = await res.json();
+                AppState.uloks = data || [];
+
+                if (Array.isArray(data) && data.length === 1) {
+                    AppState.selectedUlok = data[0];
+                    Render.approvalDetail(container); // Auto-select dan lanjut
+                    return;
+                }
+
+                container.innerHTML = `
+                    <div class="container" style="padding-top:20px;">
+                        <div class="card">
+                            <button id="btn-back-store-app" class="btn btn-back" style="margin-bottom:15px;">← Kembali</button>
+                            <h2 style="color:var(--primary); margin-bottom:20px;">Pilih Nomor ULOK (Approval)</h2>
+                            <div class="d-flex flex-column gap-2">
+                                ${AppState.uloks.map(u => `<button class="btn btn-secondary ulok-btn" data-ulok="${u}" style="justify-content:flex-start;">📄 ${u}</button>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Event Handlers
+                container.querySelector('#btn-back-store-app').onclick = () => { 
+                    AppState.activeView = 'store-selection-kontraktor'; 
+                    Render.app(); 
+                };
+                
+                container.querySelectorAll('.ulok-btn').forEach(b => {
+                    b.onclick = () => { 
+                        AppState.selectedUlok = b.dataset.ulok; 
+                        AppState.selectedLingkup = null; // Reset lingkup saat ganti ULOK
+                        Render.approvalDetail(container); 
+                    }
+                });
+
+            } catch (e) { 
+                container.innerHTML = `<div class="container"><div class="alert-error">Gagal memuat ULOK: ${e.message}</div></div>`; 
+            }
+            return;
+        }
+
+        // 2. Cek Data Lingkup
+        if (!AppState.selectedLingkup) {
+            container.innerHTML = `
+                <div class="container" style="padding-top:40px;">
+                    <div class="card text-center" style="max-width:600px; margin:0 auto;">
+                        <h2 style="color:var(--primary);">Pilih Lingkup Pekerjaan</h2>
+                        <div class="badge badge-success" style="margin:10px auto; display:inline-block;">ULOK: ${AppState.selectedUlok}</div>
+                        
+                        <div class="d-flex justify-center gap-2" style="margin-top:30px; margin-bottom:30px;">
+                            <button class="btn btn-primary" id="btn-sipil" style="min-width:120px;">SIPIL</button>
+                            <button class="btn btn-info" id="btn-me" style="min-width:120px;">ME</button>
+                        </div>
+                        <button class="btn btn-back" id="btn-cancel-lingkup">Batal / Ganti ULOK</button>
+                    </div>
                 </div>
-            </div>
-        `;
-    }
+            `;
+            
+            container.querySelector('#btn-sipil').onclick = () => { AppState.selectedLingkup = 'SIPIL'; Render.approvalDetail(container); };
+            container.querySelector('#btn-me').onclick = () => { AppState.selectedLingkup = 'ME'; Render.approvalDetail(container); };
+            container.querySelector('#btn-cancel-lingkup').onclick = () => { AppState.selectedUlok = null; Render.approvalDetail(container); };
+            return;
+        }
+
+        // 3. Tampilkan Tabel Approval
+        container.innerHTML = '<div class="container text-center" style="padding-top:40px;"><div class="card"><h3>Memuat Data Opname Pending...</h3></div></div>';
+        
+        try {
+            const url = `${API_BASE_URL}/api/opname/pending?kode_toko=${AppState.selectedStore.kode_toko}&no_ulok=${AppState.selectedUlok}&lingkup=${AppState.selectedLingkup}`;
+            const res = await fetch(url);
+            const pendingItems = await res.json();
+            
+            // Render Tabel Utama
+            const renderApprovalTable = () => {
+                let html = `
+                <div class="container" style="padding-top:20px; max-width: 100vw; padding-left: 16px; padding-right: 16px;">
+                    <div class="card" style="border-radius:12px; padding:16px;">
+                        <div class="d-flex align-center gap-2" style="margin-bottom:24px; flex-wrap:wrap;">
+                            <button id="btn-back-lingkup" class="btn btn-back">← Kembali</button>
+                            <h2 style="color:var(--primary);">Persetujuan Opname</h2>
+                        </div>
+                        <p style="margin-bottom:20px; color:#64748b;">
+                            <strong>${AppState.selectedStore.nama_toko}</strong> | ULOK: ${AppState.selectedUlok} | Lingkup: ${AppState.selectedLingkup}
+                        </p>
+
+                        <div id="approval-message" style="display:none; padding:10px; border-radius:8px; margin-bottom:15px;"></div>
+
+                        <div class="table-container">
+                            <table style="width:100%; min-width:1000px;">
+                                <thead>
+                                    <tr style="background:#f2f2f2;">
+                                        <th style="padding:12px;">Kategori</th>
+                                        <th style="padding:12px;">Jenis Pekerjaan</th>
+                                        <th style="padding:12px; text-align:center;">Volume Akhir</th>
+                                        <th style="padding:12px; text-align:center;">Foto</th>
+                                        <th style="padding:12px;">PIC</th>
+                                        <th style="padding:12px;">Waktu Submit</th>
+                                        <th style="padding:12px; min-width:200px;">Catatan</th>
+                                        <th style="padding:12px; text-align:center; min-width:180px;">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="approval-tbody">
+                                    ${pendingItems.length === 0 ? 
+                                        '<tr><td colspan="8" class="text-center" style="padding:20px;">Tidak ada opname yang menunggu persetujuan.</td></tr>' : 
+                                        pendingItems.map(item => `
+                                        <tr id="row-${item.item_id}" style="border-bottom:1px solid #ddd;">
+                                            <td>${item.kategori_pekerjaan}</td>
+                                            <td>${item.jenis_pekerjaan}</td>
+                                            <td class="text-center"><b>${item.volume_akhir}</b> ${item.satuan || ''}</td>
+                                            <td class="text-center">
+                                                ${item.foto_url ? `<a href="${item.foto_url}" target="_blank" class="btn btn-outline" style="padding:4px 8px; font-size:12px;">Lihat</a>` : '<span style="color:#999;">-</span>'}
+                                            </td>
+                                            <td>${item.name || '-'}</td>
+                                            <td>${item.tanggal_submit || '-'}</td>
+                                            <td>
+                                                <textarea id="note-${item.item_id}" class="form-input" rows="2" placeholder="Catatan (opsional)..." style="font-size:0.9rem;"></textarea>
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="d-flex justify-center gap-2">
+                                                    <button class="btn btn-success btn-approve" data-id="${item.item_id}" data-jenis="${item.jenis_pekerjaan}" style="padding:6px 12px; font-size:0.85rem;">Approve</button>
+                                                    <button class="btn btn-primary btn-reject" data-id="${item.item_id}" style="padding:6px 12px; font-size:0.85rem; background-color:#dc3545;">Reject</button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>`;
+                
+                container.innerHTML = html;
+
+                // Event Listener: Back
+                container.querySelector('#btn-back-lingkup').onclick = () => { 
+                    AppState.selectedLingkup = null; 
+                    Render.approvalDetail(container); 
+                };
+
+                // Helper: Show Message
+                const showMsg = (msg, isError = false) => {
+                    const el = document.getElementById('approval-message');
+                    el.style.display = 'block';
+                    el.className = isError ? 'alert-error' : 'badge-success'; // Recycle classes
+                    el.style.backgroundColor = isError ? '#ffe5e5' : '#dcfce7';
+                    el.style.color = isError ? '#cc0000' : '#166534';
+                    el.innerText = msg;
+                    setTimeout(() => { el.style.display = 'none'; }, 3000);
+                };
+
+                // Logic Approve (Sesuai ApprovalPage.js: 2 Step Fetch)
+                container.querySelectorAll('.btn-approve').forEach(btn => {
+                    btn.onclick = async () => {
+                        const itemId = btn.dataset.id;
+                        const jenisPekerjaan = btn.dataset.jenis;
+                        const noteVal = document.getElementById(`note-${itemId}`).value;
+                        const row = document.getElementById(`row-${itemId}`);
+                        const btnReject = row.querySelector('.btn-reject');
+
+                        btn.disabled = true;
+                        btn.innerText = '...';
+                        btnReject.disabled = true;
+
+                        try {
+                            // Fetch 1: Opname Approve
+                            const payload1 = {
+                                item_id: itemId,
+                                kontraktor_username: AppState.user.username || AppState.user.name,
+                                catatan: noteVal
+                            };
+
+                            const res1 = await fetch(`${API_BASE_URL}/api/opname/approve`, {
+                                method: "PATCH",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify(payload1)
+                            });
+                            
+                            if (!res1.ok) {
+                                const errData = await res1.json();
+                                throw new Error(errData.message || "Gagal approve item");
+                            }
+
+                            // Wait 2-3 seconds (Simulasi delay seperti di React agar backend sync)
+                            await new Promise(r => setTimeout(r, 2000));
+
+                            // Fetch 2: Process Summary
+                            // Note: URL hardcoded di React, kita gunakan API_BASE_URL jika memungkinkan, 
+                            // tapi code React pakai sparta-backend-5hdj. Kita sesuaikan.
+                            const payload2 = {
+                                no_ulok: AppState.selectedUlok,
+                                lingkup_pekerjaan: AppState.selectedLingkup,
+                                jenis_pekerjaan: jenisPekerjaan
+                            };
+
+                            const res2 = await fetch(`${API_BASE_URL}/api/process_summary_opname`, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify(payload2)
+                            });
+
+                            if (!res2.ok) {
+                                const errData2 = await res2.json();
+                                console.warn("Warning Summary:", errData2.message);
+                                // Tetap lanjut sukses karena item sudah diapprove
+                            }
+
+                            showMsg("Berhasil di-approve!");
+                            row.remove(); // Hapus baris dari tabel
+
+                            // Cek jika tabel kosong
+                            if(document.querySelectorAll('#approval-tbody tr').length === 0) {
+                                document.getElementById('approval-tbody').innerHTML = '<tr><td colspan="8" class="text-center" style="padding:20px;">Semua data telah diproses.</td></tr>';
+                            }
+
+                        } catch (e) {
+                            showMsg(`Error: ${e.message}`, true);
+                            btn.disabled = false;
+                            btn.innerText = 'Approve';
+                            btnReject.disabled = false;
+                        }
+                    };
+                });
+
+                // Logic Reject
+                container.querySelectorAll('.btn-reject').forEach(btn => {
+                    btn.onclick = async () => {
+                        const itemId = btn.dataset.id;
+                        const noteVal = document.getElementById(`note-${itemId}`).value;
+                        const row = document.getElementById(`row-${itemId}`);
+                        const btnApprove = row.querySelector('.btn-approve');
+
+                        if(!confirm("Yakin ingin menolak (REJECT) item ini?")) return;
+
+                        btn.disabled = true;
+                        btn.innerText = '...';
+                        btnApprove.disabled = true;
+
+                        try {
+                            const payload = {
+                                item_id: itemId,
+                                kontraktor_username: AppState.user.username || AppState.user.name,
+                                catatan: noteVal
+                            };
+
+                            const res = await fetch(`${API_BASE_URL}/api/opname/reject`, {
+                                method: "PATCH",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify(payload)
+                            });
+
+                            if (!res.ok) {
+                                const data = await res.json();
+                                throw new Error(data.message || "Gagal reject");
+                            }
+
+                            showMsg("Berhasil di-reject!");
+                            row.remove();
+
+                            if(document.querySelectorAll('#approval-tbody tr').length === 0) {
+                                document.getElementById('approval-tbody').innerHTML = '<tr><td colspan="8" class="text-center" style="padding:20px;">Semua data telah diproses.</td></tr>';
+                            }
+
+                        } catch (e) {
+                            showMsg(`Error: ${e.message}`, true);
+                            btn.disabled = false;
+                            btn.innerText = 'Reject';
+                            btnApprove.disabled = false;
+                        }
+                    };
+                });
+            };
+
+            renderApprovalTable();
+
+        } catch (e) {
+            container.innerHTML = `<div class="container"><div class="alert-error">Gagal mengambil data pending: ${e.message}</div><button class="btn btn-back" onclick="AppState.selectedLingkup=null; Render.approvalDetail(document.getElementById('main-content'))">Kembali</button></div>`;
+        }
+    },
 };
 
 /* ======================== INIT ======================== */
