@@ -17,7 +17,7 @@ let originalFileLinks = ""; // Simpan file_links asli saat edit
 let existingFilesFromUI = []; // Backup: track file dari UI rendering
 
 const UPLOAD_CATEGORIES = [
-    { key: "fotoAwal", label: "Foto Toko Existing" },
+    { key: "fotoExisting", label: "Foto Toko Existing" },
     { key: "fotoRenovasi", label: "Foto Proses Renovasi" },
     { key: "me", label: "Gambar ME" },
     { key: "sipil", label: "Gambar Sipil" },
@@ -217,7 +217,7 @@ function renderUploadSections(isReadOnly = false) {
     container.innerHTML = "";
 
     const groups = [
-        { title: "Foto (JPG, JPEG, PNG)", keys: ["fotoAwal", "fotoRenovasi"] },
+        { title: "Foto (JPG, JPEG, PNG)", keys: ["fotoExisting", "fotoRenovasi"] },
         { title: "Gambar (PDF, JPG, JPEG, PNG, Autocad)", keys: ["me", "sipil", "sketsaAwal"] },
         { title: "Dokumen (PDF, JPG, JPEG, PNG)", keys: ["spk", "rab", "pendukung", "iL", "pengawasan", "aanwijzing", "kerjaTambahKurang"] }
     ];
@@ -505,7 +505,7 @@ function handleSearch(keyword) {
 // Fungsi Helper: Cek Kelengkapan Dokumen
 function checkDocumentCompleteness(fileLinksString) {
     const mandatoryKeys = [
-        "fotoAsal", 
+        "fotoExisting", 
         "fotoRenovasi", 
         "me", 
         "sipil", 
