@@ -172,17 +172,16 @@ const Render = {
             <img src="../../assets/Alfamart-Emblem.png" alt="Alfamart" class="header-logo" onerror="this.style.display='none'; this.parentElement.insertAdjacentHTML('afterbegin', '<b style=\\'position:absolute;left:20px;color:white\\'>ALFAMART</b>')">
             
             <div style="text-align:center;">
-                <h1>Stock Opname</h1>
+                <h1>Opname</h1>
                 <span class="header-user-info">User: ${AppState.user.username} | ${AppState.user.role === 'pic' ? 'PIC' : 'Kontraktor'}</span>
             </div>
 
             <button class="header-logout" id="btn-logout">
-                <span>Keluar</span>
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                    <polyline points="16 17 21 12 16 7"></polyline>
-                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
                 </svg>
+                <span>Keluar</span>
             </button>
         `;
         
