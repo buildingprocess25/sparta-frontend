@@ -36,11 +36,19 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log(`🔒 Login sebagai: ${userRole}`);
     console.log(`⚙️ Mode Aplikasi: ${APP_MODE.toUpperCase()}`);
 
-    // Update UI Header Badge
+    // Update UI Header (Matches Svdokumen Style)
+    // 1. Set Role
     const roleBadge = document.getElementById('roleBadge');
     if (roleBadge) {
-        roleBadge.textContent = userRole; // Tampilkan role asli yang panjang
-        roleBadge.style.fontSize = "10px"; // Sesuaikan font agar muat
+        roleBadge.textContent = userRole; 
+    }
+    
+    // 2. Set User Name (Identifier)
+    const nameDisplay = document.getElementById('userNameDisplay');
+    if (nameDisplay) {
+        // Jika Kontraktor -> Tampilkan Email, Jika PIC -> Tampilkan Cabang/User
+        const displayName = APP_MODE === 'kontraktor' ? loggedInUserEmail : (loggedInUserCabang || 'User PIC');
+        nameDisplay.textContent = displayName;
     }
 
     // ==================== 2. CONFIGURATION ====================

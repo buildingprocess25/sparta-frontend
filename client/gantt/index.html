@@ -1,18 +1,28 @@
 <!DOCTYPE html>
 <html lang="id">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Gantt Chart Terpadu</title>
-        <link rel="stylesheet" href="style.css" />
-        <link rel="icon" href="../../assets/favicon.ico" type="image/x-icon">
-    </head>
-    <body>
-        <header>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gantt Chart Terpadu</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="icon" href="../../assets/favicon.ico" type="image/x-icon">
+</head>
+
+<body>
+    <header>
+        <div class="header-brand">
             <a href="/">
                 <img src="../../assets/Alfamart-Emblem.png" alt="Alfamart Logo" class="header-logo" />
             </a>
-            <h1>Gantt Chart <span id="roleBadge" class="role-badge"></span></h1>
+            <h1>Gantt Chart Project</h1>
+        </div>
+
+        <div class="header-actions">
+            <div class="user-profile">
+                <div class="user-name" id="userNameDisplay">Loading...</div>
+                <div class="user-role" id="roleBadge">Role</div>
+            </div>
             <a href="../../dashboard/index.html" class="btn-back-header">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -21,71 +31,75 @@
                 </svg>
                 <span>Kembali</span>
             </a>
-        </header>
+        </div>
+    </header>
 
-        <div class="container">
-            <div class="controls">
-                <div class="control-group">
-                    <label>No. Ulok:</label>
-                    <select id="ulokSelect" onchange="changeUlok()">
-                        <option value="">--/--</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="project-info" id="projectInfo"></div>
-
-            <div class="api-data" id="apiData"></div>
-
-            <div id="checkpointSection" style="display: none; margin-bottom: 20px;">
-                <div class="api-card">
-                    <div class="api-card-title">📍 Manajemen Checkpoint</div>
-                    <div class="delay-form-row">
-                        <div class="form-group" style="flex: 2;">
-                            <select id="checkpointTaskSelect" class="form-control">
-                                <option value="">-- Pilih Tahapan --</option>
-                            </select>
-                        </div>
-                        <div class="form-group" style="flex: 1;">
-                            <input type="number" id="checkpointDayInput" class="form-control" placeholder="Hari ke-" min="1">
-                        </div>
-                        <button onclick="addCheckpoint()" class="btn-terapkan-delay" style="background: #805ad5;">
-                            + Tambah
-                        </button>
-                    </div>
-                    <div id="checkpointList" class="checkpoint-list"></div>
-                </div>
-            </div>
-
-            <div class="export-buttons" id="exportButtons" style="display: none;">
-                <button class="btn-export btn-excel" onclick="exportToExcel()">
-                    Export to Excel
-                </button>
-            </div>
-
-            <div class="stats" id="stats"></div>
-
-            <div class="chart-wrapper">
-                <div class="gantt-chart" id="ganttChart"></div>
-            </div>
-
-            <div class="legend">
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #48bb78;"></div>
-                    <span>On Time</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);"></div>
-                    <span>Terlambat</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #fbbf24;"></div>
-                    <span>Pengawasan</span>
-                </div>
+    <div class="container">
+        <div class="controls">
+            <div class="control-group">
+                <label>No. Ulok:</label>
+                <select id="ulokSelect">
+                    <option value="">--/--</option>
+                </select>
             </div>
         </div>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-        <script src="script.js"></script>
-    </body>
+
+        <div class="project-info" id="projectInfo"></div>
+
+        <div class="api-data" id="apiData"></div>
+
+        <div id="checkpointSection" style="display: none; margin-bottom: 20px;">
+            <div class="api-card">
+                <div class="api-card-title">📍 Manajemen Checkpoint</div>
+                <div class="delay-form-row">
+                    <div class="form-group" style="flex: 2;">
+                        <select id="checkpointTaskSelect" class="form-control">
+                            <option value="">-- Pilih Tahapan --</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <input type="number" id="checkpointDayInput" class="form-control" placeholder="Hari ke-" min="1">
+                    </div>
+                    <button onclick="addCheckpoint()" class="btn-terapkan-delay" style="background: #805ad5;">
+                        + Tambah
+                    </button>
+                </div>
+                <div id="checkpointList" class="checkpoint-list"></div>
+            </div>
+        </div>
+
+        <div class="export-buttons" id="exportButtons" style="display: none;">
+            <button class="btn-export btn-excel" onclick="exportToExcel()">
+                Export to Excel
+            </button>
+        </div>
+
+        <div class="stats" id="stats"></div>
+
+        <div class="chart-wrapper">
+            <div class="gantt-chart" id="ganttChart"></div>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #48bb78;"></div>
+                <span>On Time</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);"></div>
+                <span>Terlambat</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #fbbf24;"></div>
+                <span>Pengawasan</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <script src="script.js"></script>
+</body>
+
 </html>

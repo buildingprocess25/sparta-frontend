@@ -17,41 +17,69 @@ body {
     color: var(--text-color);
 }
 
-/* ================= HEADER ================= */
+/* ================= HEADER (UPDATED to Match Svdokumen) ================= */
 header {
     background-color: #fff;
-    padding: 15px 30px;
+    padding: 10px 30px; /* Sedikit lebih compact */
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: space-between; /* Memisahkan Kiri dan Kanan */
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     position: sticky;
     top: 0;
     z-index: 1000;
+    height: 70px;
+    box-sizing: border-box;
+}
+
+/* Bagian Kiri: Logo & Title */
+.header-brand {
+    display: flex;
+    align-items: center;
+    gap: 15px;
 }
 
 .header-logo {
-    height: 45px;
+    height: 40px; /* Ukuran logo disesuaikan */
     width: auto;
 }
 
 h1 {
     margin: 0;
-    font-size: 24px;
+    font-size: 20px;
     color: var(--primary-color);
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    font-weight: 700;
 }
 
-.role-badge {
-    font-size: 12px;
+/* Bagian Kanan: User Info & Back Button */
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.user-profile {
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.user-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: #2d3748;
+}
+
+.user-role {
+    font-size: 11px;
+    color: #718096;
     background: #edf2f7;
-    color: #4a5568;
-    padding: 4px 8px;
-    border-radius: 12px;
-    border: 1px solid #cbd5e0;
-    vertical-align: middle;
+    padding: 2px 8px;
+    border-radius: 10px;
+    display: inline-block;
+    margin-top: 2px;
+    align-self: flex-end; /* Supaya badge role rapat kanan */
 }
 
 .btn-back-header {
@@ -65,6 +93,8 @@ h1 {
     border-radius: 8px;
     transition: all 0.2s;
     background: #f1f1f1;
+    height: 36px;
+    box-sizing: border-box;
 }
 
 .btn-back-header:hover {
