@@ -629,9 +629,9 @@ const Render = {
                                     <tr style="background:var(--primary); color:white;">
                                         <th style="padding:10px;">Kategori</th><th style="padding:10px;">Jenis Pekerjaan</th>
                                         <th class="text-center">Vol RAB</th><th class="text-center">Sat</th>
-                                        <th class="text-right">H. Mat</th><th class="text-right">H. Upah</th>
+                                        <th class="text-right">Harga Material</th><th class="text-right">Harga Upah</th>
                                         <th class="text-center">Vol Akhir</th><th class="text-center">Selisih</th>
-                                        <th class="text-right">Total Harga (Deviasi)</th>
+                                        <th class="text-right">Total Harga</th>
                                         <th class="text-center">Foto</th><th style="padding:10px;">Catatan</th>
                                         <th class="text-center">Status</th><th class="text-center">Aksi</th>
                                     </tr>
@@ -674,7 +674,7 @@ const Render = {
                         </div>
 
                         <div style="margin-top:20px; padding:15px; background:#f8f9fa;">
-                            <div class="d-flex justify-between"><span>Total (Deviasi):</span> <b style="color:${totalVal<0?'red':'black'}">${formatRupiah(totalVal)}</b></div>
+                            <div class="d-flex justify-between"><span>Total Harga:</span> <b style="color:${totalVal<0?'red':'black'}">${formatRupiah(totalVal)}</b></div>
                             <div class="d-flex justify-between"><span>PPN 11%:</span> <b style="color:${ppn<0?'red':'black'}">${formatRupiah(ppn)}</b></div>
                             <div class="d-flex justify-between" style="font-size:1.2rem; margin-top:10px;"><span>Grand Total:</span> <b style="color:${grandTotal<0?'red':'black'}">${formatRupiah(grandTotal)}</b></div>
                         </div>
