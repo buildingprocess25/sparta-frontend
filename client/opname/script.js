@@ -112,12 +112,58 @@ const Auth = {
 
 /* ======================== PDF GENERATOR (Placeholder) ======================== */
 const PDFGenerator = {
-    generateFinalOpnamePDF: async (submissions, selectedStore, selectedUlok) => {
-        if (!window.jspdf) { alert("Library PDF belum dimuat."); return; }
+    generateFinalOpnamePDF: (items, store, ulok, lingkup, user) => {
+        if (!window.jspdf) { alert("Library PDF belum dimuat. Pastikan internet aktif."); return; }
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-        doc.text("Laporan Opname (Demo)", 10, 10);
-        doc.save(`Opname_${selectedStore.kode_toko}_${selectedUlok}.pdf`);
+        
+        // Header
+        doc.setFontSize(16);
+        doc.text("BERITA ACARA OPNAME PEKERJAAN", 105, 15, { align: "center" });
+        
+        doc.setFontSize(10);
+        doc.text(`Toko: ${store.nama_toko} (${store.kode_toko})`, 14, 25);
+        doc.text(`No. ULOK: ${ulok}`, 14, 30);
+        doc.text(`Lingkup: ${lingkup}`, 14, 35);
+        doc.text(`Tanggal Cetak: ${new Date().toLocaleDateString("id-ID")}`, 14, 40);
+
+        // Table Data
+        const tableData = items.map((item, index) => [
+            index + 1,
+            item.jenis_pekerjaan,
+            item.satuan,
+            item.vol_rab,
+            item.volume_akhir,
+            formatRupiah(item.total_harga)
+        ]);
+
+        const totalBiaya = items.reduce((sum, i) => sum + (i.total_harga || 0), 0);
+        const ppn = totalBiaya * 0.11;
+        const grandTotal = totalBiaya * 1.11;
+
+        doc.autoTable({
+            startY: 45,
+            head: [['No', 'Uraian Pekerjaan', 'Sat', 'Vol RAB', 'Vol Real', 'Total Harga']],
+            body: tableData,
+            foot: [
+                ['', '', '', '', 'Total', formatRupiah(totalBiaya)],
+                ['', '', '', '', 'PPN 11%', formatRupiah(ppn)],
+                ['', '', '', '', 'Grand Total', formatRupiah(grandTotal)]
+            ],
+            theme: 'grid',
+            headStyles: { fillColor: [214, 40, 40] } // Merah Alfamart
+        });
+
+        // Signatures
+        const finalY = doc.lastAutoTable.finalY + 20;
+        doc.text("Dibuat Oleh,", 40, finalY, { align: "center" });
+        doc.text("Disetujui Oleh,", 160, finalY, { align: "center" });
+        
+        doc.text(`( ${user.name || user.username} )`, 40, finalY + 25, { align: "center" });
+        doc.text("( Kontraktor )", 160, finalY + 25, { align: "center" });
+        doc.text("PIC Store", 40, finalY + 30, { align: "center" });
+
+        doc.save(`Opname_Final_${store.kode_toko}_${ulok}.pdf`);
     }
 };
 
@@ -648,15 +694,11 @@ const Render = {
                         renderSummaryOnly(items);
                     }
                 });
-
-                // Fungsi bantu update summary tanpa render ulang tabel
                 const renderSummaryOnly = (items) => {
                     // (Opsional) Implementasi update DOM elemen summary jika diperlukan real-time yang mulus
                     // Karena ini versi simple, kita biarkan saja atau panggil renderTable() jika tidak masalah dengan fokus input.
                     // Di sini saya skip untuk kesederhanaan, data tersimpan di variable `items`.
                 };
-
-                // Handle Simpan (Submit Item)
                 container.querySelectorAll('.save-btn').forEach(btn => {
                     btn.onclick = async () => {
                         const id = parseInt(btn.dataset.id);
@@ -752,22 +794,212 @@ const Render = {
     },
 
     finalOpnameView: async (container) => {
-        container.innerHTML = `
-            <div class="container" style="padding-top:20px;">
-                <div class="card text-center">
-                    <h2 style="color:var(--primary);">Laporan Opname Final</h2>
-                    <p style="color:var(--text-muted); margin-bottom:20px;">Toko: ${AppState.selectedStore ? AppState.selectedStore.nama_toko : '-'} | ULOK: ${AppState.selectedUlok || '-'}</p>
-                    
-                    <button class="btn btn-primary" id="btn-download-pdf">📄 Download PDF Laporan</button>
-                    <br><br>
-                    <button class="btn btn-back" id="btn-back-final">Kembali ke Dashboard</button>
+        // --- STEP 1: PILIH ULOK (Sama seperti Input Opname) ---
+        if (!AppState.selectedUlok) {
+            container.innerHTML = '<div class="container text-center" style="padding-top:40px;"><div class="card"><h3>Memuat Data ULOK...</h3></div></div>';
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/uloks?kode_toko=${AppState.selectedStore.kode_toko}`);
+                const data = await res.json();
+                AppState.uloks = data;
+
+                if (data.length === 1) {
+                    AppState.selectedUlok = data[0];
+                    Render.finalOpnameView(container);
+                    return;
+                }
+                
+                container.innerHTML = `
+                    <div class="container" style="padding-top:20px;">
+                        <div class="card">
+                            <button id="btn-back-ulok-final" class="btn btn-back" style="margin-bottom:15px;">Kembali</button>
+                            <h2 style="margin-bottom:20px;">Pilih Nomor ULOK (Final View)</h2>
+                            <div class="d-flex flex-column gap-2">
+                                ${AppState.uloks.map(u => `<button class="btn btn-secondary ulok-btn" data-ulok="${u}" style="justify-content:flex-start;">📄 ${u}</button>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.querySelector('#btn-back-ulok-final').onclick = () => { AppState.activeView = 'dashboard'; Render.app(); };
+                container.querySelectorAll('.ulok-btn').forEach(b => {
+                    b.onclick = () => { AppState.selectedUlok = b.dataset.ulok; Render.finalOpnameView(container); }
+                });
+            } catch (e) { container.innerHTML = `<div class="container"><div class="alert-error">Gagal memuat ULOK: ${e.message}</div></div>`; }
+            return;
+        }
+
+        // --- STEP 2: PILIH LINGKUP ---
+        if (!AppState.selectedLingkup) {
+            container.innerHTML = `
+                <div class="container" style="padding-top:40px;">
+                    <div class="card text-center" style="max-width:600px; margin:0 auto;">
+                        <h2 style="color:var(--primary);">Pilih Lingkup Laporan</h2>
+                        <div class="badge badge-success" style="margin:10px auto; display:inline-block;">ULOK: ${AppState.selectedUlok}</div>
+                        <p style="color:#666; margin-bottom:20px;">Pilih lingkup pekerjaan yang ingin dilihat laporan finalnya.</p>
+                        
+                        <div class="d-flex justify-center gap-2" style="margin-top:30px; margin-bottom:30px;">
+                            <button class="btn btn-primary" id="btn-sipil-final" style="min-width:120px;">SIPIL</button>
+                            <button class="btn btn-info" id="btn-me-final" style="min-width:120px;">ME</button>
+                        </div>
+                        <button class="btn btn-back" id="btn-cancel-lingkup-final">Ganti ULOK</button>
+                    </div>
                 </div>
-            </div>
-        `;
-        container.querySelector('#btn-back-final').onclick = () => { AppState.activeView = 'dashboard'; Render.app(); };
-        container.querySelector('#btn-download-pdf').onclick = async () => {
-            alert("Fitur Download PDF");
-        };
+            `;
+            container.querySelector('#btn-sipil-final').onclick = () => { AppState.selectedLingkup = 'SIPIL'; Render.finalOpnameView(container); };
+            container.querySelector('#btn-me-final').onclick = () => { AppState.selectedLingkup = 'ME'; Render.finalOpnameView(container); };
+            container.querySelector('#btn-cancel-lingkup-final').onclick = () => { AppState.selectedUlok = null; Render.finalOpnameView(container); };
+            return;
+        }
+
+        // --- STEP 3: FETCH DATA FINAL & RENDER ---
+        container.innerHTML = '<div class="container text-center" style="padding-top:40px;"><div class="card"><h3>Memuat Data Final...</h3></div></div>';
+        
+        try {
+            // 1. Cek Status Final di Backend Sparta
+            const statusUrl = `https://sparta-backend-5hdj.onrender.com/api/check_status_item_opname?no_ulok=${AppState.selectedUlok}&lingkup_pekerjaan=${AppState.selectedLingkup}`;
+            const statusRes = await fetch(statusUrl);
+            const statusData = await statusRes.json();
+            
+            // Logic: Hanya tampilkan jika sudah ada tanggal_opname_final (artinya sudah dikunci)
+            const isOfficiallyFinal = statusData.status === "approved" && statusData.tanggal_opname_final;
+
+            if (!isOfficiallyFinal) {
+                container.innerHTML = `
+                    <div class="container" style="padding-top:40px;">
+                        <div class="card text-center">
+                            <div style="font-size:50px; margin-bottom:20px;">⚠️</div>
+                            <h2 style="color:orange;">Belum Final</h2>
+                            <p>Opname untuk <b>${AppState.selectedLingkup}</b> di ULOK ini belum dilakukan <b>Opname Final</b>.</p>
+                            <p>Silakan selesaikan input dan approval, lalu klik tombol "Opname Final" di menu Input Opname.</p>
+                            <br>
+                            <button class="btn btn-back" id="btn-back-notfinal">Kembali</button>
+                        </div>
+                    </div>
+                `;
+                container.querySelector('#btn-back-notfinal').onclick = () => { AppState.selectedLingkup = null; Render.finalOpnameView(container); };
+                return;
+            }
+
+            // 2. Fetch Item Opname
+            const itemsUrl = `${API_BASE_URL}/api/opname?kode_toko=${encodeURIComponent(AppState.selectedStore.kode_toko)}&no_ulok=${encodeURIComponent(AppState.selectedUlok)}&lingkup=${encodeURIComponent(AppState.selectedLingkup)}`;
+            const res = await fetch(itemsUrl);
+            const rawData = await res.json();
+            
+            const items = rawData.map((task, index) => {
+                const volAkhirNum = toNumInput(task.volume_akhir);
+                const hargaMaterial = toNumID(task.harga_material);
+                const hargaUpah = toNumID(task.harga_upah);
+                const total_harga = volAkhirNum * (hargaMaterial + hargaUpah);
+                return { ...task, total_harga, vol_akhir_num: volAkhirNum, harga_satuan: hargaMaterial + hargaUpah };
+            });
+
+            // Hitung Grand Total
+            const totalBiaya = items.reduce((sum, i) => sum + i.total_harga, 0);
+            const ppn = totalBiaya * 0.11;
+            const grandTotal = totalBiaya * 1.11;
+
+            // Render UI
+            const html = `
+                <div class="container" style="padding-top:20px;">
+                    <div class="card">
+                        <div class="d-flex align-center gap-2" style="margin-bottom:20px; border-bottom:2px solid #eee; padding-bottom:15px;">
+                            <button id="btn-back-final-view" class="btn btn-back">← Dashboard</button>
+                            <div style="flex:1; text-align:right;">
+                                <h2 style="color:var(--primary); margin:0;">BERITA ACARA OPNAME</h2>
+                                <span class="badge badge-success">STATUS: FINAL / LOCKED</span>
+                            </div>
+                        </div>
+
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-bottom:20px; background:#f8fafc; padding:15px; border-radius:8px;">
+                            <div>
+                                <small style="color:#64748b;">Toko</small>
+                                <div style="font-weight:bold;">${AppState.selectedStore.nama_toko} (${AppState.selectedStore.kode_toko})</div>
+                            </div>
+                            <div style="text-align:right;">
+                                <small style="color:#64748b;">Nomor ULOK / Lingkup</small>
+                                <div style="font-weight:bold;">${AppState.selectedUlok} / ${AppState.selectedLingkup}</div>
+                            </div>
+                        </div>
+
+                        <div class="table-container">
+                            <table style="width:100%;">
+                                <thead>
+                                    <tr style="background:#2d3748; color:white;">
+                                        <th style="padding:10px;">No</th>
+                                        <th style="padding:10px;">Uraian Pekerjaan</th>
+                                        <th class="text-center">Sat</th>
+                                        <th class="text-center">Vol RAB</th>
+                                        <th class="text-center">Vol Real</th>
+                                        <th class="text-right">Harga Satuan</th>
+                                        <th class="text-right">Total Harga</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${items.map((item, idx) => `
+                                        <tr style="border-bottom:1px solid #eee;">
+                                            <td class="text-center">${idx + 1}</td>
+                                            <td>
+                                                <div style="font-size:0.85rem; color:#666;">${item.kategori_pekerjaan}</div>
+                                                ${item.jenis_pekerjaan}
+                                            </td>
+                                            <td class="text-center">${item.satuan}</td>
+                                            <td class="text-center">${item.vol_rab}</td>
+                                            <td class="text-center font-bold">${item.volume_akhir}</td>
+                                            <td class="text-right">${formatRupiah(item.harga_satuan)}</td>
+                                            <td class="text-right font-bold" style="color:var(--primary);">${formatRupiah(item.total_harga)}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div style="display:flex; justify-content:flex-end; margin-top:20px;">
+                            <div style="width:300px; background:#fff; border:1px solid #ddd; padding:15px; border-radius:8px;">
+                                <div class="d-flex justify-between mb-2"><span>Total:</span> <strong>${formatRupiah(totalBiaya)}</strong></div>
+                                <div class="d-flex justify-between mb-2"><span>PPN 11%:</span> <strong>${formatRupiah(ppn)}</strong></div>
+                                <div style="border-top:2px dashed #ddd; margin:10px 0;"></div>
+                                <div class="d-flex justify-between" style="font-size:1.1rem; color:var(--primary);">
+                                    <span>Grand Total:</span> <strong>${formatRupiah(grandTotal)}</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top:40px; display:flex; justify-content:space-around; text-align:center;">
+                            <div>
+                                <p style="margin-bottom:60px;">Dibuat Oleh (PIC),</p>
+                                <p style="font-weight:bold; text-decoration:underline;">${AppState.user.name || AppState.user.username}</p>
+                            </div>
+                            <div>
+                                <p style="margin-bottom:60px;">Disetujui Oleh (Kontraktor),</p>
+                                <p style="font-weight:bold; text-decoration:underline;">( ........................... )</p>
+                            </div>
+                        </div>
+
+                        <div style="margin-top:40px; text-align:center;">
+                            <button id="btn-download-pdf" class="btn btn-primary" style="padding:12px 24px; font-size:1rem;">
+                                📄 Download PDF Laporan
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.innerHTML = html;
+
+            container.querySelector('#btn-back-final-view').onclick = () => { AppState.selectedLingkup = null; AppState.selectedUlok = null; AppState.activeView = 'dashboard'; Render.app(); };
+            
+            container.querySelector('#btn-download-pdf').onclick = () => {
+                const btn = document.getElementById('btn-download-pdf');
+                btn.innerText = "Memproses PDF...";
+                btn.disabled = true;
+                setTimeout(() => {
+                    PDFGenerator.generateFinalOpnamePDF(items, AppState.selectedStore, AppState.selectedUlok, AppState.selectedLingkup, AppState.user);
+                    btn.innerText = "📄 Download PDF Laporan";
+                    btn.disabled = false;
+                }, 500);
+            };
+
+        } catch (e) {
+            container.innerHTML = `<div class="container"><div class="alert-error">Error memuat data final: ${e.message}</div><button class="btn btn-back" onclick="Render.app()">Kembali</button></div>`;
+        }
     },
     
     approvalDetail: async (container) => {
