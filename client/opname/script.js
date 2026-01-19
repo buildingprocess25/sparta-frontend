@@ -794,8 +794,9 @@ const Render = {
     },
 
     finalOpnameView: async (container) => {
-        // --- STEP 1: PILIH ULOK (Sama seperti Input Opname) ---
+        // --- STEP 1: PILIH ULOK ---
         if (!AppState.selectedUlok) {
+            // (Bagian ini Tetap Sama)
             container.innerHTML = '<div class="container text-center" style="padding-top:40px;"><div class="card"><h3>Memuat Data ULOK...</h3></div></div>';
             try {
                 const res = await fetch(`${API_BASE_URL}/api/uloks?kode_toko=${AppState.selectedStore.kode_toko}`);
@@ -829,12 +830,12 @@ const Render = {
 
         // --- STEP 2: PILIH LINGKUP ---
         if (!AppState.selectedLingkup) {
+            // (Bagian ini Tetap Sama)
             container.innerHTML = `
                 <div class="container" style="padding-top:40px;">
                     <div class="card text-center" style="max-width:600px; margin:0 auto;">
                         <h2 style="color:var(--primary);">Pilih Lingkup Laporan</h2>
                         <div class="badge badge-success" style="margin:10px auto; display:inline-block;">ULOK: ${AppState.selectedUlok}</div>
-                        <p style="color:#666; margin-bottom:20px;">Pilih lingkup pekerjaan yang ingin dilihat laporan finalnya.</p>
                         
                         <div class="d-flex justify-center gap-2" style="margin-top:30px; margin-bottom:30px;">
                             <button class="btn btn-primary" id="btn-sipil-final" style="min-width:120px;">SIPIL</button>
@@ -850,135 +851,116 @@ const Render = {
             return;
         }
 
-        // --- STEP 3: FETCH DATA FINAL & RENDER ---
-        container.innerHTML = '<div class="container text-center" style="padding-top:40px;"><div class="card"><h3>Memuat Data Final...</h3></div></div>';
+        // --- STEP 3: FETCH DATA FINAL (/api/opname/final) ---
+        container.innerHTML = '<div class="container text-center" style="padding-top:40px;"><div class="card"><h3>Memuat Data Opname Final...</h3></div></div>';
         
         try {
-            // 1. Cek Status Final di Backend Sparta
-            const statusUrl = `https://sparta-backend-5hdj.onrender.com/api/check_status_item_opname?no_ulok=${AppState.selectedUlok}&lingkup_pekerjaan=${AppState.selectedLingkup}`;
-            const statusRes = await fetch(statusUrl);
-            const statusData = await statusRes.json();
+            // UPDATE: Menggunakan endpoint /api/opname/final sesuai React Repo
+            const url = `${API_BASE_URL}/api/opname/final?kode_toko=${encodeURIComponent(AppState.selectedStore.kode_toko)}&no_ulok=${encodeURIComponent(AppState.selectedUlok)}&lingkup=${encodeURIComponent(AppState.selectedLingkup)}`;
             
-            // Logic: Hanya tampilkan jika sudah ada tanggal_opname_final (artinya sudah dikunci)
-            const isOfficiallyFinal = statusData.status === "approved" && statusData.tanggal_opname_final;
+            const res = await fetch(url);
+            const rawData = await res.json();
+            const submissions = Array.isArray(rawData) ? rawData : [];
 
-            if (!isOfficiallyFinal) {
-                container.innerHTML = `
+            if (submissions.length === 0) {
+                 container.innerHTML = `
                     <div class="container" style="padding-top:40px;">
                         <div class="card text-center">
-                            <div style="font-size:50px; margin-bottom:20px;">⚠️</div>
-                            <h2 style="color:orange;">Belum Final</h2>
-                            <p>Opname untuk <b>${AppState.selectedLingkup}</b> di ULOK ini belum dilakukan <b>Opname Final</b>.</p>
-                            <p>Silakan selesaikan input dan approval, lalu klik tombol "Opname Final" di menu Input Opname.</p>
+                            <div style="font-size:50px; margin-bottom:20px;">📭</div>
+                            <h2 style="color:#666;">Data Tidak Ditemukan</h2>
+                            <p>Belum ada data opname <b>FINAL</b> untuk <b>${AppState.selectedLingkup}</b> di ULOK ini.</p>
                             <br>
-                            <button class="btn btn-back" id="btn-back-notfinal">Kembali</button>
+                            <button class="btn btn-back" id="btn-back-empty">Kembali</button>
                         </div>
                     </div>
                 `;
-                container.querySelector('#btn-back-notfinal').onclick = () => { AppState.selectedLingkup = null; Render.finalOpnameView(container); };
+                container.querySelector('#btn-back-empty').onclick = () => { AppState.selectedLingkup = null; Render.finalOpnameView(container); };
                 return;
             }
 
-            // 2. Fetch Item Opname
-            const itemsUrl = `${API_BASE_URL}/api/opname?kode_toko=${encodeURIComponent(AppState.selectedStore.kode_toko)}&no_ulok=${encodeURIComponent(AppState.selectedUlok)}&lingkup=${encodeURIComponent(AppState.selectedLingkup)}`;
-            const res = await fetch(itemsUrl);
-            const rawData = await res.json();
-            
-            const items = rawData.map((task, index) => {
+            // Mapping Data untuk kalkulasi & Tampilan
+            const items = submissions.map((task, index) => {
+                // Pastikan handle angka dengan aman
                 const volAkhirNum = toNumInput(task.volume_akhir);
                 const hargaMaterial = toNumID(task.harga_material);
                 const hargaUpah = toNumID(task.harga_upah);
                 const total_harga = volAkhirNum * (hargaMaterial + hargaUpah);
-                return { ...task, total_harga, vol_akhir_num: volAkhirNum, harga_satuan: hargaMaterial + hargaUpah };
+                
+                return { 
+                    ...task, 
+                    total_harga, 
+                    vol_akhir_num: volAkhirNum, 
+                    harga_satuan: hargaMaterial + hargaUpah 
+                };
             });
 
-            // Hitung Grand Total
+            // Kalkulasi Grand Total untuk Summary
             const totalBiaya = items.reduce((sum, i) => sum + i.total_harga, 0);
             const ppn = totalBiaya * 0.11;
             const grandTotal = totalBiaya * 1.11;
 
-            // Render UI
             const html = `
                 <div class="container" style="padding-top:20px;">
                     <div class="card">
-                        <div class="d-flex align-center gap-2" style="margin-bottom:20px; border-bottom:2px solid #eee; padding-bottom:15px;">
+                        <div class="d-flex align-center gap-2" style="margin-bottom:20px; border-bottom:2px solid #eee; padding-bottom:15px; flex-wrap:wrap;">
                             <button id="btn-back-final-view" class="btn btn-back">← Dashboard</button>
-                            <div style="flex:1; text-align:right;">
-                                <h2 style="color:var(--primary); margin:0;">BERITA ACARA OPNAME</h2>
-                                <span class="badge badge-success">STATUS: FINAL / LOCKED</span>
+                            <div style="flex:1;">
+                                <h2 style="color:var(--primary); margin:0;">Riwayat Opname Final</h2>
+                                <span style="font-size:0.9rem; color:#64748b;">
+                                    ${AppState.selectedStore.nama_toko} • ULOK: ${AppState.selectedUlok} • ${AppState.selectedLingkup}
+                                </span>
                             </div>
-                        </div>
-
-                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-bottom:20px; background:#f8fafc; padding:15px; border-radius:8px;">
-                            <div>
-                                <small style="color:#64748b;">Toko</small>
-                                <div style="font-weight:bold;">${AppState.selectedStore.nama_toko} (${AppState.selectedStore.kode_toko})</div>
-                            </div>
-                            <div style="text-align:right;">
-                                <small style="color:#64748b;">Nomor ULOK / Lingkup</small>
-                                <div style="font-weight:bold;">${AppState.selectedUlok} / ${AppState.selectedLingkup}</div>
-                            </div>
+                            <button id="btn-download-pdf" class="btn btn-primary">
+                                📄 Download PDF
+                            </button>
                         </div>
 
                         <div class="table-container">
                             <table style="width:100%;">
                                 <thead>
-                                    <tr style="background:#2d3748; color:white;">
-                                        <th style="padding:10px;">No</th>
-                                        <th style="padding:10px;">Uraian Pekerjaan</th>
-                                        <th class="text-center">Sat</th>
-                                        <th class="text-center">Vol RAB</th>
-                                        <th class="text-center">Vol Real</th>
-                                        <th class="text-right">Harga Satuan</th>
-                                        <th class="text-right">Total Harga</th>
+                                    <tr style="background:#f1f5f9; color:#334155;">
+                                        <th style="padding:12px;">Kategori</th>
+                                        <th style="padding:12px;">Jenis Pekerjaan</th>
+                                        <th class="text-center">Vol Akhir</th>
+                                        <th class="text-center">Status</th>
+                                        <th class="text-center">Tgl Submit</th>
+                                        <th class="text-center">PIC</th>
+                                        <th class="text-center">Kontraktor</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     ${items.map((item, idx) => `
                                         <tr style="border-bottom:1px solid #eee;">
-                                            <td class="text-center">${idx + 1}</td>
-                                            <td>
-                                                <div style="font-size:0.85rem; color:#666;">${item.kategori_pekerjaan}</div>
-                                                ${item.jenis_pekerjaan}
+                                            <td style="padding:12px; font-weight:600; color:#64748b;">${item.kategori_pekerjaan}</td>
+                                            <td style="padding:12px;">${item.jenis_pekerjaan}</td>
+                                            <td class="text-center font-bold">
+                                                ${item.volume_akhir} ${item.satuan}
                                             </td>
-                                            <td class="text-center">${item.satuan}</td>
-                                            <td class="text-center">${item.vol_rab}</td>
-                                            <td class="text-center font-bold">${item.volume_akhir}</td>
-                                            <td class="text-right">${formatRupiah(item.harga_satuan)}</td>
-                                            <td class="text-right font-bold" style="color:var(--primary);">${formatRupiah(item.total_harga)}</td>
+                                            <td class="text-center">
+                                                <span class="badge badge-success" style="font-size:11px;">${item.approval_status || 'Approved'}</span>
+                                            </td>
+                                            <td class="text-center" style="font-size:0.9rem;">
+                                                ${item.tanggal_submit || '-'}
+                                            </td>
+                                            <td class="text-center" style="font-size:0.9rem;">
+                                                ${item.pic_name || item.pic_username || '-'}
+                                            </td>
+                                            <td class="text-center" style="font-size:0.9rem;">
+                                                ${item.kontraktor_name || item.display_kontraktor || item.kontraktor_username || '-'}
+                                            </td>
                                         </tr>
                                     `).join('')}
                                 </tbody>
                             </table>
                         </div>
 
-                        <div style="display:flex; justify-content:flex-end; margin-top:20px;">
-                            <div style="width:300px; background:#fff; border:1px solid #ddd; padding:15px; border-radius:8px;">
-                                <div class="d-flex justify-between mb-2"><span>Total:</span> <strong>${formatRupiah(totalBiaya)}</strong></div>
-                                <div class="d-flex justify-between mb-2"><span>PPN 11%:</span> <strong>${formatRupiah(ppn)}</strong></div>
-                                <div style="border-top:2px dashed #ddd; margin:10px 0;"></div>
-                                <div class="d-flex justify-between" style="font-size:1.1rem; color:var(--primary);">
-                                    <span>Grand Total:</span> <strong>${formatRupiah(grandTotal)}</strong>
-                                </div>
+                        <div style="margin-top:20px; background:#f8fafc; padding:15px; border-radius:8px; border:1px solid #e2e8f0;">
+                            <div class="d-flex justify-between" style="max-width:400px; margin-left:auto;">
+                                <span>Total Estimasi:</span> 
+                                <strong>${formatRupiah(totalBiaya)}</strong>
                             </div>
                         </div>
 
-                        <div style="margin-top:40px; display:flex; justify-content:space-around; text-align:center;">
-                            <div>
-                                <p style="margin-bottom:60px;">Dibuat Oleh (PIC),</p>
-                                <p style="font-weight:bold; text-decoration:underline;">${AppState.user.name || AppState.user.username}</p>
-                            </div>
-                            <div>
-                                <p style="margin-bottom:60px;">Disetujui Oleh (Kontraktor),</p>
-                                <p style="font-weight:bold; text-decoration:underline;">( ........................... )</p>
-                            </div>
-                        </div>
-
-                        <div style="margin-top:40px; text-align:center;">
-                            <button id="btn-download-pdf" class="btn btn-primary" style="padding:12px 24px; font-size:1rem;">
-                                📄 Download PDF Laporan
-                            </button>
-                        </div>
                     </div>
                 </div>
             `;
@@ -986,13 +968,15 @@ const Render = {
 
             container.querySelector('#btn-back-final-view').onclick = () => { AppState.selectedLingkup = null; AppState.selectedUlok = null; AppState.activeView = 'dashboard'; Render.app(); };
             
+            // PDF Button Action
             container.querySelector('#btn-download-pdf').onclick = () => {
                 const btn = document.getElementById('btn-download-pdf');
                 btn.innerText = "Memproses PDF...";
                 btn.disabled = true;
                 setTimeout(() => {
+                    // Pastikan fungsi PDFGenerator mendukung data ini
                     PDFGenerator.generateFinalOpnamePDF(items, AppState.selectedStore, AppState.selectedUlok, AppState.selectedLingkup, AppState.user);
-                    btn.innerText = "📄 Download PDF Laporan";
+                    btn.innerText = "📄 Download PDF";
                     btn.disabled = false;
                 }, 500);
             };
