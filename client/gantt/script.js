@@ -107,8 +107,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ==================== 5. HELPER FUNCTIONS ====================
     function formatDateID(date) {
-        const options = { day: 'numeric', month: 'short', year: 'numeric' };
-        return date.toLocaleDateString('id-ID', options);
+        const d = String(date.getDate()).padStart(2, '0');
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const y = date.getFullYear();
+        return `${d}/${m}/${y}`;
     }
 
     function parseDateDDMMYYYY(dateStr) {
@@ -259,23 +261,10 @@ document.addEventListener('DOMContentLoaded', () => {
         
         await fetchGanttData(selectedUlok);
         
+        // Setelah fetch, render semua komponen
         renderProjectInfo();
-        renderApiData(); 
-        
-        // Logic Tampilan Chart (Persistent):
-        // Jika data sudah diinput (hasUserInput), tampilkan chart.
-        // Ini berlaku untuk Kontraktor (habis refresh) atau PIC (view only)
-        if (hasUserInput) {
-            renderChart();
-        } else {
-             document.getElementById("ganttChart").innerHTML = `
-                <div style="text-align: center; padding: 60px; color: #6c757d;">
-                    <div style="font-size: 48px; margin-bottom: 20px;">ℹ️</div>
-                    <h2 style="margin-bottom: 15px;">Belum Ada Jadwal</h2>
-                    <p>${APP_MODE === 'kontraktor' ? 'Silakan input jadwal pada form di atas.' : 'Menunggu Kontraktor membuat jadwal.'}</p>
-                </div>`;
-        }
-        
+        renderApiData(); // Ini merender table input (Kontraktor) atau delay form (PIC)
+        renderChart();   // Ini merender Gantt Chart di bawah
         updateStats();
     }
 
@@ -284,7 +273,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const url = `${ENDPOINTS.ganttData}?ulok=${encodeURIComponent(ulok)}&lingkup=${encodeURIComponent(lingkup)}`;
         
         isLoadingGanttData = true;
-        renderApiData(); 
+        renderApiData(); // Show loading state in form area
 
         try {
             const response = await fetch(url);
@@ -303,11 +292,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const status = String(rawGanttData.Status || '').toLowerCase();
                 isProjectLocked = ['terkunci', 'locked', 'published'].includes(status);
                 
-                // Gunakan fungsi parsing yang sama persis dengan script kontraktor
                 parseGanttDataToTasks(rawGanttData, selectedValue, dayGanttData);
                 
-                // Set flag bahwa data ada
-                hasUserInput = true;
+                // CRITICAL FIX: Cek apakah tasks berhasil diparsing
+                if (currentTasks.length === 0) {
+                    console.warn("Raw data ada tapi tasks kosong, load default.");
+                    loadDefaultTasks(selectedValue);
+                } else {
+                    hasUserInput = true; // Data valid ditemukan
+                }
             } else {
                 loadDefaultTasks(selectedValue);
             }
@@ -322,6 +315,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function loadDefaultTasks(selectedValue) {
         let template = currentProject.work === 'ME' ? taskTemplateME : taskTemplateSipil;
+        // Deep copy untuk menghindari mutasi template asli
         currentTasks = JSON.parse(JSON.stringify(template)).map(t => ({
             ...t,
             inputData: { ranges: [] } 
@@ -331,7 +325,7 @@ document.addEventListener('DOMContentLoaded', () => {
         isProjectLocked = false;
     }
 
-    // ==================== 8. PARSING LOGIC (PORTED FROM KONTRAKTOR SCRIPT) ====================
+    // ==================== 8. PARSING LOGIC ====================
     function parseGanttDataToTasks(ganttData, selectedValue, dayGanttDataArray = null) {
         if (!currentProject || !ganttData) return;
 
@@ -340,7 +334,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let tempTaskList = [];
         let i = 1;
 
-        // Extract categories from gantt_data
+        // 1. Extract Categories from flat object (Kategori_1, Kategori_2...)
         while (true) {
             const kategoriKey = `Kategori_${i}`;
             const keterlambatanKey = `Keterlambatan_Kategori_${i}`;
@@ -362,11 +356,11 @@ document.addEventListener('DOMContentLoaded', () => {
             i++;
         }
 
-        // Parse day_gantt_data to get ranges for each category
+        // 2. Parse Ranges from day_gantt_data if available
         const categoryRangesMap = {};
 
         if (dayGanttDataArray && Array.isArray(dayGanttDataArray) && dayGanttDataArray.length > 0) {
-            // Find earliest date from day_gantt_data
+            // Find earliest date
             dayGanttDataArray.forEach(entry => {
                 const hAwalStr = entry.h_awal;
                 if (hAwalStr) {
@@ -379,79 +373,62 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            if (!earliestDate) {
-                earliestDate = new Date();
-            }
+            if (!earliestDate) earliestDate = new Date(); // Fallback today
 
             const projectStartDate = earliestDate;
             currentProject.startDate = projectStartDate.toISOString().split('T')[0];
             const msPerDay = 1000 * 60 * 60 * 24;
 
-            // Group ranges by category
+            // Map entries to ranges
             dayGanttDataArray.forEach(entry => {
                 const kategori = entry.Kategori;
                 if (!kategori) return;
 
                 const hAwalStr = entry.h_awal;
                 const hAkhirStr = entry.h_akhir;
-
                 if (!hAwalStr || !hAkhirStr) return;
 
                 const startDate = parseDateDDMMYYYY(hAwalStr);
                 const endDate = parseDateDDMMYYYY(hAkhirStr);
 
-                if (!startDate || !endDate || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-                    return;
-                }
+                if (!startDate || !endDate || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return;
 
                 const startDay = Math.round((startDate - projectStartDate) / msPerDay) + 1;
                 const endDay = Math.round((endDate - projectStartDate) / msPerDay) + 1;
                 const duration = endDay - startDay + 1;
 
-                // Normalize Key for Mapping
                 const key = kategori.toLowerCase().trim();
-                if (!categoryRangesMap[key]) {
-                    categoryRangesMap[key] = [];
-                }
-
-                // Parse keterlambatan value
-                const keterlambatanValue = parseInt(entry.keterlambatan, 10) || 0;
+                if (!categoryRangesMap[key]) categoryRangesMap[key] = [];
 
                 categoryRangesMap[key].push({
                     start: startDay > 0 ? startDay : 1,
                     end: endDay > 0 ? endDay : 1,
                     duration: duration > 0 ? duration : 1,
-                    keterlambatan: keterlambatanValue,
-                    hAwal: hAwalStr,
-                    hAkhir: hAkhirStr
+                    keterlambatan: parseInt(entry.keterlambatan || 0)
                 });
             });
         } else {
-            // No day_gantt_data, use current date as start
+            // Default start date if no detail data
             earliestDate = new Date();
             currentProject.startDate = earliestDate.toISOString().split('T')[0];
         }
 
-        // Build dynamic tasks with ranges from day_gantt_data
+        // 3. Merge Tasks with Ranges
         tempTaskList.forEach(item => {
-            // Find matching ranges by normalizing category names
             const normalizedName = item.name.toLowerCase().trim();
             let ranges = [];
 
-            // Try to find ranges by matching category name (Flexible Match)
+            // Robust matching
             for (const [kategoriKey, rangeArray] of Object.entries(categoryRangesMap)) {
-                if (normalizedName === kategoriKey ||
-                    normalizedName.includes(kategoriKey) ||
-                    kategoriKey.includes(normalizedName)) {
+                if (normalizedName === kategoriKey || normalizedName.includes(kategoriKey) || kategoriKey.includes(normalizedName)) {
                     ranges = rangeArray;
                     break;
                 }
             }
 
-            // Calculate total duration from all ranges
+            // Calc summary
             let totalDuration = 0;
             let minStart = 0;
-
             if (ranges.length > 0) {
                 totalDuration = ranges.reduce((sum, r) => sum + r.duration, 0);
                 minStart = Math.min(...ranges.map(r => r.start));
@@ -464,9 +441,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 duration: totalDuration,
                 dependencies: [],
                 keterlambatan: item.keterlambatan || 0,
-                inputData: {
-                    ranges: ranges
-                }
+                inputData: { ranges: ranges }
             });
         });
 
@@ -493,6 +468,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // KONTRAKTOR VIEW
         if (APP_MODE === 'kontraktor') {
             if (isProjectLocked) {
                 container.innerHTML = `
@@ -504,13 +480,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderContractorInputForm(container);
             }
         } 
+        // PIC VIEW
         else if (APP_MODE === 'pic') {
-            // Logic: PIC tetap melihat warning ini, TAPI Chart di bawah tetap dirender oleh changeUlok() karena hasUserInput=true
             if (!isProjectLocked) {
                 container.innerHTML = `
                     <div class="api-card warning">
                         <h3 style="color: #c05621; margin:0;">🔓 Menunggu Kunci Jadwal</h3>
-                        <p style="margin-top:5px;">Kontraktor belum mengunci jadwal. Anda dapat melihat chart namun belum bisa input Pengawasan/Keterlambatan.</p>
+                        <p style="margin-top:5px;">Kontraktor belum mengunci jadwal. Anda dapat melihat chart (jika ada) di bawah.</p>
                     </div>`;
             } else {
                 renderPicDelayForm(container);
@@ -528,7 +504,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="task-input-label-multi">${escapeHtml(task.name)}</div>
                 <div class="task-ranges-container" id="ranges-${task.id}">`;
             
-            // Render existing ranges or at least one empty
+            // Render existing ranges OR one empty input if none
             const rangesToRender = ranges.length > 0 ? ranges : [{start: 0, end: 0}];
             
             rangesToRender.forEach((r, idx) => {
@@ -638,6 +614,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentTasks = tasks;
         hasUserInput = true;
         saveProjectSchedule("Active");
+        // FIX: Re-render UI after apply
         renderChart();
         updateStats();
     }
@@ -688,7 +665,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     "Nomor Ulok": currentProject.ulokClean,
                     "Lingkup_Pekerjaan": currentProject.work.toUpperCase(),
                     "Kategori": t.name,
-                    "h_awal": formatDateID(dS), // Send DD/MM/YYYY to backend for consistency
+                    "h_awal": formatDateID(dS), // Send DD/MM/YYYY to backend
                     "h_akhir": formatDateID(dE)
                 });
             });
@@ -707,7 +684,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderApiData(); 
             }
             
-            // Re-render chart to ensure persistence UI
             renderChart();
             
         } catch (err) {
@@ -750,7 +726,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     window.handleHeaderClick = async function(dayNum, el) {
-        // Feature Lock: PIC only allowed when Project is Locked
         if(APP_MODE !== 'pic' || !isProjectLocked) return;
         
         const isRemoving = supervisionDays[dayNum];
@@ -774,9 +749,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ==================== 12. CHART RENDER (PORTED FROM KONTRAKTOR SCRIPT) ====================
+    // ==================== 12. CHART RENDER ====================
     function renderChart() {
-        if (!currentProject) return;
         const chart = document.getElementById('ganttChart');
         const DAY_WIDTH = 40;
 
@@ -791,7 +765,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Use consistent total days calculation matching kontraktor script
+        // Use standard days ME=100/Sipil=205 unless task exceeds it
         const totalDaysToRender = Math.max(
             (currentProject.work === 'ME' ? totalDaysME : totalDaysSipil),
             maxTaskEndDay + 10
@@ -828,21 +802,9 @@ document.addEventListener('DOMContentLoaded', () => {
         currentTasks.forEach(task => {
             const ranges = task.inputData?.ranges || [];
             
-            // Skip rendering empty tasks if duration is 0, matching kontraktor logic
-            if (ranges.length === 0 && task.duration === 0) return;
-
-            const keterlambatan = task.keterlambatan || 0;
-            const totalDuration = task.duration > 0 ? task.duration :
-                ranges.reduce((sum, r) => sum + (r.duration || 0), 0);
-            
-            const totalRangeDelay = ranges.reduce((sum, r) => sum + (r.keterlambatan || 0), 0);
-            const displayDelay = totalRangeDelay > 0 ? totalRangeDelay : keterlambatan;
-
-            html += '<div class="task-row">';
-            html += `<div class="task-name">
-                <span>${task.name}</span>
-                <span class="task-duration">Total Durasi: ${totalDuration} hari${displayDelay > 0 ? ` <span style="color: #e53e3e;">(+${displayDelay} hari delay)</span>` : ''}</span>
-            </div>`;
+            // IMPORTANT: Render row even if empty to keep structure, just like contractor script
+            let durTxt = ranges.reduce((s,r)=>s+r.duration,0);
+            html += `<div class="task-row"><div class="task-name"><span>${task.name}</span><span class="task-duration">${durTxt} hari</span></div>`;
             html += `<div class="timeline" style="width: ${totalChartWidth}px;">`;
 
             ranges.forEach((range, idx) => {
@@ -888,9 +850,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         html += `</div>`;
         chart.innerHTML = html;
-        
-        // Draw dependencies if needed
-        // setTimeout(drawDependencyLines, 50);
     }
 
     function updateProjectFromRab(rab) {
