@@ -9,12 +9,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Security Check
     if (!userRole) {
         alert("Sesi Anda telah habis atau tidak valid. Silakan login kembali.");
-        window.location.replace('../../auth/index.html'); // Sesuaikan dengan path login Anda
+        window.location.replace('../../auth/index.html'); 
         return;
     }
 
     // Role Mapping Configuration
-    // Kita kelompokkan Role menjadi dua "Mode": 'kontraktor' atau 'pic'
     let APP_MODE = 'guest'; // 'kontraktor' | 'pic'
 
     const picRoles = [
@@ -36,17 +35,12 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log(`🔒 Login sebagai: ${userRole}`);
     console.log(`⚙️ Mode Aplikasi: ${APP_MODE.toUpperCase()}`);
 
-    // Update UI Header (Matches Svdokumen Style)
-    // 1. Set Role
+    // Update UI Header
     const roleBadge = document.getElementById('roleBadge');
-    if (roleBadge) {
-        roleBadge.textContent = userRole; 
-    }
+    if (roleBadge) roleBadge.textContent = userRole; 
     
-    // 2. Set User Name (Identifier)
     const nameDisplay = document.getElementById('userNameDisplay');
     if (nameDisplay) {
-        // Jika Kontraktor -> Tampilkan Email, Jika PIC -> Tampilkan Cabang/User
         const displayName = APP_MODE === 'kontraktor' ? loggedInUserEmail : (loggedInUserCabang || 'User PIC');
         nameDisplay.textContent = displayName;
     }
@@ -55,9 +49,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const API_BASE_URL = "https://sparta-backend-5hdj.onrender.com/api";
 
     const ENDPOINTS = {
-        // Logika endpoint list proyek:
-        // Jika KONTRAKTOR -> ambil by email
-        // Jika PIC (Manager/Coord/Support) -> ambil by cabang
         ulokList: APP_MODE === 'kontraktor' 
             ? `${API_BASE_URL}/get_ulok_by_email?email=${encodeURIComponent(loggedInUserEmail)}`
             : `${API_BASE_URL}/get_ulok_by_cabang_pic?cabang=${encodeURIComponent(loggedInUserCabang)}`,
@@ -81,9 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let isLoadingGanttData = false;
     let hasUserInput = false;
     let isProjectLocked = false;
-    let filteredCategories = null;
     let supervisionDays = {}; 
-    // Checkpoints state removed
 
     // ==================== 4. TASK TEMPLATES ====================
     const taskTemplateME = [
@@ -162,7 +151,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById("projectInfo").innerHTML = "";
         document.getElementById("stats").innerHTML = "";
         document.getElementById("apiData").innerHTML = "";
-        // Checkpoint section removal handled by simple non-existence in HTML
     }
 
     // ==================== 6. CORE: INIT & LOAD PROJECTS ====================
@@ -220,7 +208,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function initUI() {
         const ulokSelect = document.getElementById("ulokSelect");
-        // Hapus listener lama jika ada (optional, browser handles this usually)
         ulokSelect.innerHTML = '<option value="">-- Pilih Proyek --</option>';
 
         projects.forEach(project => {
@@ -231,7 +218,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ulokSelect.appendChild(option);
         });
 
-        // Event listener pasang disini, bukan di HTML onchange
         ulokSelect.addEventListener('change', changeUlok);
 
         const savedUlok = localStorage.getItem("lastSelectedUlok");
@@ -270,9 +256,10 @@ document.addEventListener('DOMContentLoaded', () => {
         renderProjectInfo();
         renderApiData(); 
         
-        if (hasUserInput || isProjectLocked) {
+        // FIX: Tampilkan chart jika Kontraktor sudah input (hasUserInput=true)
+        // PIC tetap bisa lihat chart meskipun belum dikunci
+        if (hasUserInput) {
             renderChart();
-            // Export buttons code removed
         } else {
              document.getElementById("ganttChart").innerHTML = `
                 <div style="text-align: center; padding: 60px; color: #6c757d;">
@@ -283,7 +270,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         updateStats();
-        // Checkpoint UI logic removed
     }
 
     async function fetchGanttData(selectedValue) {
@@ -291,7 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const url = `${ENDPOINTS.ganttData}?ulok=${encodeURIComponent(ulok)}&lingkup=${encodeURIComponent(lingkup)}`;
         
         isLoadingGanttData = true;
-        renderApiData(); // Show loading in input area
+        renderApiData(); 
 
         try {
             const response = await fetch(url);
@@ -304,15 +290,17 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.rab) updateProjectFromRab(data.rab);
             if (data.day_gantt_data) dayGanttData = data.day_gantt_data;
             
-            // Checkpoints parsing removed
-
             if (rawGanttData) parseSupervisionFromGanttData(rawGanttData);
 
             if (rawGanttData) {
                 const status = String(rawGanttData.Status || '').toLowerCase();
                 isProjectLocked = ['terkunci', 'locked', 'published'].includes(status);
+                
                 parseGanttDataToTasks(rawGanttData, selectedValue, dayGanttData);
-                hasUserInput = true;
+                
+                // FIX: Cek apakah benar-benar ada data durasi, bukan cuma header kosong
+                const totalDur = currentTasks.reduce((acc, t) => acc + (t.duration || 0), 0);
+                hasUserInput = totalDur > 0;
             } else {
                 loadDefaultTasks(selectedValue);
             }
@@ -373,8 +361,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const s = Math.round((startD - earliestDate) / msDay) + 1;
                 const e = Math.round((endD - earliestDate) / msDay) + 1;
                 
-                if(!rangeMap[kat]) rangeMap[kat] = [];
-                rangeMap[kat].push({
+                // Normalisasi nama kategori untuk key (lowercase, trim)
+                const key = kat.toLowerCase().trim();
+                if(!rangeMap[key]) rangeMap[key] = [];
+                rangeMap[key].push({
                     start: s > 0 ? s : 1,
                     end: e > 0 ? e : 1,
                     duration: (e - s + 1) > 0 ? (e - s + 1) : 1,
@@ -386,8 +376,10 @@ document.addEventListener('DOMContentLoaded', () => {
         tasks = tempCategories.map(cat => {
             let ranges = [];
             const normName = cat.name.toLowerCase().trim();
+            
+            // FIX: Match kategori dengan lebih fleksibel
             for(const [k, v] of Object.entries(rangeMap)) {
-                if(normName.includes(k.toLowerCase().trim()) || k.toLowerCase().trim().includes(normName)) {
+                if(normName === k || normName.includes(k) || k.includes(normName)) {
                     ranges = v;
                     break;
                 }
@@ -430,7 +422,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Logic Switch Tampilan berdasarkan Mode
         if (APP_MODE === 'kontraktor') {
             if (isProjectLocked) {
                 container.innerHTML = `
@@ -443,11 +434,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } 
         else if (APP_MODE === 'pic') {
+            // FIX: PIC tetap melihat warning ini jika belum dikunci, 
+            // tapi chart di bawah tetap akan dirender oleh changeUlok() karena hasUserInput=true
             if (!isProjectLocked) {
                 container.innerHTML = `
                     <div class="api-card warning">
-                        <h3 style="color: #c05621; margin:0;">🔓 Menunggu Kontraktor</h3>
-                        <p style="margin-top:5px;">Kontraktor belum mengunci jadwal. Anda belum dapat input keterlambatan.</p>
+                        <h3 style="color: #c05621; margin:0;">🔓 Menunggu Kunci Jadwal</h3>
+                        <p style="margin-top:5px;">Kontraktor belum mengunci jadwal. Anda dapat melihat chart namun belum bisa input Pengawasan/Keterlambatan.</p>
                     </div>`;
             } else {
                 renderPicDelayForm(container);
@@ -456,7 +449,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- FORM KONTRAKTOR ---
-    window.renderContractorInputForm = function(container) { // Attach to window for onclick access
+    window.renderContractorInputForm = function(container) { 
         let html = `<div class="api-card"><div class="api-card-title">Input Jadwal (Multi-Range)</div><div class="task-input-container">`;
         
         currentTasks.forEach(task => {
@@ -574,6 +567,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentTasks = tasks;
         hasUserInput = true;
         saveProjectSchedule("Active");
+        // Setelah simpan, chart harus dirender ulang
         renderChart();
         updateStats();
     }
@@ -597,13 +591,15 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         
         currentTasks.forEach(t => {
+            // Selalu kirim kategori meskipun durasi 0 agar struktur tabel terjaga
             const ranges = t.inputData.ranges || [];
+            payload[`Kategori_${t.id}`] = t.name; 
+            
             if(ranges.length > 0) {
                  const pStart = new Date(currentProject.startDate);
                  const tStart = new Date(pStart); tStart.setDate(pStart.getDate() + ranges[0].start - 1);
                  const tEnd = new Date(pStart); tEnd.setDate(pStart.getDate() + ranges[ranges.length-1].end - 1);
                  
-                 payload[`Kategori_${t.id}`] = t.name; 
                  payload[`Hari_Mulai_Kategori_${t.id}`] = tStart.toISOString().split('T')[0];
                  payload[`Hari_Selesai_Kategori_${t.id}`] = tEnd.toISOString().split('T')[0];
                  payload[`Keterlambatan_Kategori_${t.id}`] = "0";
@@ -635,7 +631,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             alert(`Berhasil disimpan status: ${status}`);
-            if(status === 'Terkunci') { isProjectLocked = true; renderApiData(); }
+            if(status === 'Terkunci') { 
+                isProjectLocked = true; 
+                renderApiData(); 
+            }
+            // Ensure UI is updated (flag input flag)
+            hasUserInput = currentTasks.some(t => t.duration > 0);
             
         } catch (err) {
             console.error(err);
@@ -677,7 +678,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     window.handleHeaderClick = async function(dayNum, el) {
-        if(APP_MODE !== 'pic') return;
+        // FIX: Hanya boleh klik jika Role PIC DAN Proyek Terkunci
+        if(APP_MODE !== 'pic' || !isProjectLocked) return;
         
         const isRemoving = supervisionDays[dayNum];
         const confirmMsg = isRemoving ? `Hapus pengawasan hari ${dayNum}?` : `Set pengawasan hari ${dayNum}?`;
@@ -713,18 +715,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const totalDays = Math.max(maxEnd + 10, currentProject.work==='ME'?50:100);
         const totalW = totalDays * DAY_WIDTH;
 
+        // FIX: Non-interactive header if not locked
+        const isInteractive = APP_MODE === 'pic' && isProjectLocked;
+        const headerTitle = isInteractive ? "Klik untuk set Pengawasan" : "";
+        const cursorStyle = isInteractive ? "cursor: pointer;" : "cursor: default;";
+
         let html = `<div class="chart-header"><div class="task-column">Tahapan</div><div class="timeline-column" style="width:${totalW}px">`;
         for(let i=1; i<=totalDays; i++) {
             const isSup = supervisionDays[i];
             const clss = isSup ? "day-header supervision-active" : "day-header";
-            const title = APP_MODE === 'pic' ? "Klik untuk set Pengawasan" : "";
-            html += `<div class="${clss}" style="width:${DAY_WIDTH}px" onclick="handleHeaderClick(${i}, this)" title="${title}">${i}</div>`;
+            const clickEvent = isInteractive ? `onclick="handleHeaderClick(${i}, this)"` : '';
+            
+            html += `<div class="${clss}" style="width:${DAY_WIDTH}px; ${cursorStyle}" ${clickEvent} title="${headerTitle}">${i}</div>`;
         }
         html += `</div></div><div class="chart-body">`;
 
         currentTasks.forEach((t) => {
             const ranges = t.inputData.ranges || [];
-            if(!ranges.length && t.duration===0) return;
+            
+            // FIX: Jangan return/skip jika ranges kosong, agar struktur tabel tetap ada
+            // if(!ranges.length && t.duration===0) return; 
             
             let durTxt = ranges.reduce((s,r)=>s+r.duration,0);
             html += `<div class="task-row"><div class="task-name"><span>${t.name}</span><span class="task-duration">${durTxt} hari</span></div>`;
@@ -742,13 +752,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            // Checkpoints rendering removed
-
-            // Render supervision marker di baris task jika range masuk
             for(const [day, isActive] of Object.entries(supervisionDays)) {
                 if(isActive) {
                     const dInt = parseInt(day);
-                    // Cek apakah hari ini masuk di salah satu range task ini
                     const inRange = ranges.some(r => dInt >= r.start && dInt <= r.end);
                     if(inRange) {
                         html += `<div class="supervision-marker" style="left:${(dInt-1)*DAY_WIDTH}px"></div>`;
@@ -761,9 +767,6 @@ document.addEventListener('DOMContentLoaded', () => {
         html += `</div>`;
         chart.innerHTML = html;
     }
-
-    // ==================== 13. CHECKPOINTS & INFO & EXPORT ====================
-    // Removed populatedCheckpointTasks, addCheckpoint, removeCheckpoint, renderCheckpointList, exportToExcel
 
     function updateProjectFromRab(rab) {
         if(rab.Alamat) currentProject.alamat = rab.Alamat;
