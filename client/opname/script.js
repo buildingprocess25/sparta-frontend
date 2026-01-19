@@ -116,54 +116,155 @@ const PDFGenerator = {
         if (!window.jspdf) { alert("Library PDF belum dimuat. Pastikan internet aktif."); return; }
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-        
-        // Header
-        doc.setFontSize(16);
-        doc.text("BERITA ACARA OPNAME PEKERJAAN", 105, 15, { align: "center" });
-        
+
+        // --- Configuration ---
+        const marginLeft = 14;
+        const marginRight = 196; // 210 (A4 Width) - 14
+        let currentY = 20;
+
+        // --- Header Section ---
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(14);
+        doc.text("BERITA ACARA OPNAME PEKERJAAN", 105, currentY, { align: "center" });
+        currentY += 7;
+
         doc.setFontSize(10);
-        doc.text(`Toko: ${store.nama_toko} (${store.kode_toko})`, 14, 25);
-        doc.text(`No. ULOK: ${ulok}`, 14, 30);
-        doc.text(`Lingkup: ${lingkup}`, 14, 35);
-        doc.text(`Tanggal Cetak: ${new Date().toLocaleDateString("id-ID")}`, 14, 40);
+        doc.setFont("helvetica", "normal");
+        doc.text(`Nomor Dokumen: ${ulok}`, 105, currentY, { align: "center" });
+        currentY += 5;
 
-        // Table Data
-        const tableData = items.map((item, index) => [
-            index + 1,
-            item.jenis_pekerjaan,
-            item.satuan,
-            item.vol_rab,
-            item.volume_akhir,
-            formatRupiah(item.total_harga)
-        ]);
+        // Line Separator
+        doc.setLineWidth(0.5);
+        doc.setDrawColor(0, 0, 0); // Black
+        doc.line(marginLeft, currentY, marginRight, currentY);
+        currentY += 10;
 
+        // --- Info Section (2 Columns) ---
+        const colLeft = marginLeft;
+        const colRight = 120;
+        
+        doc.setFontSize(9);
+        
+        // Left: Store Info
+        doc.setFont("helvetica", "bold");
+        doc.text("DATA TOKO:", colLeft, currentY);
+        doc.setFont("helvetica", "normal");
+        currentY += 5;
+        doc.text(`Nama Toko : ${store.nama_toko}`, colLeft, currentY);
+        currentY += 5;
+        doc.text(`Kode Toko : ${store.kode_toko}`, colLeft, currentY);
+        
+        // Reset Y for Right Column
+        currentY -= 10; 
+
+        // Right: Opname Info
+        doc.setFont("helvetica", "bold");
+        doc.text("DETAIL OPNAME:", colRight, currentY);
+        doc.setFont("helvetica", "normal");
+        currentY += 5;
+        doc.text(`Lingkup Kerja : ${lingkup}`, colRight, currentY);
+        currentY += 5;
+        doc.text(`Tanggal Cetak : ${new Date().toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' })}`, colRight, currentY);
+        
+        currentY += 15; // Space before table
+
+        // --- Table Data Preparation ---
+        const tableBody = items.map((item, index) => {
+            // Pastikan harga satuan ada (fallback jika tidak ada di objek item)
+            const hSatuan = item.harga_satuan ? item.harga_satuan : (item.total_harga / (toNumInput(item.volume_akhir) || 1));
+            
+            return [
+                index + 1,
+                item.jenis_pekerjaan,
+                item.satuan,
+                item.vol_rab,
+                item.volume_akhir,
+                formatRupiah(hSatuan),
+                formatRupiah(item.total_harga)
+            ];
+        });
+
+        // Calculate Totals
         const totalBiaya = items.reduce((sum, i) => sum + (i.total_harga || 0), 0);
         const ppn = totalBiaya * 0.11;
         const grandTotal = totalBiaya * 1.11;
 
+        // --- Render Table (Formal Style) ---
         doc.autoTable({
-            startY: 45,
-            head: [['No', 'Uraian Pekerjaan', 'Sat', 'Vol RAB', 'Vol Real', 'Total Harga']],
-            body: tableData,
+            startY: currentY,
+            head: [['No', 'Uraian Pekerjaan', 'Sat', 'Vol RAB', 'Vol Real', 'Hrg Satuan', 'Total']],
+            body: tableBody,
+            theme: 'grid', // Grid tipis terlihat lebih rapi
+            styles: {
+                font: 'helvetica',
+                fontSize: 9,
+                textColor: [33, 33, 33], // Dark Grey text
+                lineColor: [200, 200, 200], // Soft border color
+                lineWidth: 0.1,
+                cellPadding: 4,
+                valign: 'middle'
+            },
+            headStyles: {
+                fillColor: [245, 245, 245], // Very light grey background (Hemat tinta & elegan)
+                textColor: [0, 0, 0], // Black text
+                fontStyle: 'bold',
+                lineWidth: 0.1,
+                lineColor: [150, 150, 150] // Slightly darker border for header
+            },
+            columnStyles: {
+                0: { halign: 'center', cellWidth: 10 }, // No
+                1: { halign: 'left' },                   // Uraian
+                2: { halign: 'center', cellWidth: 15 }, // Sat
+                3: { halign: 'center', cellWidth: 20 }, // Vol RAB
+                4: { halign: 'center', cellWidth: 20 }, // Vol Real
+                5: { halign: 'right', cellWidth: 30 },  // Hrg Satuan
+                6: { halign: 'right', cellWidth: 35 },  // Total
+            },
             foot: [
-                ['', '', '', '', 'Total', formatRupiah(totalBiaya)],
-                ['', '', '', '', 'PPN 11%', formatRupiah(ppn)],
-                ['', '', '', '', 'Grand Total', formatRupiah(grandTotal)]
+                ['', '', '', '', '', { content: 'Sub Total', styles: { fontStyle: 'bold', halign: 'right' } }, { content: formatRupiah(totalBiaya), styles: { fontStyle: 'bold', halign: 'right' } }],
+                ['', '', '', '', '', { content: 'PPN 11%', styles: { fontStyle: 'bold', halign: 'right' } }, { content: formatRupiah(ppn), styles: { fontStyle: 'bold', halign: 'right' } }],
+                ['', '', '', '', '', { content: 'GRAND TOTAL', styles: { fontStyle: 'bold', halign: 'right', textColor: [0, 0, 0] } }, { content: formatRupiah(grandTotal), styles: { fontStyle: 'bold', halign: 'right', textColor: [0, 0, 0] } }]
             ],
-            theme: 'grid',
-            headStyles: { fillColor: [214, 40, 40] } // Merah Alfamart
+            footStyles: {
+                fillColor: [255, 255, 255],
+                textColor: [33, 33, 33],
+                lineColor: [200, 200, 200],
+                lineWidth: 0.1
+            }
         });
 
-        // Signatures
-        const finalY = doc.lastAutoTable.finalY + 20;
-        doc.text("Dibuat Oleh,", 40, finalY, { align: "center" });
-        doc.text("Disetujui Oleh,", 160, finalY, { align: "center" });
+        // --- Signatures Section ---
+        let finalY = doc.lastAutoTable.finalY + 25;
         
-        doc.text(`( ${user.name || user.username} )`, 40, finalY + 25, { align: "center" });
-        doc.text("( Kontraktor )", 160, finalY + 25, { align: "center" });
-        doc.text("PIC Store", 40, finalY + 30, { align: "center" });
+        // Handle Page Break for Signatures if needed
+        if (finalY > 260) {
+            doc.addPage();
+            finalY = 40;
+        }
 
-        doc.save(`Opname_Final_${store.kode_toko}_${ulok}.pdf`);
+        const sigWidth = 70;
+        const xLeft = 25;
+        const xRight = 115;
+
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+
+        // PIC Signature
+        doc.text("Dibuat Oleh,", xLeft + (sigWidth/2), finalY, { align: "center" });
+        doc.text("PIC Toko / Store Crew", xLeft + (sigWidth/2), finalY + 5, { align: "center" });
+
+        // Contractor Signature
+        doc.text("Disetujui Oleh,", xRight + (sigWidth/2), finalY, { align: "center" });
+        doc.text("Kontraktor Pelaksana", xRight + (sigWidth/2), finalY + 5, { align: "center" });
+
+        // Space for signing
+        doc.setFont("helvetica", "bold");
+        doc.text(`( ${user.name || user.username} )`, xLeft + (sigWidth/2), finalY + 35, { align: "center" });
+        doc.text("( ....................................... )", xRight + (sigWidth/2), finalY + 35, { align: "center" });
+
+        // Save PDF
+        const fileName = `BA_Opname_${store.kode_toko}_${ulok}.pdf`;
+        doc.save(fileName);
     }
 };
 
