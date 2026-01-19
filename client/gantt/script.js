@@ -263,8 +263,19 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Setelah fetch, render semua komponen
         renderProjectInfo();
-        renderApiData(); // Ini merender table input (Kontraktor) atau delay form (PIC)
-        renderChart();   // Ini merender Gantt Chart di bawah
+        renderApiData(); 
+        
+        if (hasUserInput) {
+            renderChart();
+        } else {
+             document.getElementById("ganttChart").innerHTML = `
+                <div style="text-align: center; padding: 60px; color: #6c757d;">
+                    <div style="font-size: 48px; margin-bottom: 20px;">ℹ️</div>
+                    <h2 style="margin-bottom: 15px;">Belum Ada Jadwal</h2>
+                    <p>${APP_MODE === 'kontraktor' ? 'Silakan input jadwal pada form di atas.' : 'Menunggu Kontraktor membuat jadwal.'}</p>
+                </div>`;
+        }
+        
         updateStats();
     }
 
@@ -273,7 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const url = `${ENDPOINTS.ganttData}?ulok=${encodeURIComponent(ulok)}&lingkup=${encodeURIComponent(lingkup)}`;
         
         isLoadingGanttData = true;
-        renderApiData(); // Show loading state in form area
+        renderApiData(); 
 
         try {
             const response = await fetch(url);
@@ -294,12 +305,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 parseGanttDataToTasks(rawGanttData, selectedValue, dayGanttData);
                 
-                // CRITICAL FIX: Cek apakah tasks berhasil diparsing
                 if (currentTasks.length === 0) {
                     console.warn("Raw data ada tapi tasks kosong, load default.");
                     loadDefaultTasks(selectedValue);
                 } else {
-                    hasUserInput = true; // Data valid ditemukan
+                    hasUserInput = true; 
                 }
             } else {
                 loadDefaultTasks(selectedValue);
@@ -315,7 +325,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function loadDefaultTasks(selectedValue) {
         let template = currentProject.work === 'ME' ? taskTemplateME : taskTemplateSipil;
-        // Deep copy untuk menghindari mutasi template asli
         currentTasks = JSON.parse(JSON.stringify(template)).map(t => ({
             ...t,
             inputData: { ranges: [] } 
@@ -334,7 +343,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let tempTaskList = [];
         let i = 1;
 
-        // 1. Extract Categories from flat object (Kategori_1, Kategori_2...)
         while (true) {
             const kategoriKey = `Kategori_${i}`;
             const keterlambatanKey = `Keterlambatan_Kategori_${i}`;
@@ -356,11 +364,9 @@ document.addEventListener('DOMContentLoaded', () => {
             i++;
         }
 
-        // 2. Parse Ranges from day_gantt_data if available
         const categoryRangesMap = {};
 
         if (dayGanttDataArray && Array.isArray(dayGanttDataArray) && dayGanttDataArray.length > 0) {
-            // Find earliest date
             dayGanttDataArray.forEach(entry => {
                 const hAwalStr = entry.h_awal;
                 if (hAwalStr) {
@@ -373,13 +379,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            if (!earliestDate) earliestDate = new Date(); // Fallback today
+            if (!earliestDate) earliestDate = new Date();
 
             const projectStartDate = earliestDate;
             currentProject.startDate = projectStartDate.toISOString().split('T')[0];
             const msPerDay = 1000 * 60 * 60 * 24;
 
-            // Map entries to ranges
             dayGanttDataArray.forEach(entry => {
                 const kategori = entry.Kategori;
                 if (!kategori) return;
@@ -408,17 +413,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
         } else {
-            // Default start date if no detail data
             earliestDate = new Date();
             currentProject.startDate = earliestDate.toISOString().split('T')[0];
         }
 
-        // 3. Merge Tasks with Ranges
         tempTaskList.forEach(item => {
             const normalizedName = item.name.toLowerCase().trim();
             let ranges = [];
 
-            // Robust matching
             for (const [kategoriKey, rangeArray] of Object.entries(categoryRangesMap)) {
                 if (normalizedName === kategoriKey || normalizedName.includes(kategoriKey) || kategoriKey.includes(normalizedName)) {
                     ranges = rangeArray;
@@ -426,9 +428,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // Calc summary
             let totalDuration = 0;
             let minStart = 0;
+
             if (ranges.length > 0) {
                 totalDuration = ranges.reduce((sum, r) => sum + r.duration, 0);
                 minStart = Math.min(...ranges.map(r => r.start));
@@ -468,7 +470,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // KONTRAKTOR VIEW
         if (APP_MODE === 'kontraktor') {
             if (isProjectLocked) {
                 container.innerHTML = `
@@ -480,7 +481,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderContractorInputForm(container);
             }
         } 
-        // PIC VIEW
         else if (APP_MODE === 'pic') {
             if (!isProjectLocked) {
                 container.innerHTML = `
@@ -504,7 +504,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="task-input-label-multi">${escapeHtml(task.name)}</div>
                 <div class="task-ranges-container" id="ranges-${task.id}">`;
             
-            // Render existing ranges OR one empty input if none
             const rangesToRender = ranges.length > 0 ? ranges : [{start: 0, end: 0}];
             
             rangesToRender.forEach((r, idx) => {
@@ -580,11 +579,30 @@ document.addEventListener('DOMContentLoaded', () => {
         container.children[idx].remove();
     }
 
+    // FIX: RESET FUNCTION UPDATE
     window.resetTaskSchedule = function() {
         if(!confirm("Reset semua inputan?")) return;
-        currentTasks.forEach(t => { t.inputData.ranges = []; t.start = 0; t.duration = 0; });
+        
+        // Reset Data
+        currentTasks.forEach(t => { 
+            t.inputData.ranges = []; 
+            t.start = 0; 
+            t.duration = 0; 
+        });
         hasUserInput = false;
+        
+        // Re-render Inputs
         renderApiData();
+        
+        // FIX: Clear Chart UI
+        document.getElementById("ganttChart").innerHTML = `
+            <div style="text-align: center; padding: 60px; color: #6c757d;">
+                <div style="font-size: 48px; margin-bottom: 20px;">ℹ️</div>
+                <h2 style="margin-bottom: 15px;">Belum Ada Jadwal</h2>
+                <p>Silakan input jadwal pada form di atas.</p>
+            </div>`;
+            
+        updateStats();
     }
 
     window.applyTaskSchedule = function() {
@@ -614,7 +632,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentTasks = tasks;
         hasUserInput = true;
         saveProjectSchedule("Active");
-        // FIX: Re-render UI after apply
+        
         renderChart();
         updateStats();
     }
@@ -637,7 +655,6 @@ document.addEventListener('DOMContentLoaded', () => {
             "Nama_Kontraktor": "PT KONTRAKTOR", 
         };
         
-        // Build Payload
         currentTasks.forEach(t => {
             const ranges = t.inputData.ranges || [];
             payload[`Kategori_${t.id}`] = t.name; 
@@ -647,7 +664,6 @@ document.addEventListener('DOMContentLoaded', () => {
                  const tStart = new Date(pStart); tStart.setDate(pStart.getDate() + ranges[0].start - 1);
                  const tEnd = new Date(pStart); tEnd.setDate(pStart.getDate() + ranges[ranges.length-1].end - 1);
                  
-                 // Note: Sending ISO format to backend
                  payload[`Hari_Mulai_Kategori_${t.id}`] = tStart.toISOString().split('T')[0];
                  payload[`Hari_Selesai_Kategori_${t.id}`] = tEnd.toISOString().split('T')[0];
                  payload[`Keterlambatan_Kategori_${t.id}`] = "0";
@@ -665,7 +681,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     "Nomor Ulok": currentProject.ulokClean,
                     "Lingkup_Pekerjaan": currentProject.work.toUpperCase(),
                     "Kategori": t.name,
-                    "h_awal": formatDateID(dS), // Send DD/MM/YYYY to backend
+                    "h_awal": formatDateID(dS), 
                     "h_akhir": formatDateID(dE)
                 });
             });
@@ -765,7 +781,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Use standard days ME=100/Sipil=205 unless task exceeds it
         const totalDaysToRender = Math.max(
             (currentProject.work === 'ME' ? totalDaysME : totalDaysSipil),
             maxTaskEndDay + 10
@@ -774,7 +789,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const totalChartWidth = totalDaysToRender * DAY_WIDTH;
         const projectStartDate = new Date(currentProject.startDate);
 
-        // Interaction Logic
         const isInteractive = APP_MODE === 'pic' && isProjectLocked;
         const headerTitle = isInteractive ? "Klik untuk set Pengawasan" : "";
         const cursorStyle = isInteractive ? "cursor: pointer;" : "cursor: default;";
@@ -802,7 +816,6 @@ document.addEventListener('DOMContentLoaded', () => {
         currentTasks.forEach(task => {
             const ranges = task.inputData?.ranges || [];
             
-            // IMPORTANT: Render row even if empty to keep structure, just like contractor script
             let durTxt = ranges.reduce((s,r)=>s+r.duration,0);
             html += `<div class="task-row"><div class="task-name"><span>${task.name}</span><span class="task-duration">${durTxt} hari</span></div>`;
             html += `<div class="timeline" style="width: ${totalChartWidth}px;">`;
@@ -835,7 +848,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            // Supervision Markers Logic
             for(const [day, isActive] of Object.entries(supervisionDays)) {
                 if(isActive) {
                     const dInt = parseInt(day);
