@@ -747,26 +747,53 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // FIX: LOGIKA CLICK HEADER (ADD/REMOVE)
     window.handleHeaderClick = async function(dayNum, el) {
+        // 1. Cek Permission
         if(APP_MODE !== 'pic' || !isProjectLocked) return;
         
         const isRemoving = supervisionDays[dayNum];
         const confirmMsg = isRemoving ? `Hapus pengawasan hari ${dayNum}?` : `Set pengawasan hari ${dayNum}?`;
+        
+        // 2. Konfirmasi User
         if(!confirm(confirmMsg)) return;
 
+        // 3. Siapkan Base Payload
         const payload = {
-            nomor_ulok: currentProject.ulokClean,
-            lingkup_pekerjaan: currentProject.work.toUpperCase(),
-            pengawasan_day: isRemoving ? 0 : dayNum, // Send 0 if removing
-            remove_day: isRemoving ? dayNum : undefined // Send specific day if removing
+            "nomor_ulok": currentProject.ulokClean,
+            "lingkup_pekerjaan": currentProject.work.toUpperCase()
         };
 
+        // 4. Tentukan Mode Payload (Insert vs Remove)
+        if (isRemoving) {
+            // Mode Remove: Hanya kirim remove_day
+            payload.remove_day = dayNum;
+        } else {
+            // Mode Insert: Hanya kirim pengawasan_day
+            payload.pengawasan_day = dayNum;
+        }
+
         try {
-            await fetch(ENDPOINTS.pengawasanInsert, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)});
-            if(isRemoving) delete supervisionDays[dayNum];
-            else supervisionDays[dayNum] = true;
+            // 5. Kirim ke API
+            console.log("Sending Payload:", payload); // Debugging
+            const response = await fetch(ENDPOINTS.pengawasanInsert, { 
+                method: 'POST', 
+                headers: {'Content-Type':'application/json'}, 
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) throw new Error("Gagal update data ke server");
+
+            // 6. Update State Lokal & Render Ulang
+            if(isRemoving) {
+                delete supervisionDays[dayNum];
+            } else {
+                supervisionDays[dayNum] = true;
+            }
+            
             renderChart();
+
         } catch (err) {
-            alert("Gagal update pengawasan");
+            console.error(err);
+            alert("Gagal update pengawasan: " + err.message);
         }
     }
 
