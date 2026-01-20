@@ -400,7 +400,9 @@ button:disabled { background: #cbd5e0; cursor: not-allowed; }
 }
 
 .gantt-chart {
-    min-width: 1000px;
+    min-width: 100%;
+    width: max-content;
+    display: block;
 }
 
 .chart-header {
@@ -409,7 +411,7 @@ button:disabled { background: #cbd5e0; cursor: not-allowed; }
     position: sticky;
     top: 0;
     background: #fff;
-    z-index: 20;
+    z-index: 40;
 }
 
 .task-column {
@@ -421,8 +423,9 @@ button:disabled { background: #cbd5e0; cursor: not-allowed; }
     background: #fff;
     position: sticky;
     left: 0;
-    z-index: 30;
+    z-index: 50;
     border-right: 1px solid #eee;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.05);
 }
 
 .timeline-column {
@@ -474,9 +477,12 @@ button:disabled { background: #cbd5e0; cursor: not-allowed; }
     border-right: 1px solid #eee;
     position: sticky;
     left: 0;
-    z-index: 100; /* Naikkan z-index agar selalu di atas bar chart */
-    background-color: #fff; /* Wajib warna solid, jangan inherit */
-    box-shadow: 2px 0 5px rgba(0,0,0,0.05); /* Opsi: Tambah bayangan agar batas kolom tegas */
+    z-index: 20;
+    background-color: #fff !important;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    transform: translate3d(0,0,0); 
+    box-shadow: 2px 0 5px rgba(0,0,0,0.05); 
 }
 
 .task-duration {
