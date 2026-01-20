@@ -450,9 +450,16 @@ button:disabled { background: #cbd5e0; cursor: not-allowed; }
     height: 50px;
     align-items: center;
     position: relative;
+    background-color: #fff;
 }
 
-.task-row:hover { background-color: #fafafa; }
+.task-row:hover { 
+    background-color: #fafafa; 
+}
+
+.task-row:hover .task-name {
+    background-color: #fafafa;
+}
 
 .task-name {
     width: 250px;
@@ -465,10 +472,11 @@ button:disabled { background: #cbd5e0; cursor: not-allowed; }
     flex-direction: column;
     justify-content: center;
     border-right: 1px solid #eee;
-    background: inherit;
     position: sticky;
     left: 0;
-    z-index: 10;
+    z-index: 100; /* Naikkan z-index agar selalu di atas bar chart */
+    background-color: #fff; /* Wajib warna solid, jangan inherit */
+    box-shadow: 2px 0 5px rgba(0,0,0,0.05); /* Opsi: Tambah bayangan agar batas kolom tegas */
 }
 
 .task-duration {
