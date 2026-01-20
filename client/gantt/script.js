@@ -675,25 +675,21 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // 2. Jika data SUDAH TERSIMPAN (DB), Konfirmasi & Request API
+        // 2. Jika data SUDAH TERSIMPAN (DB), Konfirmasi
         if (!confirm("Data ini sudah tersimpan di server. Yakin ingin menghapusnya?")) return;
 
-        // Ambil nilai Input (karena readonly, value masih ada di input)
         const startVal = parseInt(document.getElementById(`start-${taskId}-${idx}`).value) || 0;
         const endVal = parseInt(document.getElementById(`end-${taskId}-${idx}`).value) || 0;
         
-        // Cari nama task berdasarkan ID
         const taskObj = currentTasks.find(t => t.id === taskId);
         const taskName = taskObj ? taskObj.name : "";
 
-        // Validasi
         if (startVal === 0 || endVal === 0 || !taskName) {
             alert("Data tidak valid/kosong, dihapus dari tampilan saja.");
             if(element) element.remove();
             return;
         }
 
-        // Konversi Hari ke Tanggal (dd/mm/yyyy)
         const dateStartStr = getTaskDateString(startVal);
         const dateEndStr = getTaskDateString(endVal);
 
@@ -702,8 +698,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // 3. Susun Payload Sesuai Request Body Anda
-        const payload = {
+        // 3. Susun Payload (Object Tunggal)
+        const payloadObj = {
             "nomor_ulok": currentProject.ulokClean,
             "lingkup_pekerjaan": currentProject.work.toUpperCase(),
             "remove_kategori_data": [
@@ -716,22 +712,28 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         try {
-            console.log("Sending Remove Payload:", payload); // Debugging
+            // FIX: Bungkus payloadObj ke dalam Array [] karena endpoint mengharapkan List
+            const finalPayload = [payloadObj];
             
-            // Ubah kursor jadi loading
+            console.log("Sending Remove Payload:", finalPayload); 
             document.body.style.cursor = 'wait';
             
-            // NOTE: Menggunakan endpoint dayInsert sesuai instruksi
             const response = await fetch(ENDPOINTS.dayInsert, { 
                 method: 'POST', 
                 headers: {'Content-Type':'application/json'}, 
-                body: JSON.stringify(payload)
+                body: JSON.stringify(finalPayload) // Kirim sebagai Array
             });
 
-            if (!response.ok) throw new Error("Gagal menghapus data di server.");
+            // Baca pesan error dari server jika ada
+            const responseText = await response.text();
 
-            // 4. Sukses API -> Hapus dari UI & Update State Lokal
+            if (!response.ok) {
+                throw new Error(`Server Error (${response.status}): ${responseText}`);
+            }
+
+            // 4. Sukses
             if (element) element.remove();
+            
             if (taskObj && taskObj.inputData && taskObj.inputData.ranges) {
                 taskObj.inputData.ranges = taskObj.inputData.ranges.filter(r => r.start !== startVal || r.end !== endVal);
             }
@@ -741,8 +743,8 @@ document.addEventListener('DOMContentLoaded', () => {
             updateStats();
             
         } catch (err) {
-            console.error(err);
-            alert("Error: " + err.message);
+            console.error("Remove Failed:", err);
+            alert("Gagal menghapus: " + err.message);
         } finally {
             document.body.style.cursor = 'default';
         }
