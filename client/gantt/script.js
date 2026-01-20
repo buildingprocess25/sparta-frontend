@@ -547,7 +547,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (dayGanttData) {
             dayGanttData.forEach((d, idx) => {
-                optionsHtml += `<option value="${idx}" data-idx="${idx}" data-delay="${d.keterlambatan||0}">${d.Kategori} (${d.h_awal} - ${d.h_akhir}) ${d.keterlambatan ? `(+${d.keterlambatan} Hari)` : ''}</option>`;
+                const delayVal = parseInt(d.keterlambatan || 0);
+                const delayText = delayVal > 0 ? ` (+${delayVal} Hari)` : '';
+                optionsHtml += `<option value="${idx}" data-idx="${idx}" data-delay="${delayVal}">${d.Kategori} (${d.h_awal} - ${d.h_akhir})${delayText}</option>`;
             });
         } else {
             currentTasks.forEach(t => {
@@ -807,8 +809,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const clickEvent = isInteractive ? `onclick="handleHeaderClick(${dayNumber}, this)"` : '';
             
             html += `
-                <div class="${clss}" style="width:${DAY_WIDTH}px; box-sizing: border-box; ${cursorStyle}" 
-                     ${clickEvent} title="${headerTitle}">
+                <div class="${clss}" style="width:${DAY_WIDTH}px; box-sizing: border-box; ${cursorStyle}" ${clickEvent} title="${headerTitle}">
                     <span class="d-date" style="font-weight:bold; font-size:14px;">${dayNumber}</span>
                 </div>
             `;
