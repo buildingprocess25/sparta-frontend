@@ -896,15 +896,15 @@ const Render = {
         container.innerHTML = `
             <div class="container text-center" style="padding-top:40px;">
                 <div class="card">
-                    <h3>Memuat Data Toko & ULOK...</h3>
-                    <div style="margin-top:10px; font-size:0.9rem; color:#666;">Mohon tunggu sebentar</div>
+                    <h3>Memuat Data Pekerjaan...</h3>
+                    <div style="margin-top:10px; font-size:0.9rem; color:#666;">Sinkronisasi data Toko & RAB...</div>
                 </div>
             </div>`;
 
         let url = "";
         const u = AppState.user;
         
-        // Tentukan URL untuk fetch Toko berdasarkan Role
+        // Tentukan endpoint berdasarkan Role
         if ((type === 'opname' || type === 'final-opname') && u.role === 'pic') {
             url = `${API_BASE_URL}/api/toko?username=${u.username}`;
         } else if (u.role === 'kontraktor') {
@@ -912,42 +912,40 @@ const Render = {
         }
 
         try {
-            // 1. Fetch Daftar Toko
             const res = await fetch(url);
             const stores = await res.json();
             
-            if (!Array.isArray(stores)) throw new Error("Format data toko salah");
+            if (!Array.isArray(stores)) throw new Error("Gagal mengambil data toko.");
 
-            // 2. Fetch ULOK untuk SETIAP toko secara paralel
-            // Kita akan membuat daftar gabungan: [{ store: {...}, ulok: "001/..." }, ...]
+            // --- PERBAIKAN UTAMA DI SINI ---
+            // Kita tidak lagi fetch ke /api/uloks satu per satu.
+            // Kita gunakan array 'no_uloks' yang sudah dikirim oleh backend di dalam objek store.
+            // Ini menjamin data ULOK benar-benar milik toko tersebut sesuai RAB.
+            
             const combinedList = [];
 
-            await Promise.all(stores.map(async (store) => {
-                try {
-                    const resUlok = await fetch(`${API_BASE_URL}/api/uloks?kode_toko=${store.kode_toko}`);
-                    const uloks = await resUlok.json();
-                    
-                    if (Array.isArray(uloks) && uloks.length > 0) {
-                        uloks.forEach(ulokNo => {
-                            combinedList.push({
-                                store: store,
-                                ulok: ulokNo
-                            });
+            stores.forEach(store => {
+                // Cek apakah toko ini memiliki ULOK (berarti ada RAB)
+                if (store.no_uloks && Array.isArray(store.no_uloks) && store.no_uloks.length > 0) {
+                    store.no_uloks.forEach(ulokNo => {
+                        combinedList.push({
+                            store: store,
+                            ulok: ulokNo
                         });
-                    }
-                } catch (err) {
-                    console.warn(`Gagal fetch ULOK untuk toko ${store.kode_toko}`, err);
+                    });
                 }
-            }));
+            });
 
-            // Simpan ke state sementara jika perlu, atau langsung gunakan untuk render
-            // Kita urutkan agar rapi (misal berdasarkan Nama Toko)
-            combinedList.sort((a, b) => a.store.nama_toko.localeCompare(b.store.nama_toko));
+            // Urutkan agar rapi: Nama Toko (A-Z) -> No ULOK (A-Z)
+            combinedList.sort((a, b) => {
+                const nameCompare = a.store.nama_toko.localeCompare(b.store.nama_toko);
+                if (nameCompare !== 0) return nameCompare;
+                return a.ulok.localeCompare(b.ulok);
+            });
 
-            // Fungsi Render List
+            // Fungsi Render Halaman
             const renderList = (filter = "") => {
                 const f = filter.toLowerCase();
-                // Filter berdasarkan Nama Toko, Kode Toko, ATAU No. ULOK
                 const filtered = combinedList.filter(item => 
                     item.store.nama_toko.toLowerCase().includes(f) || 
                     item.store.kode_toko.toLowerCase().includes(f) ||
@@ -961,7 +959,7 @@ const Render = {
                                 <button id="btn-back-store" class="btn btn-back">← Dashboard</button>
                                 <div>
                                     <h2 style="color:var(--primary); margin:0;">Pilih Pekerjaan</h2>
-                                    <span style="font-size:0.9rem; color:#666;">Pilih Toko & No. ULOK</span>
+                                    <span style="font-size:0.9rem; color:#666;">Daftar Toko & ULOK (Sesuai RAB)</span>
                                 </div>
                             </div>
                             
@@ -991,7 +989,7 @@ const Render = {
                             ${filtered.length === 0 ? `
                                 <div class="text-center" style="padding:40px; color:#666;">
                                     <div style="font-size:30px; margin-bottom:10px;">📭</div>
-                                    <p>Data pekerjaan tidak ditemukan.</p>
+                                    <p>Tidak ada data pekerjaan yang sesuai.</p>
                                 </div>
                             ` : ''}
                         </div>
@@ -1009,20 +1007,15 @@ const Render = {
                 };
 
                 // Handle Klik Item
-                // Karena HTML dirender ulang saat filter, kita ambil data dari array `filtered` bukan `combinedList` secara langsung via index global,
-                // tapi cara paling aman adalah menyimpan data di DOM atau lookup ulang.
-                // Di sini kita pakai lookup sederhana via index array filtered saat render.
-                
                 container.querySelectorAll('.job-item').forEach((btn, index) => {
                     btn.onclick = () => {
-                        const selectedItem = filtered[index]; // Ambil data yang sesuai tombol
+                        // Gunakan index dari array 'filtered' karena tombol dirender berdasarkan itu
+                        const selectedItem = filtered[index];
                         
                         // Set State Global
                         AppState.selectedStore = selectedItem.store;
                         AppState.selectedUlok = selectedItem.ulok;
-                        
-                        // Reset Lingkup agar user memilih ulang lingkup
-                        AppState.selectedLingkup = null; 
+                        AppState.selectedLingkup = null; // Reset lingkup agar user memilih ulang
 
                         // Arahkan View
                         if (type === 'opname') AppState.activeView = 'opname';
