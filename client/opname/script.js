@@ -945,16 +945,54 @@ const Render = {
             searchInput.oninput = (e) => { renderList(e.target.value); document.getElementById('store-search').focus(); };
 
             container.querySelectorAll('.store-item').forEach(btn => {
-                btn.onclick = () => {
-                    AppState.selectedStore = AppState.stores.find(s => s.kode_toko === btn.dataset.kode);
-                    if(type === 'opname') AppState.activeView = 'opname';
-                    else if(type === 'final-opname') AppState.activeView = 'final-opname-detail';
-                    else if(type === 'approval') AppState.activeView = 'approval-detail';
-                    else if(type === 'history') AppState.activeView = 'history-detail-kontraktor';
+                btn.onclick = async () => {
+                    const store = AppState.stores.find(s => s.kode_toko === btn.dataset.kode);
+                    AppState.selectedStore = store;
                     
-                    AppState.selectedUlok = null;
-                    AppState.selectedLingkup = null;
-                    Render.app();
+                    // --- MODIFIKASI DIMULAI DARI SINI ---
+                    // Logika: Cek ULOK dulu, jika cuma 1 langsung set dan skip halaman pilih ULOK
+                    if (type === 'opname') {
+                        // Tampilkan efek loading pada tombol agar user tahu proses berjalan
+                        const originalHtml = btn.innerHTML;
+                        btn.innerHTML = `<div style="text-align:center;">⏳ Cek ULOK...</div>`;
+                        btn.disabled = true;
+
+                        try {
+                            const res = await fetch(`${API_BASE_URL}/api/uloks?kode_toko=${store.kode_toko}`);
+                            const uloks = await res.json();
+
+                            if (uloks && uloks.length === 1) {
+                                // SKENARIO SEDERHANA: Hanya ada 1 ULOK -> Langsung pilih & Lanjut ke Lingkup
+                                AppState.selectedUlok = uloks[0];
+                                AppState.selectedLingkup = null; 
+                                AppState.activeView = 'opname'; 
+                                Render.app(); // Ini akan langsung merender Step 2 (Lingkup) karena selectedUlok sudah terisi
+                            } else {
+                                // SKENARIO LAIN: 0 atau >1 ULOK -> Biarkan user memilih di halaman berikutnya
+                                AppState.selectedUlok = null;
+                                AppState.selectedLingkup = null;
+                                AppState.activeView = 'opname';
+                                Render.app();
+                            }
+                        } catch (err) {
+                            console.error("Gagal auto-check ULOK:", err);
+                            // Fallback ke manual jika fetch error
+                            AppState.selectedUlok = null;
+                            AppState.selectedLingkup = null;
+                            AppState.activeView = 'opname';
+                            Render.app();
+                        }
+                    } else {
+                        // Logika standar untuk menu lain (Final View / Approval / History)
+                        if(type === 'final-opname') AppState.activeView = 'final-opname-detail';
+                        else if(type === 'approval') AppState.activeView = 'approval-detail';
+                        else if(type === 'history') AppState.activeView = 'history-detail-kontraktor';
+                        
+                        AppState.selectedUlok = null;
+                        AppState.selectedLingkup = null;
+                        Render.app();
+                    }
+                    // --- MODIFIKASI SELESAI ---
                 };
             });
         };
