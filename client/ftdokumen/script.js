@@ -1,7 +1,10 @@
 // ==========================================
 // 1. GLOBAL STATE & CONFIG
 // ==========================================
+// Base URL Backend (Sesuai dengan auth/script.js)
 const API_BASE_URL = "https://sparta-backend-5hdj.onrender.com";
+// URL untuk Logging ke Apps Script
+const APPS_SCRIPT_POST_URL = "https://script.google.com/macros/s/AKfycbzPubDTa7E2gT5HeVLv9edAcn1xaTiT3J4BtAVYqaqiFAvFtp1qovTXpqpm-VuNOxQJ/exec";
 
 // State global menggantikan useState React
 const STATE = {
@@ -102,15 +105,40 @@ document.addEventListener("DOMContentLoaded", () => {
     initEventListeners();
 });
 
+// Fungsi Logging ke Google Apps Script (Diambil dari auth/script.js)
+async function logLoginAttempt(username, cabang, status) {
+    const logData = {
+        requestType: "loginAttempt",
+        username: username,
+        cabang: cabang,
+        status: status,
+    };
+
+    try {
+        // Menggunakan no-cors jika mengalami masalah CORS pada Apps Script, 
+        // tapi idealnya backend GAS harus support CORS.
+        await fetch(APPS_SCRIPT_POST_URL, {
+            method: "POST",
+            redirect: "follow",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify(logData),
+        });
+    } catch (error) {
+        console.error("Failed to log login attempt:", error);
+    }
+}
+
 function checkSession() {
+    // Kita gunakan localStorage agar user tetap login saat refresh (sesuai behavior aplikasi sebelumnya)
     const userStr = localStorage.getItem("user");
     if (userStr) {
         STATE.user = JSON.parse(userStr);
+        // Menampilkan Cabang/Role di Header
         getEl("header-user-info").textContent = `Building & Maintenance — ${STATE.user.cabang || ""}`;
         show(getEl("main-header"));
         hide(getEl("view-login"));
         
-        // Cek apakah data form tersimpan di server/temp untuk direstore
+        // Langsung masuk ke Form view
         switchToView("form");
         loadSpkData(STATE.user.cabang);
     } else {
@@ -175,17 +203,41 @@ function switchToView(viewName) {
 // ==========================================
 // 4. API CALLS
 // ==========================================
+
+// INTEGRASI BARU: Login menggunakan endpoint /api/login
 async function apiLogin(username, password) {
+    // 1. Log percobaan login
+    logLoginAttempt(username, password, "Attempt");
+
     try {
-        const res = await fetch(`${API_BASE_URL}/doc/auth/login`, {
+        // Backend baru mengharapkan field 'cabang' sebagai password
+        const res = await fetch(`${API_BASE_URL}/api/login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username, password }),
+            body: JSON.stringify({ email: username, cabang: password }),
         });
+
         const json = await res.json();
-        if (!json.ok) throw new Error(json.message || "Login gagal");
-        return json.user;
+
+        // Cek status response (backend baru menggunakan json.status === "success")
+        if (res.ok && json.status === "success") {
+            logLoginAttempt(username, password, "Success");
+            
+            // Format data user agar sesuai dengan struktur aplikasi Anda (STATE.user)
+            return {
+                email: username,
+                cabang: password, // Di sistem ini password dianggap sebagai kode cabang
+                role: (json.role || "").toUpperCase(),
+                ...json // Simpan sisa data jika ada
+            };
+        } else {
+            // Jika gagal
+            const errMsg = json.message || "Username atau password salah.";
+            logLoginAttempt(username, password, "Failed");
+            throw new Error(errMsg);
+        }
     } catch (e) {
+        logLoginAttempt(username, password, "Failed");
         throw e;
     }
 }
@@ -224,7 +276,7 @@ async function saveTemp(payload) {
 // 5. EVENT LISTENERS & LOGIC
 // ==========================================
 function initEventListeners() {
-    // LOGIN
+    // LOGIN LISTENER
     getEl("form-login").addEventListener("submit", async (e) => {
         e.preventDefault();
         const u = getEl("login-username").value;
@@ -236,8 +288,13 @@ function initEventListeners() {
         hide(getEl("login-error-msg"));
 
         try {
+            // Panggil API Login yang baru
             const user = await apiLogin(u, p);
+            
+            // Simpan session
             localStorage.setItem("user", JSON.stringify(user));
+            
+            // Transisi ke halaman utama
             checkSession();
         } catch (err) {
             const errDiv = getEl("login-error-msg");
