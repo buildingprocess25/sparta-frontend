@@ -56,6 +56,7 @@ body {
    2. NAVBAR (BRAND IDENTITY)
    ========================================= */
 .app-header {
+    /* Gradasi Merah Alfamart yang tegas */
     background: linear-gradient(90deg, var(--brand-red) 0%, var(--brand-red-dark) 100%);
     color: var(--white);
     padding: 0.85rem 1.5rem;
@@ -65,7 +66,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: var(--shadow-md);
+    box-shadow: 0 4px 12px rgba(208, 2, 27, 0.25); /* Shadow merah halus */
 }
 
 .header-brand {
@@ -75,17 +76,18 @@ body {
 }
 
 .header-brand i {
-    color: var(--brand-yellow); /* Aksen kuning pada icon gedung */
+    color: var(--brand-yellow); /* Icon Gedung warna Kuning Emas */
     font-size: 1.4rem;
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
 }
 
 .header-brand h1 {
     font-size: 1.15rem;
-    font-weight: 700;
-    letter-spacing: 0.02em;
+    font-weight: 800; /* Font lebih tebal */
+    letter-spacing: 0.03em;
     text-transform: uppercase;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    text-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    font-family: var(--font-sans);
 }
 
 .btn-logout {
@@ -105,6 +107,7 @@ body {
 .btn-logout:hover {
     background-color: var(--white);
     color: var(--brand-red);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 /* =========================================
@@ -113,9 +116,11 @@ body {
 .app-subheader {
     background-color: var(--white);
     border-bottom: 1px solid var(--neutral-200);
-    padding: 0.75rem 0;
+    padding: 0.85rem 0; /* Padding sedikit diperbesar */
     margin-bottom: 2rem;
     box-shadow: var(--shadow-sm);
+    position: relative;
+    z-index: 900;
 }
 
 .subheader-container {
@@ -123,7 +128,8 @@ body {
     margin: 0 auto;
     padding: 0 1.5rem;
     display: flex;
-    justify-content: space-between;
+    /* Ubah ke center karena tanggal dihilangkan, supaya seimbang */
+    justify-content: center; 
     align-items: center;
 }
 
@@ -132,23 +138,24 @@ body {
     align-items: center;
     gap: 10px;
     background-color: var(--neutral-50);
-    padding: 6px 16px;
-    border-radius: var(--radius-full);
+    padding: 8px 20px; /* Badge lebih lebar */
+    border-radius: 99px; /* Full Rounded Pill */
     border: 1px solid var(--neutral-200);
-    font-weight: 600;
-    color: var(--neutral-900);
-    box-shadow: var(--shadow-sm);
+    font-weight: 700;
+    color: var(--neutral-800);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    font-size: 0.9rem;
+    letter-spacing: 0.01em;
 }
 
-.user-badge i { color: var(--brand-blue); font-size: 1.1em; }
+.user-badge i { 
+    color: var(--brand-blue); /* Icon User warna Biru */
+    font-size: 1.2em; 
+}
 
+/* MENYEMBUNYIKAN TANGGAL */
 .date-badge {
-    font-size: 0.85rem;
-    color: var(--neutral-500);
-    font-weight: 500;
-    background: var(--neutral-100);
-    padding: 4px 12px;
-    border-radius: var(--radius-sm);
+    display: none !important;
 }
 
 /* =========================================
