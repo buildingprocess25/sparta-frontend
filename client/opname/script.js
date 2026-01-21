@@ -1051,49 +1051,15 @@ const Render = {
     },
 
     opnameForm: async (container) => {
-        // --- STEP 1: PILIH ULOK ---
+        // --- STEP 1: Cek ULOK (Safety Check) ---
+        // Jika karena suatu hal ULOK belum terpilih, kembalikan ke daftar toko
         if (!AppState.selectedUlok) {
-            container.innerHTML = '<div class="container text-center" style="padding-top:40px;"><div class="card"><h3>Memuat Data ULOK...</h3></div></div>';
-            try {
-                const res = await fetch(`${API_BASE_URL}/api/uloks?kode_toko=${AppState.selectedStore.kode_toko}`);
-                const data = await res.json();
-                AppState.uloks = data;
-
-                if (data.length === 1) {
-                    AppState.selectedUlok = data[0];
-                    Render.opnameForm(container);
-                    return;
-                }
-                
-                // Render List ULOK
-                container.innerHTML = `
-                    <div class="container" style="padding-top:20px;">
-                        <div class="card">
-                            <button id="btn-back-ulok" class="btn btn-back" style="margin-bottom:15px;">Kembali</button>
-                            <h2 style="margin-bottom:20px;">Pilih Nomor ULOK</h2>
-                            <div class="d-flex flex-column gap-2">
-                                ${AppState.uloks.map(u => `<button class="btn btn-secondary ulok-btn" data-ulok="${u}" style="justify-content:flex-start;">📄 ${u}</button>`).join('')}
-                            </div>
-                        </div>
-                    </div>
-                `;
-                
-                // Event Listeners Step 1
-                container.querySelector('#btn-back-ulok').onclick = () => { 
-                    AppState.activeView = 'store-selection-pic'; 
-                    Render.app(); 
-                };
-                container.querySelectorAll('.ulok-btn').forEach(b => {
-                    b.onclick = () => { 
-                        AppState.selectedUlok = b.dataset.ulok; 
-                        Render.opnameForm(container); 
-                    }
-                });
-            } catch (e) { container.innerHTML = `<div class="container"><div class="alert-error">Gagal memuat ULOK: ${e.message}</div></div>`; }
+            AppState.activeView = 'store-selection-pic';
+            Render.app();
             return;
         }
 
-        // --- STEP 2: PILIH LINGKUP (PERBAIKAN TOMBOL KEMBALI) ---
+        // --- STEP 2: PILIH LINGKUP ---
         if (!AppState.selectedLingkup) {
             container.innerHTML = `
                 <div class="container" style="padding-top:40px;">
@@ -1105,24 +1071,26 @@ const Render = {
                             <button class="btn btn-primary" id="btn-sipil" style="min-width:120px;">SIPIL</button>
                             <button class="btn btn-info" id="btn-me" style="min-width:120px;">ME</button>
                         </div>
-                        <button class="btn btn-back" id="btn-cancel-lingkup">Kembali / Ganti ULOK</button>
+                        <button class="btn btn-back" id="btn-cancel-lingkup">Kembali ke Daftar Toko</button>
                     </div>
                 </div>
             `;
             
-            // Event Listeners Step 2 (Menggunakan JS handler, bukan onclick HTML)
+            // Event Listeners Step 2
             container.querySelector('#btn-sipil').onclick = () => { AppState.selectedLingkup = 'SIPIL'; Render.opnameForm(container); };
             container.querySelector('#btn-me').onclick = () => { AppState.selectedLingkup = 'ME'; Render.opnameForm(container); };
             
-            // FIX: Handler Tombol Kembali
+            // --- PERBAIKAN DI SINI: Kembali ke Store Selection ---
             container.querySelector('#btn-cancel-lingkup').onclick = () => { 
-                AppState.selectedUlok = null; // Reset pilihan ULOK
-                Render.opnameForm(container); // Render ulang (akan masuk ke Step 1)
+                AppState.selectedStore = null;
+                AppState.selectedUlok = null;
+                AppState.activeView = 'store-selection-pic'; // Kembali ke list pekerjaan
+                Render.app(); 
             };
             return;
         }
 
-        // --- STEP 3: RENDER TABLE & BUTTONS ---
+        // --- STEP 3: RENDER TABLE & BUTTONS (Input Form) ---
         container.innerHTML = '<div class="loading-screen"><h3>Memuat Data...</h3></div>';
         
         try {
@@ -1138,7 +1106,6 @@ const Render = {
                 const hargaMaterial = toNumID(task.harga_material);
                 const hargaUpah = toNumID(task.harga_upah);
                 
-                // Logic: Total Harga = (Vol Akhir - RAB) * Harga Satuan
                 const selisihNum = volAkhirNum - volRab;
                 const total_harga = selisihNum * (hargaMaterial + hargaUpah);
                 
@@ -1283,9 +1250,8 @@ const Render = {
                 
                 container.innerHTML = html;
                 
-                // --- EVENT HANDLERS ---
-                
                 // Back Button (Step 3)
+                // Kembali ke Step 2 (Pilih Lingkup)
                 container.querySelector('#btn-back-main').onclick = () => { AppState.selectedLingkup = null; Render.opnameForm(container); };
 
                 // Input Volume (Update Realtime Total)
@@ -1298,19 +1264,16 @@ const Render = {
                         const vAkhir = toNumInput(item.volume_akhir);
                         const vRab = toNumInput(item.vol_rab);
                         
-                        // LOGIC: Selisih & Total
                         const selisihNum = vAkhir - vRab;
                         item.selisih = selisihNum.toFixed(2);
                         item.total_harga = selisihNum * (item.harga_material + item.harga_upah);
 
-                        // Update Row UI
                         const row = input.closest('tr');
                         row.cells[7].innerHTML = `<b style="color:${selisihNum<0?'red':'green'}">${item.selisih}</b>`;
                         const totEl = document.getElementById(`total-${id}`);
                         totEl.innerText = formatRupiah(item.total_harga);
                         totEl.style.color = item.total_harga < 0 ? 'red' : 'black';
 
-                        // Refresh Summary (Simple Re-render to avoid complex DOM manipulation)
                         renderTable(); 
                     }
                 });
@@ -1402,43 +1365,17 @@ const Render = {
     },
 
     finalOpnameView: async (container) => {
-        // --- STEP 1: PILIH ULOK ---
+        // --- STEP 1: Safety Check ---
         if (!AppState.selectedUlok) {
-            // (Bagian ini Tetap Sama)
-            container.innerHTML = '<div class="container text-center" style="padding-top:40px;"><div class="card"><h3>Memuat Data ULOK...</h3></div></div>';
-            try {
-                const res = await fetch(`${API_BASE_URL}/api/uloks?kode_toko=${AppState.selectedStore.kode_toko}`);
-                const data = await res.json();
-                AppState.uloks = data;
-
-                if (data.length === 1) {
-                    AppState.selectedUlok = data[0];
-                    Render.finalOpnameView(container);
-                    return;
-                }
-                
-                container.innerHTML = `
-                    <div class="container" style="padding-top:20px;">
-                        <div class="card">
-                            <button id="btn-back-ulok-final" class="btn btn-back" style="margin-bottom:15px;">Kembali</button>
-                            <h2 style="margin-bottom:20px;">Pilih Nomor ULOK (Final View)</h2>
-                            <div class="d-flex flex-column gap-2">
-                                ${AppState.uloks.map(u => `<button class="btn btn-secondary ulok-btn" data-ulok="${u}" style="justify-content:flex-start;">📄 ${u}</button>`).join('')}
-                            </div>
-                        </div>
-                    </div>
-                `;
-                container.querySelector('#btn-back-ulok-final').onclick = () => { AppState.activeView = 'dashboard'; Render.app(); };
-                container.querySelectorAll('.ulok-btn').forEach(b => {
-                    b.onclick = () => { AppState.selectedUlok = b.dataset.ulok; Render.finalOpnameView(container); }
-                });
-            } catch (e) { container.innerHTML = `<div class="container"><div class="alert-error">Gagal memuat ULOK: ${e.message}</div></div>`; }
+            // Tentukan mau balik kemana berdasarkan role
+            if (AppState.user.role === 'pic') AppState.activeView = 'final-opname-selection';
+            else AppState.activeView = 'history-selection-kontraktor';
+            Render.app();
             return;
         }
 
         // --- STEP 2: PILIH LINGKUP ---
         if (!AppState.selectedLingkup) {
-            // (Bagian ini Tetap Sama)
             container.innerHTML = `
                 <div class="container" style="padding-top:40px;">
                     <div class="card text-center" style="max-width:600px; margin:0 auto;">
@@ -1449,21 +1386,32 @@ const Render = {
                             <button class="btn btn-primary" id="btn-sipil-final" style="min-width:120px;">SIPIL</button>
                             <button class="btn btn-info" id="btn-me-final" style="min-width:120px;">ME</button>
                         </div>
-                        <button class="btn btn-back" id="btn-cancel-lingkup-final">Ganti ULOK</button>
+                        <button class="btn btn-back" id="btn-cancel-lingkup-final">Kembali ke Daftar</button>
                     </div>
                 </div>
             `;
             container.querySelector('#btn-sipil-final').onclick = () => { AppState.selectedLingkup = 'SIPIL'; Render.finalOpnameView(container); };
             container.querySelector('#btn-me-final').onclick = () => { AppState.selectedLingkup = 'ME'; Render.finalOpnameView(container); };
-            container.querySelector('#btn-cancel-lingkup-final').onclick = () => { AppState.selectedUlok = null; Render.finalOpnameView(container); };
+            
+            // --- PERBAIKAN DI SINI ---
+            container.querySelector('#btn-cancel-lingkup-final').onclick = () => { 
+                AppState.selectedStore = null;
+                AppState.selectedUlok = null;
+                // Cek Role untuk menentukan tombol kembali arahnya ke mana
+                if (AppState.user.role === 'pic') {
+                    AppState.activeView = 'final-opname-selection';
+                } else {
+                    AppState.activeView = 'history-selection-kontraktor';
+                }
+                Render.app();
+            };
             return;
         }
 
-        // --- STEP 3: FETCH DATA FINAL (/api/opname/final) ---
+        // --- STEP 3: FETCH DATA FINAL ---
         container.innerHTML = '<div class="container text-center" style="padding-top:40px;"><div class="card"><h3>Memuat Data Opname Final...</h3></div></div>';
         
         try {
-            // UPDATE: Menggunakan endpoint /api/opname/final sesuai React Repo
             const url = `${API_BASE_URL}/api/opname/final?kode_toko=${encodeURIComponent(AppState.selectedStore.kode_toko)}&no_ulok=${encodeURIComponent(AppState.selectedUlok)}&lingkup=${encodeURIComponent(AppState.selectedLingkup)}`;
             
             const res = await fetch(url);
@@ -1486,9 +1434,8 @@ const Render = {
                 return;
             }
 
-            // Mapping Data untuk kalkulasi & Tampilan
+            // Mapping Data
             const items = submissions.map((task, index) => {
-                // Pastikan handle angka dengan aman
                 const volAkhirNum = toNumInput(task.volume_akhir);
                 const hargaMaterial = toNumID(task.harga_material);
                 const hargaUpah = toNumID(task.harga_upah);
@@ -1502,16 +1449,13 @@ const Render = {
                 };
             });
 
-            // Kalkulasi Grand Total untuk Summary
             const totalBiaya = items.reduce((sum, i) => sum + i.total_harga, 0);
-            const ppn = totalBiaya * 0.11;
-            const grandTotal = totalBiaya * 1.11;
 
             const html = `
                 <div class="container" style="padding-top:20px;">
                     <div class="card">
                         <div class="d-flex align-center gap-2" style="margin-bottom:20px; border-bottom:2px solid #eee; padding-bottom:15px; flex-wrap:wrap;">
-                            <button id="btn-back-final-view" class="btn btn-back">← Dashboard</button>
+                            <button id="btn-back-final-view" class="btn btn-back">← Kembali</button>
                             <div style="flex:1;">
                                 <h2 style="color:var(--primary); margin:0;">Riwayat Opname Final</h2>
                                 <span style="font-size:0.9rem; color:#64748b;">
@@ -1574,7 +1518,8 @@ const Render = {
             `;
             container.innerHTML = html;
 
-            container.querySelector('#btn-back-final-view').onclick = () => { AppState.selectedLingkup = null; AppState.selectedUlok = null; AppState.activeView = 'dashboard'; Render.app(); };
+            // Back ke pemilihan Lingkup
+            container.querySelector('#btn-back-final-view').onclick = () => { AppState.selectedLingkup = null; Render.finalOpnameView(container); };
             
             // PDF Button Action
             container.querySelector('#btn-download-pdf').onclick = () => {
@@ -1582,7 +1527,6 @@ const Render = {
                 btn.innerText = "Memproses PDF...";
                 btn.disabled = true;
                 setTimeout(() => {
-                    // Pastikan fungsi PDFGenerator mendukung data ini
                     PDFGenerator.generateFinalOpnamePDF(items, AppState.selectedStore, AppState.selectedUlok, AppState.selectedLingkup, AppState.user);
                     btn.innerText = "📄 Download PDF";
                     btn.disabled = false;
@@ -1595,53 +1539,14 @@ const Render = {
     },
     
     approvalDetail: async (container) => {
-        // 1. Cek Data ULOK
+        // --- STEP 1: Safety Check ---
         if (!AppState.selectedUlok) {
-            container.innerHTML = '<div class="container text-center" style="padding-top:40px;"><div class="card"><h3>Memuat Data ULOK...</h3></div></div>';
-            try {
-                const res = await fetch(`${API_BASE_URL}/api/uloks?kode_toko=${AppState.selectedStore.kode_toko}`);
-                const data = await res.json();
-                AppState.uloks = data || [];
-
-                if (Array.isArray(data) && data.length === 1) {
-                    AppState.selectedUlok = data[0];
-                    Render.approvalDetail(container); // Auto-select dan lanjut
-                    return;
-                }
-
-                container.innerHTML = `
-                    <div class="container" style="padding-top:20px;">
-                        <div class="card">
-                            <button id="btn-back-store-app" class="btn btn-back" style="margin-bottom:15px;">← Kembali</button>
-                            <h2 style="color:var(--primary); margin-bottom:20px;">Pilih Nomor ULOK (Approval)</h2>
-                            <div class="d-flex flex-column gap-2">
-                                ${AppState.uloks.map(u => `<button class="btn btn-secondary ulok-btn" data-ulok="${u}" style="justify-content:flex-start;">📄 ${u}</button>`).join('')}
-                            </div>
-                        </div>
-                    </div>
-                `;
-                
-                // Event Handlers
-                container.querySelector('#btn-back-store-app').onclick = () => { 
-                    AppState.activeView = 'store-selection-kontraktor'; 
-                    Render.app(); 
-                };
-                
-                container.querySelectorAll('.ulok-btn').forEach(b => {
-                    b.onclick = () => { 
-                        AppState.selectedUlok = b.dataset.ulok; 
-                        AppState.selectedLingkup = null; // Reset lingkup saat ganti ULOK
-                        Render.approvalDetail(container); 
-                    }
-                });
-
-            } catch (e) { 
-                container.innerHTML = `<div class="container"><div class="alert-error">Gagal memuat ULOK: ${e.message}</div></div>`; 
-            }
+            AppState.activeView = 'store-selection-kontraktor';
+            Render.app();
             return;
         }
 
-        // 2. Cek Data Lingkup
+        // --- STEP 2: PILIH LINGKUP ---
         if (!AppState.selectedLingkup) {
             container.innerHTML = `
                 <div class="container" style="padding-top:40px;">
@@ -1653,18 +1558,25 @@ const Render = {
                             <button class="btn btn-primary" id="btn-sipil" style="min-width:120px;">SIPIL</button>
                             <button class="btn btn-info" id="btn-me" style="min-width:120px;">ME</button>
                         </div>
-                        <button class="btn btn-back" id="btn-cancel-lingkup">Batal / Ganti ULOK</button>
+                        <button class="btn btn-back" id="btn-cancel-lingkup">Kembali ke Daftar Approval</button>
                     </div>
                 </div>
             `;
             
             container.querySelector('#btn-sipil').onclick = () => { AppState.selectedLingkup = 'SIPIL'; Render.approvalDetail(container); };
             container.querySelector('#btn-me').onclick = () => { AppState.selectedLingkup = 'ME'; Render.approvalDetail(container); };
-            container.querySelector('#btn-cancel-lingkup').onclick = () => { AppState.selectedUlok = null; Render.approvalDetail(container); };
+            
+            // --- PERBAIKAN DI SINI ---
+            container.querySelector('#btn-cancel-lingkup').onclick = () => { 
+                AppState.selectedStore = null;
+                AppState.selectedUlok = null;
+                AppState.activeView = 'store-selection-kontraktor'; 
+                Render.app(); 
+            };
             return;
         }
 
-        // 3. Tampilkan Tabel Approval
+        // --- STEP 3: TAMPILKAN TABEL APPROVAL ---
         container.innerHTML = '<div class="container text-center" style="padding-top:40px;"><div class="card"><h3>Memuat Data Opname Pending...</h3></div></div>';
         
         try {
@@ -1672,7 +1584,6 @@ const Render = {
             const res = await fetch(url);
             const pendingItems = await res.json();
             
-            // Render Tabel Utama
             const renderApprovalTable = () => {
                 let html = `
                 <div class="container" style="padding-top:20px; max-width: 100vw; padding-left: 16px; padding-right: 16px;">
@@ -1733,24 +1644,24 @@ const Render = {
                 
                 container.innerHTML = html;
 
-                // Event Listener: Back
+                // Back Button (Step 3)
+                // Kembali ke Step 2 (Pilih Lingkup)
                 container.querySelector('#btn-back-lingkup').onclick = () => { 
                     AppState.selectedLingkup = null; 
                     Render.approvalDetail(container); 
                 };
 
-                // Helper: Show Message
                 const showMsg = (msg, isError = false) => {
                     const el = document.getElementById('approval-message');
                     el.style.display = 'block';
-                    el.className = isError ? 'alert-error' : 'badge-success'; // Recycle classes
+                    el.className = isError ? 'alert-error' : 'badge-success'; 
                     el.style.backgroundColor = isError ? '#ffe5e5' : '#dcfce7';
                     el.style.color = isError ? '#cc0000' : '#166534';
                     el.innerText = msg;
                     setTimeout(() => { el.style.display = 'none'; }, 3000);
                 };
 
-                // Logic Approve (Sesuai ApprovalPage.js: 2 Step Fetch)
+                // Logic Approve
                 container.querySelectorAll('.btn-approve').forEach(btn => {
                     btn.onclick = async () => {
                         const itemId = btn.dataset.id;
@@ -1759,12 +1670,9 @@ const Render = {
                         const row = document.getElementById(`row-${itemId}`);
                         const btnReject = row.querySelector('.btn-reject');
 
-                        btn.disabled = true;
-                        btn.innerText = '...';
-                        btnReject.disabled = true;
+                        btn.disabled = true; btn.innerText = '...'; btnReject.disabled = true;
 
                         try {
-                            // Fetch 1: Opname Approve
                             const payload1 = {
                                 item_id: itemId,
                                 kontraktor_username: AppState.user.username || AppState.user.name,
@@ -1782,12 +1690,8 @@ const Render = {
                                 throw new Error(errData.message || "Gagal approve item");
                             }
 
-                            // Wait 2-3 seconds (Simulasi delay seperti di React agar backend sync)
                             await new Promise(r => setTimeout(r, 2000));
 
-                            // Fetch 2: Process Summary
-                            // Note: URL hardcoded di React, kita gunakan API_BASE_URL jika memungkinkan, 
-                            // tapi code React pakai sparta-backend-5hdj. Kita sesuaikan.
                             const payload2 = {
                                 no_ulok: AppState.selectedUlok,
                                 lingkup_pekerjaan: AppState.selectedLingkup,
@@ -1803,22 +1707,18 @@ const Render = {
                             if (!res2.ok) {
                                 const errData2 = await res2.json();
                                 console.warn("Warning Summary:", errData2.message);
-                                // Tetap lanjut sukses karena item sudah diapprove
                             }
 
                             showMsg("Berhasil di-approve!");
-                            row.remove(); // Hapus baris dari tabel
+                            row.remove();
 
-                            // Cek jika tabel kosong
                             if(document.querySelectorAll('#approval-tbody tr').length === 0) {
                                 document.getElementById('approval-tbody').innerHTML = '<tr><td colspan="8" class="text-center" style="padding:20px;">Semua data telah diproses.</td></tr>';
                             }
 
                         } catch (e) {
                             showMsg(`Error: ${e.message}`, true);
-                            btn.disabled = false;
-                            btn.innerText = 'Approve';
-                            btnReject.disabled = false;
+                            btn.disabled = false; btn.innerText = 'Approve'; btnReject.disabled = false;
                         }
                     };
                 });
@@ -1833,9 +1733,7 @@ const Render = {
 
                         if(!confirm("Yakin ingin menolak (REJECT) item ini?")) return;
 
-                        btn.disabled = true;
-                        btn.innerText = '...';
-                        btnApprove.disabled = true;
+                        btn.disabled = true; btn.innerText = '...'; btnApprove.disabled = true;
 
                         try {
                             const payload = {
@@ -1864,9 +1762,7 @@ const Render = {
 
                         } catch (e) {
                             showMsg(`Error: ${e.message}`, true);
-                            btn.disabled = false;
-                            btn.innerText = 'Reject';
-                            btnApprove.disabled = false;
+                            btn.disabled = false; btn.innerText = 'Reject'; btnApprove.disabled = false;
                         }
                     };
                 });
