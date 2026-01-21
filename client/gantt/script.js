@@ -1409,13 +1409,16 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateProjectFromRab(rab) {
         if (rab.Alamat) currentProject.alamat = rab.Alamat;
         if (rab.Nama_Toko) currentProject.store = rab.Nama_Toko;
+        if (rab.Durasi_Pekerjaan) currentProject.duration = rab.Durasi_Pekerjaan;
     }
 
     function renderProjectInfo() {
+        const durationDisplay = currentProject.duration ? `${currentProject.duration} Hari` : '-';
         document.getElementById("projectInfo").innerHTML = `
             <div class="project-detail"><div class="project-label">No. Ulok</div><div class="project-value">${currentProject.ulokClean}</div></div>
             <div class="project-detail"><div class="project-label">Toko</div><div class="project-value">${currentProject.store}</div></div>
             <div class="project-detail"><div class="project-label">Lingkup</div><div class="project-value">${currentProject.work}</div></div>
+            <div class="project-detail"><div class="project-label">Durasi</div><div class="project-value">${durationDisplay}</div></div>
         `;
     }
 
