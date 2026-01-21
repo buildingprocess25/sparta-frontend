@@ -538,43 +538,83 @@ const Render = {
     },
 
     opnameForm: async (container) => {
-        // --- STEP 1 & 2: ULOK & LINGKUP ---
+        // --- STEP 1: PILIH ULOK ---
         if (!AppState.selectedUlok) {
-            // (Render Pilihan ULOK - Kode Sama)
             container.innerHTML = '<div class="container text-center" style="padding-top:40px;"><div class="card"><h3>Memuat Data ULOK...</h3></div></div>';
             try {
                 const res = await fetch(`${API_BASE_URL}/api/uloks?kode_toko=${AppState.selectedStore.kode_toko}`);
                 const data = await res.json();
                 AppState.uloks = data;
-                if (data.length === 1) { AppState.selectedUlok = data[0]; Render.opnameForm(container); return; }
-                container.innerHTML = `<div class="container" style="padding-top:20px;"><div class="card"><button class="btn btn-back" onclick="AppState.activeView='store-selection-pic';Render.app()">Kembali</button><h2>Pilih ULOK</h2><div class="d-flex flex-column gap-2">${data.map(u=>`<button class="btn btn-secondary ulok-btn" data-ulok="${u}">${u}</button>`).join('')}</div></div></div>`;
-                container.querySelectorAll('.ulok-btn').forEach(b=>{b.onclick=()=>{AppState.selectedUlok=b.dataset.ulok;Render.opnameForm(container)}});
-            } catch(e){container.innerHTML=`<div class="alert-error">${e.message}</div>`}
-            return;
-        }
-        if (!AppState.selectedLingkup) {
-            container.innerHTML = `<div class="container" style="padding-top:40px;"><div class="card text-center"><h2>Pilih Lingkup</h2><div style="margin:20px;"><button class="btn btn-primary" id="btn-sipil">SIPIL</button> <button class="btn btn-info" id="btn-me">ME</button></div><button class="btn btn-back" onclick="AppState.selectedUlok=null;Render.opnameForm(container)">Kembali</button></div></div>`;
-            container.querySelector('#btn-sipil').onclick=()=>{AppState.selectedLingkup='SIPIL';Render.opnameForm(container)};
-            container.querySelector('#btn-me').onclick=()=>{AppState.selectedLingkup='ME';Render.opnameForm(container)};
+
+                if (data.length === 1) {
+                    AppState.selectedUlok = data[0];
+                    Render.opnameForm(container);
+                    return;
+                }
+                
+                container.innerHTML = `
+                    <div class="container" style="padding-top:20px;">
+                        <div class="card">
+                            <button id="btn-back-ulok" class="btn btn-back" style="margin-bottom:15px;">Kembali</button>
+                            <h2 style="margin-bottom:20px;">Pilih Nomor ULOK</h2>
+                            <div class="d-flex flex-column gap-2">
+                                ${AppState.uloks.map(u => `<button class="btn btn-secondary ulok-btn" data-ulok="${u}" style="justify-content:flex-start;">📄 ${u}</button>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.querySelector('#btn-back-ulok').onclick = () => { AppState.activeView = 'store-selection-pic'; Render.app(); };
+                container.querySelectorAll('.ulok-btn').forEach(b => {
+                    b.onclick = () => { AppState.selectedUlok = b.dataset.ulok; Render.opnameForm(container); }
+                });
+            } catch (e) { container.innerHTML = `<div class="container"><div class="alert-error">Gagal memuat ULOK: ${e.message}</div></div>`; }
             return;
         }
 
-        // --- STEP 3: RENDER TABLE ---
-        container.innerHTML = '<div class="loading-screen"><h3>Memuat...</h3></div>';
+        // --- STEP 2: PILIH LINGKUP (FIXED BACK BUTTON) ---
+        if (!AppState.selectedLingkup) {
+            container.innerHTML = `
+                <div class="container" style="padding-top:40px;">
+                    <div class="card text-center" style="max-width:600px; margin:0 auto;">
+                        <h2 style="color:var(--primary);">Pilih Lingkup Pekerjaan</h2>
+                        <div class="badge badge-success" style="margin:10px auto; display:inline-block;">ULOK: ${AppState.selectedUlok}</div>
+                        
+                        <div class="d-flex justify-center gap-2" style="margin-top:30px; margin-bottom:30px;">
+                            <button class="btn btn-primary" id="btn-sipil" style="min-width:120px;">SIPIL</button>
+                            <button class="btn btn-info" id="btn-me" style="min-width:120px;">ME</button>
+                        </div>
+                        <button class="btn btn-back" id="btn-cancel-lingkup">Kembali / Ganti ULOK</button>
+                    </div>
+                </div>
+            `;
+            container.querySelector('#btn-sipil').onclick = () => { AppState.selectedLingkup = 'SIPIL'; Render.opnameForm(container); };
+            container.querySelector('#btn-me').onclick = () => { AppState.selectedLingkup = 'ME'; Render.opnameForm(container); };
+            
+            // PERBAIKAN TOMBOL KEMBALI
+            container.querySelector('#btn-cancel-lingkup').onclick = () => { 
+                AppState.selectedUlok = null; // Reset ULOK agar kembali ke Step 1
+                Render.opnameForm(container); 
+            };
+            return;
+        }
+
+        // --- STEP 3: RENDER TABLE & BUTTONS ---
+        container.innerHTML = '<div class="loading-screen"><h3>Memuat Data...</h3></div>';
+        
         try {
+            // 1. Fetch Data Items
             const base = `${API_BASE_URL}/api/opname?kode_toko=${encodeURIComponent(AppState.selectedStore.kode_toko)}&no_ulok=${encodeURIComponent(AppState.selectedUlok)}&lingkup=${encodeURIComponent(AppState.selectedLingkup)}`;
             const res = await fetch(base);
-            const data = await res.json();
+            let data = await res.json();
             
-            // MAPPING DATA
+            // 2. Mapping Data
             AppState.opnameItems = data.map((task, index) => {
                 const volRab = toNumInput(task.vol_rab);
                 const volAkhirNum = toNumInput(task.volume_akhir);
                 const hargaMaterial = toNumID(task.harga_material);
                 const hargaUpah = toNumID(task.harga_upah);
                 
-                // LOGIC UPDATE: Total Harga = (Volume Akhir - RAB) * Harga Satuan
-                // Jika Volume Akhir < RAB, maka Total Harga akan Minus (Negatif)
+                // Rumus: (Vol Akhir - RAB) * Harga Satuan
                 const selisihNum = volAkhirNum - volRab;
                 const total_harga = selisihNum * (hargaMaterial + hargaUpah);
                 
@@ -594,25 +634,45 @@ const Render = {
                 };
             });
 
-            // CHECK STATUS FINAL (Sama seperti sebelumnya)
-            let isFinalized = false, canFinalize = false, statusMessage = "Menunggu Approval Semua Item";
+            // 3. Cek Status Final (Locked)
+            let isFinalized = false;
+            let canFinalize = false;
+            let statusMessage = "Menunggu Approval Semua Item";
+
             try {
-                const stRes = await fetch(`https://sparta-backend-5hdj.onrender.com/api/check_status_item_opname?no_ulok=${AppState.selectedUlok}&lingkup_pekerjaan=${AppState.selectedLingkup}`);
-                const stData = await stRes.json();
-                if (stData.status === "approved") {
-                    if (stData.tanggal_opname_final) { isFinalized = true; statusMessage = "Opname Selesai (Final)"; }
-                    else { canFinalize = true; statusMessage = "Opname Final"; }
+                const checkUrl = `https://sparta-backend-5hdj.onrender.com/api/check_status_item_opname?no_ulok=${AppState.selectedUlok}&lingkup_pekerjaan=${AppState.selectedLingkup}`;
+                const statusRes = await fetch(checkUrl);
+                const statusData = await statusRes.json();
+
+                if (statusData.status === "approved") {
+                    if (statusData.tanggal_opname_final) {
+                        isFinalized = true;
+                        canFinalize = false;
+                        statusMessage = "Opname Selesai (Final)";
+                    } else {
+                        isFinalized = false;
+                        canFinalize = true;
+                        statusMessage = "Opname Final";
+                    }
+                } else {
+                    canFinalize = false;
+                    statusMessage = "Menunggu Approval Semua Item";
                 }
-            } catch (err) {}
+            } catch (err) {
+                console.warn("Gagal cek status final:", err);
+            }
 
             const renderTable = () => {
                 const items = AppState.opnameItems;
                 const totalVal = items.reduce((sum, i) => sum + (i.total_harga || 0), 0);
                 const ppn = totalVal * 0.11;
                 const grandTotal = totalVal * 1.11;
-                const btnColor = isFinalized ? '#28a745' : canFinalize ? '#007bff' : '#6c757d';
 
-                const html = `
+                let btnColor = '#6c757d'; 
+                if (isFinalized) btnColor = '#28a745'; 
+                else if (canFinalize) btnColor = '#007bff';
+
+                let html = `
                 <div class="container" style="padding-top:20px; padding-left:10px; padding-right:10px; max-width:100%;">
                     <div class="card" style="border-radius:0;">
                         <div class="d-flex align-center gap-2" style="margin-bottom:20px;">
@@ -629,9 +689,9 @@ const Render = {
                                     <tr style="background:var(--primary); color:white;">
                                         <th style="padding:10px;">Kategori</th><th style="padding:10px;">Jenis Pekerjaan</th>
                                         <th class="text-center">Vol RAB</th><th class="text-center">Sat</th>
-                                        <th class="text-right">Harga Material</th><th class="text-right">Harga Upah</th>
+                                        <th class="text-right">H. Mat</th><th class="text-right">H. Upah</th>
                                         <th class="text-center">Vol Akhir</th><th class="text-center">Selisih</th>
-                                        <th class="text-right">Total Harga</th>
+                                        <th class="text-right">Total (Deviasi)</th>
                                         <th class="text-center">Foto</th><th style="padding:10px;">Catatan</th>
                                         <th class="text-center">Status</th><th class="text-center">Aksi</th>
                                     </tr>
@@ -673,22 +733,38 @@ const Render = {
                             </table>
                         </div>
 
+                        <div style="margin-top: 20px; margin-bottom: 0px;">
+                            <a href="https://instruksi-lapangan.vercel.app/" target="_blank" rel="noopener noreferrer" class="btn" 
+                            style="width: 100%; background-color: #FFC107; font-weight: bold; color: #000; text-decoration: none; display: block; text-align: center; padding: 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                📋 INSTRUKSI LAPANGAN
+                            </a>
+                        </div>
+
                         <div style="margin-top:20px; padding:15px; background:#f8f9fa;">
-                            <div class="d-flex justify-between"><span>Total Harga:</span> <b style="color:${totalVal<0?'red':'black'}">${formatRupiah(totalVal)}</b></div>
+                            <div class="d-flex justify-between"><span>Total (Deviasi):</span> <b style="color:${totalVal<0?'red':'black'}">${formatRupiah(totalVal)}</b></div>
                             <div class="d-flex justify-between"><span>PPN 11%:</span> <b style="color:${ppn<0?'red':'black'}">${formatRupiah(ppn)}</b></div>
                             <div class="d-flex justify-between" style="font-size:1.2rem; margin-top:10px;"><span>Grand Total:</span> <b style="color:${grandTotal<0?'red':'black'}">${formatRupiah(grandTotal)}</b></div>
                         </div>
 
-                        <button id="btn-final" class="btn" style="width:100%; margin-top:20px; background:${btnColor}; color:white;" ${(!canFinalize||isFinalized)?'disabled':''}>${statusMessage}</button>
+                        <div style="margin-top: 20px;">
+                             <button id="btn-final" class="btn" style="width:100%; padding:14px; font-size:1.1rem; font-weight:bold; 
+                                background-color: ${btnColor}; color: white; cursor: ${(!canFinalize || isFinalized) ? 'not-allowed' : 'pointer'};" 
+                                ${(!canFinalize || isFinalized) ? 'disabled' : ''}>
+                                ${statusMessage}
+                            </button>
+                            ${!canFinalize && !isFinalized ? '<p style="text-align:center; color:#dc3545; font-size:0.85rem; margin-top:8px;">*Pastikan semua pekerjaan berstatus APPROVED untuk melakukan Opname Final.</p>' : ''}
+                        </div>
                     </div>
                 </div>`;
                 
                 container.innerHTML = html;
                 
-                // EVENT HANDLERS
+                // --- EVENT HANDLERS ---
+                
+                // Back Button
                 container.querySelector('#btn-back-main').onclick = () => { AppState.selectedLingkup = null; Render.opnameForm(container); };
 
-                // Handle Input Volume
+                // Input Volume (Update Realtime Total)
                 container.querySelectorAll('.vol-input').forEach(input => {
                     input.oninput = (e) => {
                         const id = parseInt(e.target.dataset.id);
@@ -698,24 +774,24 @@ const Render = {
                         const vAkhir = toNumInput(item.volume_akhir);
                         const vRab = toNumInput(item.vol_rab);
                         
-                        // LOGIC UTAMA: Total Harga berdasarkan Selisih
+                        // LOGIC: Selisih & Total
                         const selisihNum = vAkhir - vRab;
                         item.selisih = selisihNum.toFixed(2);
                         item.total_harga = selisihNum * (item.harga_material + item.harga_upah);
 
-                        // Update UI Baris
+                        // Update Row UI
                         const row = input.closest('tr');
                         row.cells[7].innerHTML = `<b style="color:${selisihNum<0?'red':'green'}">${item.selisih}</b>`;
                         const totEl = document.getElementById(`total-${id}`);
                         totEl.innerText = formatRupiah(item.total_harga);
                         totEl.style.color = item.total_harga < 0 ? 'red' : 'black';
 
-                        // Update Summary
-                        renderTable(); // Re-render simple for summary update (bisa dioptimalkan partial update jika lambat)
+                        // Refresh Summary (Simple Re-render to avoid complex DOM manipulation)
+                        renderTable(); 
                     }
                 });
 
-                // (Handle Upload & Simpan tetap sama seperti sebelumnya, disederhanakan di sini untuk brevity)
+                // File Upload
                 container.querySelectorAll('.file-input').forEach(inp => {
                     inp.onchange = async (e) => {
                         const f = e.target.files[0];
@@ -731,6 +807,7 @@ const Render = {
                     }
                 });
 
+                // Save Item
                 container.querySelectorAll('.save-btn').forEach(btn => {
                     btn.onclick = async () => {
                         const id = parseInt(btn.dataset.id);
@@ -752,7 +829,7 @@ const Render = {
                                 foto_url: item.foto_url,
                                 harga_material: item.harga_material,
                                 harga_upah: item.harga_upah,
-                                total_harga_akhir: item.total_harga, // Kirim Total Harga (Deviasi)
+                                total_harga_akhir: item.total_harga,
                                 lingkup_pekerjaan: AppState.selectedLingkup,
                                 is_il: item.is_il
                             };
@@ -763,10 +840,25 @@ const Render = {
                     }
                 });
 
+                // Perbaiki Item
+                container.querySelectorAll('.perbaiki-btn').forEach(btn => {
+                    btn.onclick = () => {
+                        const id = parseInt(btn.dataset.id);
+                        const item = AppState.opnameItems.find(i => i.id === id);
+                        item.isSubmitted = false;
+                        item.approval_status = "Pending";
+                        item.volume_akhir = "";
+                        item.selisih = "";
+                        item.total_harga = 0;
+                        renderTable();
+                    }
+                });
+
+                // Opname Final Action
                 if(canFinalize && !isFinalized) {
                     const bf = container.querySelector('#btn-final');
                     bf.onclick = async () => {
-                        if(!confirm("Yakin finalisasi?")) return;
+                        if(!confirm("Yakin finalisasi? Tidak bisa dibatalkan.")) return;
                         bf.innerText="Processing..."; bf.disabled=true;
                         try {
                             const r = await fetch(`https://sparta-backend-5hdj.onrender.com/api/opname_locked`, {
