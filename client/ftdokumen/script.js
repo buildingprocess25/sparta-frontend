@@ -253,7 +253,7 @@ async function loadSpkData(cabang) {
     if(!cabang) return;
     try {
         showLoading("Mengambil data Ulok...");
-        const res = await fetch(`${API_BASE_URL}/spk-data`, {
+        const res = await fetch(`${API_BASE_URL}/doc/spk-data`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ cabang }),
@@ -272,7 +272,7 @@ async function loadSpkData(cabang) {
 }
 
 async function getTempByUlok(nomorUlok) {
-    const res = await fetch(`${API_BASE_URL}/get-temp`, {
+    const res = await fetch(`${API_BASE_URL}/doc/get-temp`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nomorUlok }),
     });
@@ -280,7 +280,7 @@ async function getTempByUlok(nomorUlok) {
 }
 
 async function saveTemp(payload) {
-    return fetch(`${API_BASE_URL}/save-temp`, {
+    return fetch(`${API_BASE_URL}/doc/save-temp`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
     }).then(r => r.json());
@@ -560,7 +560,7 @@ async function loadTempData(ulok) {
                 const promises = res.data.photos.map((pid, idx) => {
                     if(!pid) return null;
                     const id = idx + 1;
-                    const url = `${API_BASE_URL}/view-photo/${pid}`;
+                    const url = `${API_BASE_URL}/doc/view-photo/${pid}`;
                     STATE.photos[id] = {
                         url: url,
                         point: ALL_POINTS.find(p => p.id === id),
@@ -820,14 +820,14 @@ function generateAndSendPDF() {
 
             const payload = { ...STATE.formData, pdfBase64, emailPengirim: user.email || "" };
             
-            const resSave = await fetch(`${API_BASE_URL}/save-toko`, {
+            const resSave = await fetch(`${API_BASE_URL}/doc/save-toko`, {
                 method: "POST", headers:{"Content-Type":"application/json"},
                 body: JSON.stringify(payload)
             });
             const jsonSave = await resSave.json();
             if(!jsonSave.ok) throw new Error("Gagal simpan ke Spreadsheet");
 
-            await fetch(`${API_BASE_URL}/send-pdf-email`, {
+            await fetch(`${API_BASE_URL}/doc/send-pdf-email`, {
                 method:"POST", headers:{"Content-Type":"application/json"},
                 body: JSON.stringify({
                     email: user.email, pdfBase64, filename, pdfUrl: jsonSave.pdfUrl, ...STATE.formData
