@@ -7,115 +7,148 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>Instruksi Lapangan</title>
-  <link rel="icon" href="../assets/favicon.ico" type="image/x-icon">
-  
+  <title>Instruksi Lapangan - Alfamart</title>
+  <link rel="icon" href="/Assets/favicon.ico" type="image/x-icon">
+  <script>
+    // Security Check
+    const isAuthenticated = sessionStorage.getItem('authenticated');
+    const userRole = sessionStorage.getItem('userRole');
+
+    if (!isAuthenticated) {
+      sessionStorage.setItem('redirectTo', window.location.pathname);
+      window.location.href = '/login.html';
+    } else if (userRole !== 'BRANCH BUILDING SUPPORT') {
+      alert('Anda tidak memiliki izin untuk mengakses halaman ini.');
+      window.location.href = '/';
+    }
+  </script>
+
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="style.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-  
-  <script src="script.js" defer></script>
 </head>
 
 <body>
   <header>
-    <img src="../assets/Alfamart-Emblem.png" alt="Alfamart Logo" class="header-logo" />
-    <h1 class="text-xl font-bold">Instruksi Lapangan</h1>
-    <button class="header-logout" id="btn-logout">Logout</button>
+    <a href="/">
+      <img src="../Assets/Alfamart-Emblem.png" alt="Alfamart Logo" class="header-logo" />
+    </a>
+    <h1>Form Instruksi Lapangan</h1>
+    <button id="logout-button-form" class="btn-logout-form">Logout</button>
   </header>
 
-  <div class="container mx-auto px-4 py-6 pb-24 max-w-5xl">
-    <div id="message" role="alert"></div>
-
-    <form id="form" class="space-y-6 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+  <div class="container">
+    <form id="form" class="form-container">
+      <label for="nama_toko">Nama Toko: <span class="required-asterisk">*</span></label>
+      <input type="text" id="nama_toko" name="Nama_Toko" placeholder="Masukkan nama toko" required
+        style="margin-bottom: 15px" />
       
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Nama Toko</label>
-          <input type="text" id="nama_toko" name="Nama_Toko" class="form-input w-full" placeholder="Masukkan nama toko" required />
-        </div>
-        <div>
-           <label class="block text-sm font-medium text-gray-700 mb-1">Cabang</label>
-           <select id="cabang" name="Cabang" class="form-select w-full" required>
-             <option value="">-- Pilih Cabang --</option>
-           </select>
-        </div>
+      <label for="lokasi_cabang">Nomor Ulok: <span class="required-asterisk">*</span></label>
+      <div style="margin-bottom: 5px;">
+            <input type="checkbox" id="toggle_renovasi" style="width: auto; margin-right: 5px;">
+            <label for="toggle_renovasi" style="display: inline; font-weight: normal; cursor: pointer;">Proyek Renovasi (Format Baru)</label>
       </div>
-
-      <div id="location-inputs">
-           <div class="bg-blue-50 p-5 rounded-lg border border-blue-100">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Nomor Ulok</label>
-            <div class="flex flex-wrap items-center gap-2">
-              <select id="lokasi_cabang" class="form-select w-24 text-center font-mono" required></select>
-              <span class="text-gray-400 font-bold">-</span>
-              <input type="text" id="lokasi_tanggal" class="form-input w-24 text-center font-mono" placeholder="MMYY" maxlength="4" required />
-              <span class="text-gray-400 font-bold">-</span>
-              <input type="text" id="lokasi_manual" class="form-input w-24 text-center font-mono" placeholder="0001" maxlength="4" required />
-              
-              <span id="separator_renov" class="text-gray-400 font-bold" style="display:none;">-</span>
-              <input type="text" id="suffix_renov" class="form-input w-14 text-center font-mono bg-gray-100" value="R" readonly style="display:none;" />
-              
-              <input type="hidden" id="lokasi" name="Nomor Ulok" />
-            </div>
-            
-            <div class="mt-4 flex items-center p-2 bg-white rounded border border-blue-100 w-fit">
-                <input type="checkbox" id="toggle_renovasi" class="w-4 h-4 text-red-600 rounded border-gray-300 focus:ring-red-500 cursor-pointer">
-                <label for="toggle_renovasi" class="ml-2 text-sm text-gray-700 font-medium cursor-pointer">Proyek Renovasi (Akhiran 'R')</label>
-            </div>
-          </div>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Lingkup Pekerjaan</label>
-        <select id="lingkup_pekerjaan" name="Lingkup_Pekerjaan" class="form-select w-full" required disabled>
-          <option value="">-- Pilih Lingkup --</option>
-          <option value="Sipil">Sipil</option>
-          <option value="ME">ME</option>
+      
+      <div id="nomor-ulok-container" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap">
+        <select id="lokasi_cabang" required style="flex: 1 1 80px">
+          <option value="">-- Kode --</option>
         </select>
+        <span style="font-weight: bold">-</span>
+        <input type="text" id="lokasi_tanggal" placeholder="YYMM" maxlength="4"
+          oninput="this.value = this.value.replace(/[^0-9]/g, '')" required style="flex: 1 1 80px" />
+        <span style="font-weight: bold">-</span>
+        <input type="text" id="lokasi_manual" placeholder="0001" maxlength="4" required style="flex: 1 1 80px" />
+        <span id="separator_renov" style="font-weight: bold; display: none;">-</span>
+        <input type="text" id="suffix_renov" value="R" readonly style="flex: 0 0 40px; text-align: center; background-color: #e9ecef; display: none; color: #555;"/>
+      </div>
+      <input type="hidden" id="lokasi" name="Nomor Ulok" />
+
+      <label for="proyek">Proyek:</label>
+      <select name="Proyek" id="proyek" required>
+        <option value="">-- Pilih Jenis Proyek --</option>
+        <option value="Alfamart Reguler">Reguler</option>
+        <option value="Franchise">Franchise</option>
+        <option value="Renovasi">Renovasi</option>
+      </select>
+
+      <label for="alamat">Alamat Toko: <span class="required-asterisk">*</span></label>
+      <input type="text" id="alamat" name="Alamat" placeholder="Masukkan alamat lengkap proyek" required />
+
+      <label for="cabang">Cabang: <span class="required-asterisk">*</span></label>
+      <select name="Cabang" id="cabang" required>
+        <option value="">-- Cabang Terisi Otomatis --</option>
+      </select>
+
+      <label for="lingkup_pekerjaan">Lingkup Pekerjaan: <span class="required-asterisk">*</span></label>
+      <select name="Lingkup_Pekerjaan" id="lingkup_pekerjaan" required>
+        <option value="">-- Pilih Lingkup Pekerjaan --</option>
+        <option value="Sipil">Sipil</option>
+        <option value="ME">ME</option>
+      </select>
+
+      <label for="attachment_pdf">Lampiran Instruksi Lapangan (PDF Max 1 File): <span
+          class="required-asterisk">*</span></label>
+      <div class="file-upload-wrapper" style="position: relative;">
+        <div id="file-upload-text">
+          Klik di sini atau seret file PDF Anda.
+          <br>
+          <span class="file-info-label">Belum ada file dipilih.</span>
+        </div>
+        <input type="file" id="attachment_pdf" name="file_pdf" accept=".pdf" required />
       </div>
 
-      <div id="sipil-tables-wrapper" class="hidden space-y-8 animate-fade-in"></div>
-      <div id="me-tables-wrapper" class="hidden space-y-8 animate-fade-in"></div>
+      <label for="instruksi_pdf">Jika File Lebih Dari 1, Gabungkan File PDF</label>
+      <a href="https://pdf-combine-beta.vercel.app/" target="_blank" class="button-merge-pdf" role="button">
+        Gabungkan File PDF
+      </a>
 
-      <div class="mt-8 pt-6 border-t border-gray-100">
-        <label class="block text-sm font-medium text-gray-700 mb-2">Upload Lampiran (PDF)</label>
-        <div class="file-upload-wrapper border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:bg-gray-50 transition-colors cursor-pointer relative group">
-            <input type="file" id="attachment_pdf" name="file_pdf" accept="application/pdf" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-            <div class="pointer-events-none group-hover:scale-105 transition-transform duration-200">
-                <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
-                <p class="mt-2 text-sm font-medium text-gray-600 file-info-label">Klik atau seret file PDF ke sini</p>
-                <p class="text-xs text-gray-400 mt-1">Maksimal 5MB</p>
+      <div class="all-tables-container">
+        <div id="sipil-tables-wrapper" class="hidden"></div>
+        <div id="me-tables-wrapper" class="hidden"></div>
+      </div>
+
+      <div class="mt-6 p-4 grand-total-box" style="background-color: #f8f9fa; border: 1px solid #ced4da; border-radius: 8px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #555;">
+                <span class="text-lg font-bold">Total:</span>
+                <span id="grand-total-amount" class="text-xl font-bold">Rp 0</span>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #555;">
+                <span class="text-md">Pembulatan:</span>
+                <span id="pembulatan-amount" class="text-md font-medium">Rp 0</span>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #555;">
+                <span class="text-md">PPN 11%:</span>
+                <span id="ppn-amount" class="text-md font-medium">Rp 0</span>
+            </div>
+
+            <hr style="border-top: 1px solid #bbb; margin: 10px 0;">
+
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span class="text-lg font-bold" style="color: #0056b3;">Grand Total:</span>
+                <span id="final-total-amount" class="text-2xl font-extrabold" style="color: #0056b3;">Rp 0</span>
             </div>
         </div>
-      </div>
-
-      <div class="bg-gray-50 p-6 rounded-xl border border-gray-200 space-y-3 mt-6">
-          <div class="flex justify-between items-center text-gray-600">
-              <span class="text-sm font-medium">Pembulatan:</span>
-              <span id="pembulatan-amount" class="font-mono font-medium">Rp 0</span>
-          </div>
-          <div class="flex justify-between items-center text-gray-600">
-              <span class="text-sm font-medium">PPN 11%:</span>
-              <span id="ppn-amount" class="font-mono font-medium">Rp 0</span>
-          </div>
-          <div class="border-t border-gray-300 my-2"></div>
-          <div class="flex justify-between items-center">
-              <span class="text-lg font-bold text-gray-800">Grand Total:</span>
-              <span id="final-total-amount" class="text-2xl font-extrabold text-blue-700">Rp 0</span>
-              <span id="grand-total-amount" class="hidden"></span>
-          </div>
-      </div>
 
       <div class="button-group">
-        <button type="submit" id="submit-button">Kirim Data</button>
-        <button type="reset">Reset Form</button>
+        <button type="submit" id="submit-button">Kirim</button>
+        <button type="reset">Ulang</button>
       </div>
     </form>
   </div>
+
+  <div id="message" role="status" aria-live="polite"></div>
+
+  <script src="script.js"></script>
+  <script>
+    document.getElementById('logout-button-form').addEventListener('click', () => {
+      sessionStorage.clear();
+      window.location.href = 'https://instruksi-lapangan.vercel.app'; 
+    });
+  </script>
 </body>
 </html>
