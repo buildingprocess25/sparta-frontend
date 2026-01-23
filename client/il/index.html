@@ -9,25 +9,13 @@
   <meta http-equiv="Expires" content="0" />
   <title>Instruksi Lapangan - Alfamart</title>
   <link rel="icon" href="../assets/favicon.ico" type="image/x-icon">
-  <script>
-    // Security Check
-    const isAuthenticated = sessionStorage.getItem('authenticated');
-    const userRole = sessionStorage.getItem('userRole');
-
-    if (!isAuthenticated) {
-      sessionStorage.setItem('redirectTo', window.location.pathname);
-      window.location.href = '/login.html';
-    } else if (userRole !== 'BRANCH BUILDING SUPPORT') {
-      alert('Anda tidak memiliki izin untuk mengakses halaman ini.');
-      window.location.href = '/';
-    }
-  </script>
-
+  
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="style.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 </head>
 
@@ -37,7 +25,7 @@
       <img src="../assets/Alfamart-Emblem.png" alt="Alfamart Logo" class="header-logo" />
     </a>
     <h1>Form Instruksi Lapangan</h1>
-    <button id="logout-button-form" class="btn-logout-form">Logout</button>
+    <button id="btn-opname" class="btn-logout-form">Opname</button>
   </header>
 
   <div class="container">
@@ -144,11 +132,5 @@
   <div id="message" role="status" aria-live="polite"></div>
 
   <script src="script.js"></script>
-  <script>
-    document.getElementById('logout-button-form').addEventListener('click', () => {
-      sessionStorage.clear();
-      window.location.href = 'https://instruksi-lapangan.vercel.app'; 
-    });
-  </script>
 </body>
 </html>
