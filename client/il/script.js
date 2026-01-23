@@ -6,6 +6,8 @@
  * - Removed unused 'luasTerbangunan' logic
  * - Optimized Select2 lifecycle handling
  * - Cleaned up autoFillPrices nesting
+ * - INTEGRATED AUTHENTICATION (Shared Session & Auto-Login)
+ * - UPDATED LOGOUT BUTTON TO "BACK"
  */
 
 // --- 1. Configuration & Constants ---
@@ -574,7 +576,90 @@ const calculateGrandTotal = () => {
     if (DOM.finalTotalAmount) DOM.finalTotalAmount.textContent = Utils.formatRupiah(finalTotal);
 };
 
-// --- 9. Event Handlers ---
+// --- 9. Auth System & UI Integration ---
+const Auth = {
+    init: async () => {
+        // 1. Cek Parameter URL (Untuk Cross-Domain Handover)
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('user')) {
+            try {
+                const userData = JSON.parse(atob(urlParams.get('user')));
+                if(userData.email && userData.cabang) {
+                    sessionStorage.setItem("loggedInUserEmail", userData.email);
+                    sessionStorage.setItem("loggedInUserCabang", userData.cabang);
+                    sessionStorage.setItem("authenticated", "true");
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
+            } catch(e) { console.error("Invalid Auth Params"); }
+        }
+
+        // 2. Cek Session Storage
+        const email = sessionStorage.getItem("loggedInUserEmail");
+        const cabang = sessionStorage.getItem("loggedInUserCabang");
+        
+        if (!email || !cabang) {
+            alert("Sesi tidak ditemukan. Silakan login kembali.");
+            // Fallback ke login utama jika tidak ada sesi
+            window.location.href = "../index.html"; 
+            return;
+        }
+
+        // 3. Validasi Jam Operasional
+        const now = new Date();
+        const currentHour = parseInt(new Intl.DateTimeFormat('en-US', { timeZone: "Asia/Jakarta", hour: '2-digit', hour12: false }).format(now));
+        
+        if (currentHour < 6 || currentHour >= 23) {
+             Auth.logout("Sesi Anda telah berakhir karena di luar jam operasional (06:00 - 18:00 WIB).");
+             return;
+        }
+
+        console.log(`Auth Valid: ${email}`);
+
+        // 4. SETUP TOMBOL KEMBALI (Gantikan Logout)
+        const btnLogout = document.getElementById('btn-logout') || document.querySelector('.header-logout');
+        
+        if (btnLogout) {
+            // Ubah Ikon dan Teks
+            btnLogout.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                <span style="margin-left:6px;">Kembali</span>
+            `;
+            
+            // Ubah Fungsi Klik
+            btnLogout.onclick = (e) => {
+                e.preventDefault();
+                // Cek apakah user datang dari Opname (via referrer atau history)
+                // Jika history ada, back(). Jika tidak, paksa ke Dashboard Opname.
+                if (document.referrer && document.referrer.includes('opname')) {
+                    window.history.back();
+                } else {
+                    // Fallback ke Dashboard Opname relative path
+                    window.location.href = "../opname/index.html";
+                }
+            };
+        }
+
+        // 5. Lanjut inisialisasi halaman
+        initializePage();
+        
+        // Interval cek sesi
+        setInterval(() => {
+             const h = parseInt(new Intl.DateTimeFormat('en-US', { timeZone: "Asia/Jakarta", hour: '2-digit', hour12: false }).format(new Date()));
+             if (h < 6 || h >= 23) Auth.logout("Waktu habis.");
+        }, 300000); 
+    },
+
+    logout: (msg) => {
+        if(msg) alert(msg);
+        sessionStorage.clear();
+        window.location.href = "../index.html";
+    }
+};
+
+// --- 10. Event Handlers & Core Logic ---
 
 const updateNomorUlok = () => {
     const kodeCabang = DOM.lokasiCabang.value;
@@ -707,24 +792,7 @@ async function handleFormSubmit() {
     }
 }
 
-// --- 10. Initialization ---
-
-function checkSessionTime() {
-    try {
-        const now = new Date();
-        const currentHour = parseInt(new Intl.DateTimeFormat('en-US', { timeZone: "Asia/Jakarta", hour: '2-digit', hour12: false }).format(now));
-
-        if (currentHour < 6 || currentHour >= 23) {
-            if (sessionStorage.getItem("authenticated")) {
-                sessionStorage.clear();
-                alert("Sesi Anda telah berakhir karena di luar jam operasional (06:00 - 18:00 WIB).");
-                window.location.href = "/index.html";
-            }
-        }
-    } catch (err) {
-        console.error("Gagal menjalankan pengecekan jam sesi:", err);
-    }
-}
+// --- 11. Initialization ---
 
 async function initializePage() {
     // Populate DOM object
@@ -771,6 +839,7 @@ async function initializePage() {
     });
 
     // Populate Select Options (Cabang & Locations)
+    // NOTE: Auth.init() ensures these session keys exist
     const userEmail = sessionStorage.getItem('loggedInUserEmail');
     const userCabang = sessionStorage.getItem('loggedInUserCabang')?.toUpperCase();
 
@@ -881,9 +950,7 @@ async function initializePage() {
         e.preventDefault();
         handleFormSubmit();
     });
-
-    checkSessionTime();
-    setInterval(checkSessionTime, 300000); // 5 minutes
 }
 
-document.addEventListener("DOMContentLoaded", initializePage);
+// Start with Auth Check
+document.addEventListener("DOMContentLoaded", Auth.init);
