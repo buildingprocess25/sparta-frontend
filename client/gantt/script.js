@@ -208,7 +208,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     projectType: projectName,
                     startDate: new Date().toISOString().split("T")[0],
                     alamat: "",
-                    cabang: ""
+                    cabang: "",
+                    kategoriLokasi: ""
                 };
             });
 
@@ -1415,15 +1416,19 @@ document.addEventListener('DOMContentLoaded', () => {
         if (rab.Alamat) currentProject.alamat = rab.Alamat;
         if (rab.Nama_Toko) currentProject.store = rab.Nama_Toko;
         if (rab.Durasi_Pekerjaan) currentProject.duration = rab.Durasi_Pekerjaan;
+        if (rab.Kategori_Lokasi) currentProject.kategoriLokasi = rab.Kategori_Lokasi;
+
     }
 
     function renderProjectInfo() {
         const durationDisplay = currentProject.duration ? `${currentProject.duration} Hari` : '-';
+        const kategoriLokasiDisplay = currentProject.kategoriLokasi || '-';
         document.getElementById("projectInfo").innerHTML = `
             <div class="project-detail"><div class="project-label">No. Ulok</div><div class="project-value">${currentProject.ulokClean}</div></div>
             <div class="project-detail"><div class="project-label">Nama Toko</div><div class="project-value">${currentProject.store}</div></div>
             <div class="project-detail"><div class="project-label">Lingkup Pekerjaan</div><div class="project-value">${currentProject.work}</div></div>
             <div class="project-detail"><div class="project-label">Durasi Pekerjaan</div><div class="project-value">${durationDisplay}</div></div>
+            <div class="project-detail"><div class="project-label">Kategori Lokasi</div><div class="project-value">${kategoriLokasiDisplay}</div></div>
         `;
     }
 
