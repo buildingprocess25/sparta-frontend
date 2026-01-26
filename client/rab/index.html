@@ -69,8 +69,23 @@
                 <option value="Sipil">Sipil</option>
                 <option value="ME">ME</option>
             </select>
+            <label for="kategori_lokasi">Kategori Lokasi:</label>
+            <select name="Kategori_Lokasi" id="kategori_lokasi" required>
+                <option value="">-- Pilih Kategori Lokasi --</option>
+                <option value="Ruko">Ruko</option>
+                <option value="Non Ruko">Non Ruko</option>
+            </select>
             <label for="durasi_pekerjaan">Durasi Pekerjaan (Hari):</label>
-            <input type="text" inputmode="numeric" id="durasi_pekerjaan" name="Durasi_Pekerjaan" placeholder="Masukkan Durasi (e.g., 30)" oninput="this.value = this.value.replace(/[^0-9]/g, '')" required/>
+            <select name="Durasi_Pekerjaan" id="durasi_pekerjaan" required>
+                <option value="">-- Pilih Durasi --</option>
+                <option value="10">10 Hari</option>
+                <option value="14">14 Hari</option>
+                <option value="20">20 Hari</option>
+                <option value="30">30 Hari</option>
+                <option value="35">35 Hari</option>
+                <option value="40">40 Hari</option>
+                <option value="48">48 Hari</option>
+            </select>
             <label for="luas_area_parkir">Luas Area Parkir (m²):</label>
             <input type="text" inputmode="decimal" id="luas_area_parkir" name="Luas Area Parkir" placeholder="Masukan Luas Area Parkir (e.g., 20.00)" oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1').replace(/(\.\d{2})\d+/, '$1')" required/>
             <label for="luas_area_sales">Luas Area Sales (m²):</label>
