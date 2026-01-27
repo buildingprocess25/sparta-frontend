@@ -268,14 +268,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         ulokSelect.addEventListener('change', changeUlok);
-
-        const savedUlok = localStorage.getItem("lastSelectedUlok");
-        if (savedUlok && projects.some(p => p.ulok === savedUlok)) {
-            ulokSelect.value = savedUlok;
-            changeUlok();
-        } else {
-            showSelectProjectMessage();
-        }
+        ulokSelect.value = ""; 
+        showSelectProjectMessage();
+        localStorage.removeItem("lastSelectedUlok"); 
     }
 
     // ==================== 7. CORE: SELECT PROJECT & FETCH GANTT ====================
