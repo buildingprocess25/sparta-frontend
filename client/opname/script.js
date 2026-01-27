@@ -280,10 +280,12 @@ const PDFGenerator = {
 
         const lingkupFix = (selectedLingkup || "").toUpperCase();
         
+        // --- FETCH DATA ---
         const rabData = await fetchRabData(selectedStore.kode_toko, selectedUlok, lingkupFix);
         const picKontraktorData = await fetchPicKontraktorData(selectedUlok);
         const fromOpname = await fetchPicKontraktorOpnameData(selectedUlok);
         
+        // Fallback data nama PIC/Kontraktor
         if (fromOpname?.name && String(fromOpname.name).trim()) picKontraktorData.name = String(fromOpname.name).trim();
         if (!picKontraktorData.pic_username || picKontraktorData.pic_username === "N/A") {
             if (fromOpname?.pic_username) picKontraktorData.pic_username = String(fromOpname.pic_username).trim();
@@ -294,11 +296,13 @@ const PDFGenerator = {
 
         const picList = await fetchPicList({ noUlok: selectedUlok, lingkup: lingkupFix, kodeToko: selectedStore.kode_toko });
 
+        // --- SETUP HALAMAN ---
         const pageWidth = doc.internal.pageSize.getWidth();
         const pageHeight = doc.internal.pageSize.getHeight();
         const margin = 14;
         let startY = 12;
 
+        // --- HEADER LOGO ---
         let logoData = null;
         try {
            logoData = await toBase64(LOGO_URL_FALLBACK);
@@ -311,6 +315,7 @@ const PDFGenerator = {
         startY += logoH + 6;
         startY += 6;
 
+        // --- HEADER TEKS ---
         doc.setTextColor(0, 0, 0);
         doc.setFontSize(9);
         doc.setFont("helvetica", "bold");
@@ -334,6 +339,7 @@ const PDFGenerator = {
         doc.setFont("helvetica", "normal");
         startY += 8;
 
+        // --- INFO PROYEK ---
         doc.setFontSize(10);
         const dataOpname = submissions && submissions.length > 0 ? submissions[0] : {};
         const finalNamaToko = dataOpname.nama_toko || selectedStore.nama_toko || "-";
@@ -348,12 +354,16 @@ const PDFGenerator = {
         doc.text(`NAMA PIC : ${picLine}`, margin, startY); startY += 7;
         doc.text(`NAMA KONTRAKTOR : ${picKontraktorData.kontraktor_username || "N/A"}`, margin, startY); startY += 15;
 
+        // ==========================================
+        // BAGIAN 1: RAB FINAL (DATA AWAL)
+        // ==========================================
         doc.setFontSize(12).setFont("helvetica", "bold");
         doc.text("RAB FINAL", margin, startY);
         doc.setDrawColor(120, 120, 120); doc.setLineWidth(0.3);
         doc.line(margin, startY + 2, pageWidth - margin, startY + 2);
         startY += 10;
 
+        // Filter IL agar tidak muncul di tabel RAB awal (biasanya RAB awal tidak ada IL)
         const rabCategories = groupDataByCategory(rabData.filter((item) => !item.is_il));
         let lastY = startY;
         let categoryNumber = 1;
@@ -390,6 +400,7 @@ const PDFGenerator = {
                 ];
             });
 
+            // Subtotal row
             categoryTableBody.push(["", "", "", "", "", "SUB TOTAL", formatRupiah(catMaterialTotal), formatRupiah(catUpahTotal), formatRupiah(catMaterialTotal + catUpahTotal)]);
 
             doc.autoTable({
@@ -410,10 +421,7 @@ const PDFGenerator = {
                 },
                 didParseCell: (data) => {
                     if(data.section === 'body') {
-                        const original = rabCategories[categoryName];
-                        if (data.row.index < original.length && original[data.row.index].is_il) {
-                            data.cell.styles.fillColor = [255, 245, 157];
-                        }
+                        // Highlight baris Subtotal
                         if (data.row.index === data.table.body.length - 1) {
                             data.cell.styles.fillColor = [242, 242, 242];
                             if(data.column.index >= 5) data.cell.styles.fontStyle = 'bold';
@@ -425,6 +433,7 @@ const PDFGenerator = {
             lastY = doc.lastAutoTable.finalY + 10;
         }
 
+        // Summary RAB
         const totalRealRAB = grandTotalRAB;
         const totalPembulatanRAB = Math.floor(totalRealRAB / 10000) * 10000;
         const ppnRAB = totalPembulatanRAB * 0.11;
@@ -454,6 +463,9 @@ const PDFGenerator = {
         });
         lastY = doc.lastAutoTable.finalY + 15;
 
+        // ==========================================
+        // BAGIAN 2: LAPORAN OPNAME FINAL (TAMBAH / KURANG)
+        // ==========================================
         if (submissions && submissions.length > 0) {
             addFooter(doc.getNumberOfPages()); doc.addPage(); lastY = margin + 10;
             
@@ -462,10 +474,12 @@ const PDFGenerator = {
             doc.line(margin, lastY + 2, pageWidth - margin, lastY + 2);
             lastY += 10;
 
+            // GROUPING: Tambah vs Kurang
             const groupsByType = { "PEKERJAAN TAMBAH": [], "PEKERJAAN KURANG": [] };
             submissions.forEach(it => {
                 const sel = toNumberVol_PDF(it.selisih);
                 if (sel !== 0) {
+                    // Logic: Selisih < 0 = KURANG, Selisih > 0 = TAMBAH
                     const type = sel < 0 ? "PEKERJAAN KURANG" : "PEKERJAAN TAMBAH";
                     groupsByType[type].push(it);
                 }
@@ -495,8 +509,12 @@ const PDFGenerator = {
                         const hMat = toNumberID_PDF(item.harga_material);
                         const hUpah = toNumberID_PDF(item.harga_upah);
                         const deltaNominal = sel * (hMat + hUpah);
+                        
+                        // Menambahkan marker (IL) pada nama pekerjaan jika perlu
+                        const namaPekerjaan = item.jenis_pekerjaan + (item.is_il ? " (IL)" : "");
+
                         return [
-                            idx + 1, item.jenis_pekerjaan, item.vol_rab, item.satuan,
+                            idx + 1, namaPekerjaan, item.vol_rab, item.satuan,
                             item.volume_akhir, `${item.selisih} ${item.satuan}`, formatRupiah(deltaNominal)
                         ];
                     });
@@ -510,19 +528,28 @@ const PDFGenerator = {
                         styles: { fontSize: 8, cellPadding: 3, lineWidth: 0.1 },
                         headStyles: { fillColor: [205, 234, 242], textColor: [0,0,0], fontSize: 8.5, fontStyle: "bold", halign: "center" },
                         columnStyles: { 6: { halign: "right", fontStyle: "bold" }, 2: { halign: "right" }, 4: { halign: "right" }, 5: { halign: "right" } },
+                        
+                        // --- LOGIKA PEWARNAAN BARIS ---
                         didParseCell: (data) => {
-                            if(data.section === 'body' && kItems[data.row.index]?.is_il) {
-                                data.cell.styles.fillColor = [255, 245, 157];
+                            if(data.section === 'body') {
+                                // Cek data asli berdasarkan index baris
+                                const originalItem = kItems[data.row.index];
+                                if (originalItem && originalItem.is_il) {
+                                    // WARNA KUNING untuk Instruksi Lapangan
+                                    data.cell.styles.fillColor = [255, 249, 196]; 
+                                }
                             }
                         }
                     });
                     lastY = doc.lastAutoTable.finalY + 10;
                 }
 
+                // Hitung total per section (Tambah/Kurang)
                 const totalRealBlock = itemsArr.reduce((sum, item) => {
                     return sum + (toNumberVol_PDF(item.selisih) * (toNumberID_PDF(item.harga_material) + toNumberID_PDF(item.harga_upah)));
                 }, 0);
                 
+                // Pembulatan logic: jika negatif, tetap dibulatkan (ceil) atau floor tergantung aturan, di sini pakai standar matematika sederhana per 10rb
                 const totalPembulatanBlock = totalRealBlock >= 0 
                     ? Math.floor(totalRealBlock / 10000) * 10000 
                     : Math.ceil(totalRealBlock / 10000) * 10000;
@@ -547,7 +574,7 @@ const PDFGenerator = {
                     columnStyles: { 0: { fontStyle: "bold", halign: "left" } },
                     didParseCell: (data) => {
                         if (data.row.index === 3) {
-                            data.cell.styles.fillColor = [144, 238, 144];
+                            data.cell.styles.fillColor = [144, 238, 144]; // Hijau untuk Grand Total
                             data.cell.styles.fontStyle = "bold";
                         }
                     }
@@ -556,6 +583,9 @@ const PDFGenerator = {
             }
         }
 
+        // ==========================================
+        // BAGIAN 3: REKAPITULASI STATUS PEKERJAAN
+        // ==========================================
         addFooter(doc.getNumberOfPages()); doc.addPage(); lastY = margin + 10;
 
         let totalTambah = 0; let totalKurang = 0;
@@ -610,6 +640,9 @@ const PDFGenerator = {
         });
         lastY = doc.lastAutoTable.finalY + 15;
 
+        // ==========================================
+        // BAGIAN 4: LAMPIRAN FOTO
+        // ==========================================
         const itemsWithPhotos = (submissions || []).filter(item => item.foto_url);
         if (itemsWithPhotos.length > 0) {
             addFooter(doc.getNumberOfPages()); doc.addPage();
@@ -648,7 +681,9 @@ const PDFGenerator = {
                     const currentX = columnIndex === 0 ? leftColumnX : rightColumnX;
                     
                     doc.setFontSize(9).setFont("helvetica", "bold");
-                    const titleLines = wrapText(doc, `${index+1}. ${item.jenis_pekerjaan}`, maxWidth);
+                    // Tambah penanda (IL) di judul foto juga
+                    const judulFoto = `${index+1}. ${item.jenis_pekerjaan}` + (item.is_il ? " (IL)" : "");
+                    const titleLines = wrapText(doc, judulFoto, maxWidth);
                     let titleY = photoY;
                     titleLines.forEach(line => { doc.text(line, currentX, titleY); titleY += 5; });
 
@@ -1158,9 +1193,22 @@ const Render = {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${items.map(item => `
-                                        <tr style="border-bottom:1px solid #ddd; background:${item.isSubmitted?'#f0fff0':''}">
-                                            <td style="padding:10px;">${item.kategori_pekerjaan}</td>
+                                    ${items.map(item => {
+                                        // --- LOGIKA BARU: Warna Kuning untuk IL ---
+                                        let rowBg = '';
+                                        if (item.is_il) rowBg = '#fff9c4'; // Kuning
+                                        else if (item.isSubmitted) rowBg = '#f0fff0'; // Hijau Muda
+                                        // Logika warna teks selisih (Minus=Merah, Plus=Hijau)
+                                        const selisihVal = parseFloat(item.selisih);
+                                        let selisihColor = 'black';
+                                        if (selisihVal < 0) selisihColor = 'red';
+                                        else if (selisihVal > 0) selisihColor = 'green';
+                                        return `
+                                        <tr style="border-bottom:1px solid #ddd; background:${rowBg}">
+                                            <td style="padding:10px;">
+                                                ${item.kategori_pekerjaan}
+                                                ${item.is_il ? '<br><span class="badge" style="background:#ffeb3b; color:#000; font-size:9px;">Instruksi Lapangan</span>' : ''}
+                                            </td>
                                             <td style="padding:10px;">${item.jenis_pekerjaan}</td>
                                             <td class="text-center">${item.vol_rab}</td><td class="text-center">${item.satuan}</td>
                                             <td class="text-right">${formatRupiah(item.harga_material)}</td><td class="text-right">${formatRupiah(item.harga_upah)}</td>
@@ -1170,8 +1218,8 @@ const Render = {
                                                 style="width:80px; text-align:center;" ${item.isSubmitted?'disabled':''}>
                                             </td>
                                             
-                                            <td class="text-center font-bold" style="color:${parseFloat(item.selisih)<0?'red':'green'}">
-                                                ${(item.volume_akhir!=='')?item.selisih:'-'}
+                                            <td class="text-center font-bold" style="color:${selisihColor}">
+                                                ${(item.volume_akhir!=='') ? item.selisih : '-'}
                                             </td>
                                             
                                             <td class="text-right font-bold" id="total-${item.id}" style="color:${item.total_harga<0?'red':'black'}">
@@ -1189,7 +1237,7 @@ const Render = {
                                                 item.approval_status==='REJECTED' ? `<button class="btn btn-warning btn-sm perbaiki-btn" data-id="${item.id}">Perbaiki</button>` : 'Saved'}
                                             </td>
                                         </tr>
-                                    `).join('')}
+                                    `}).join('')}
                                 </tbody>
                             </table>
                         </div>
@@ -1437,9 +1485,16 @@ const Render = {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${items.map((item, idx) => `
-                                        <tr style="border-bottom:1px solid #eee;">
-                                            <td style="padding:12px; font-weight:600; color:#64748b;">${item.kategori_pekerjaan}</td>
+                                    ${items.map((item, idx) => {
+                                        // --- LOGIKA BARU: Warna Kuning untuk IL ---
+                                        const rowBg = item.is_il ? '#fff9c4' : 'transparent';
+                                        
+                                        return `
+                                        <tr style="border-bottom:1px solid #eee; background-color:${rowBg};">
+                                            <td style="padding:12px; font-weight:600; color:#64748b;">
+                                                ${item.kategori_pekerjaan}
+                                                ${item.is_il ? '<br><span class="badge" style="background:#ffeb3b; color:#000; font-size:9px;">Instruksi Lapangan</span>' : ''}
+                                            </td>
                                             <td style="padding:12px;">${item.jenis_pekerjaan}</td>
                                             <td class="text-center font-bold">
                                                 ${item.volume_akhir} ${item.satuan}
@@ -1457,7 +1512,7 @@ const Render = {
                                                 ${item.kontraktor_name || item.display_kontraktor || item.kontraktor_username || '-'}
                                             </td>
                                         </tr>
-                                    `).join('')}
+                                    `}).join('')}
                                 </tbody>
                             </table>
                         </div>
