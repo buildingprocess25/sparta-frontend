@@ -924,7 +924,8 @@ const Render = {
 
         let url = "";
         const u = AppState.user;
-        
+
+        const safeUsername = encodeURIComponent(u.username);
         if ((type === 'opname' || type === 'final-opname') && u.role === 'pic') {
             url = `${API_BASE_URL}/api/toko?username=${u.username}`;
         } else if (u.role === 'kontraktor') {
