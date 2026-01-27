@@ -600,11 +600,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const normalizedName = item.name.toLowerCase().trim();
             let ranges = [];
 
-            for (const [kategoriKey, rangeArray] of Object.entries(categoryRangesMap)) {
-                if (normalizedName === kategoriKey || normalizedName.includes(kategoriKey) || kategoriKey.includes(normalizedName)) {
-                    ranges = rangeArray;
-                    break;
-                }
+            if (categoryRangesMap.hasOwnProperty(normalizedName)) {
+                ranges = categoryRangesMap[normalizedName];
             }
 
             let totalDuration = 0;
