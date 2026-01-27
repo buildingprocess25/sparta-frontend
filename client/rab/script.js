@@ -810,7 +810,7 @@ async function init() {
         if (hr < 6 || hr >= 18) {
             sessionStorage.clear();
             alert("Sesi berakhir (06:00 - 18:00 WIB).");
-            window.location.href = "/login.html";
+            window.location.href = "/";
         }
     }, 300000);
 }
