@@ -1116,6 +1116,8 @@ const Render = {
                 };
             });
 
+            
+
             let isFinalized = false;
             let canFinalize = false;
             let statusMessage = "Menunggu Approval Semua Item";
@@ -1242,12 +1244,14 @@ const Render = {
                             </table>
                         </div>
 
+                        ${!isFinalized ? `
                         <div style="margin-top: 20px; margin-bottom: 0px;">
                             <a href="${ilLink}" class="btn" 
                             style="width: 100%; background-color: #FFC107; font-weight: bold; color: #000; text-decoration: none; display: block; text-align: center; padding: 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                                 📋 INSTRUKSI LAPANGAN
                             </a>
                         </div>
+                        ` : ''}
 
                         <div style="margin-top:20px; padding:15px; background:#f8f9fa;">
                             <div class="d-flex justify-between"><span>Total :</span> <b style="color:${totalVal<0?'red':'black'}">${formatRupiah(totalVal)}</b></div>
