@@ -414,7 +414,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Set loading state untuk mencegah perubahan selama fetch
         isLoadingGanttData = true;
-        
+
         await fetchGanttData(selectedUlok);
 
         // Setelah fetch, update pengawasan otomatis berdasarkan durasi
