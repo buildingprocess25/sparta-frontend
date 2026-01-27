@@ -1214,12 +1214,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (ranges.length > 0) {
                     const plannedStart = ranges[0].start;
-                    // Shift HANYA jika child mulai SEBELUM parent selesai (strict less than)
-                    // Jika beririsan di hari yang sama (misal parent selesai H3, child mulai H3) → TIDAK shift
-                    // Contoh: Parent H2-3, Child H3-4 → Tidak perlu shift (overlap di H3 diperbolehkan)
-                    // Contoh: Parent H2-4, Child H3-4 → Shift karena child mulai sebelum parent selesai
-                    if (plannedStart < parentEffectiveEnd) {
-                        shift = parentEffectiveEnd - plannedStart;
+                    // Jika jadwal rencana mulai SEBELUM atau SAMA DENGAN parent selesai
+                    // Maka harus digeser maju
+                    if (plannedStart <= parentEffectiveEnd) {
+                        shift = parentEffectiveEnd - plannedStart + 1;
                     }
                 }
             }
