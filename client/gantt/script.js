@@ -1046,9 +1046,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const s = parseInt(row.querySelector('[data-type="start"]').value) || 0;
                 const e = parseInt(row.querySelector('[data-type="end"]').value) || 0;
 
-                if (s === 0 && e === 0 && container.children.length > 1) return;
+                if (s === 0 || e === 0) return; 
 
-                if (e < s && e !== 0) {
+                if (e < s) {
                     error = true;
                     alert(`Error Tahapan ${t.name}: Hari Selesai lebih kecil dari Mulai`);
                 }
@@ -1150,6 +1150,9 @@ document.addEventListener('DOMContentLoaded', () => {
             payload[`Kategori_${t.id}`] = t.name;
 
             if (ranges.length > 0) {
+                // Pindahkan pengisian nama kategori ke dalam blok IF ini
+                payload[`Kategori_${t.id}`] = t.name; 
+
                 const pStart = new Date(currentProject.startDate);
                 const tStart = new Date(pStart); tStart.setDate(pStart.getDate() + ranges[0].start - 1);
                 const tEnd = new Date(pStart); tEnd.setDate(pStart.getDate() + ranges[ranges.length - 1].end - 1);
