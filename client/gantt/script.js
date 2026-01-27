@@ -259,6 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const ulokSelect = document.getElementById("ulokSelect");
         ulokSelect.innerHTML = '<option value="">-- Pilih Proyek --</option>';
 
+        // 1. Populate Dropdown seperti biasa
         projects.forEach(project => {
             projectTasks[project.ulok] = [];
             const option = document.createElement("option");
@@ -268,9 +269,46 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         ulokSelect.addEventListener('change', changeUlok);
-        ulokSelect.value = ""; 
-        showSelectProjectMessage();
-        localStorage.removeItem("lastSelectedUlok"); 
+        const urlParams = new URLSearchParams(window.location.search);
+        const autoUlok = urlParams.get('ulok');
+        const isLocked = urlParams.get('locked');
+        
+        let foundMatch = false;
+
+        if (autoUlok) {
+            const optionsArr = Array.from(ulokSelect.options);
+            const matchedOption = optionsArr.find(opt => opt.value === autoUlok || opt.value.includes(autoUlok));
+
+            if (matchedOption) {
+                // A. Set Nilai Dropdown
+                ulokSelect.value = matchedOption.value;
+                foundMatch = true;
+
+                // B. Panggil fungsi changeUlok() untuk memuat data Gantt Chart
+                changeUlok(); 
+
+                // C. Kunci Dropdown jika parameter locked=true
+                if (isLocked === 'true') {
+                    ulokSelect.disabled = true;
+                    ulokSelect.style.backgroundColor = "#e9ecef"; // Warna abu-abu (disabled look)
+                    ulokSelect.style.cursor = "not-allowed";
+                    ulokSelect.title = "Menu terkunci karena Anda dialihkan dari halaman Input RAB.";
+                    
+                    // Opsional: Tambahkan pesan visual kecil di atas chart
+                    const headerMsg = document.getElementById("roleBadge"); // Atau elemen lain di header
+                    if(headerMsg) {
+                        headerMsg.innerHTML += ` <span style="font-size:0.8em; background:#feb2b2; color:#9b2c2c; padding:2px 6px; border-radius:4px; margin-left:10px;">🔒 Mode Review RAB</span>`;
+                    }
+                }
+            }
+        }
+
+        // 3. Jika TIDAK ada parameter URL atau Ulok tidak ditemukan (Behavior Lama)
+        if (!foundMatch) {
+            ulokSelect.value = ""; 
+            showSelectProjectMessage();
+            localStorage.removeItem("lastSelectedUlok"); 
+        }
     }
 
     // ==================== 7. CORE: SELECT PROJECT & FETCH GANTT ====================

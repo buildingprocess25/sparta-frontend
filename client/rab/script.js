@@ -735,15 +735,17 @@ const API = {
             const result = await res.json();
             
             if (res.ok && result.status === "success") {
-                // B. UPDATE LOADING SCREEN (STATE 2: SUKSES & REDIRECT)
+                // B. UPDATE LOADING SCREEN
                 if (loadingOverlay) {
                     loadingTitle.textContent = "Data Berhasil Disimpan!";
                     loadingDesc.textContent = "Mengarahkan ke Gantt Chart...";
                 }
 
-                // Redirect setelah 1.5 detik
+                // AMBIL ULOK DARI DATA YANG DIKIRIM
+                const targetUlok = data["Nomor Ulok"]; 
                 setTimeout(() => {
-                    window.location.href = "../../gantt/index.html";
+                    // Kita kirim parameter ?ulok=... dan ?locked=true
+                    window.location.href = `../../gantt/index.html?ulok=${encodeURIComponent(targetUlok)}&locked=true`;
                 }, 1500);
 
             } else {
