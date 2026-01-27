@@ -311,16 +311,74 @@ table tbody td select:focus {
    7. FOOTER / TOTALS / MESSAGES
    ========================================================================== */
 .grand-total-box {
-    background-color: #fff9e6;
-    color: #1a202c;
-    border: 1px solid #ffc107;
-    padding: 1.5rem;
-    border-radius: 10px;
-    text-align: right;
-    margin-top: 2.5rem;
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+    padding: 2rem;
+    margin-top: 3rem;
+    margin-left: auto; /* Push to right if container allows */
+    max-width: 500px;  /* Batasi lebar agar terlihat compact */
+    position: relative;
+    overflow: hidden;
 }
 
-#grand-total-amount { color: #e53e3e; margin-left: 1rem; }
+/* Dekorasi baris berwarna di atas box */
+.grand-total-box::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #dc2626 0%, #0056b3 100%);
+}
+
+.total-row, 
+.total-row-sub, 
+.total-row-final {
+    display: flex;
+    justify-content: space-between; /* Label kiri, Angka kanan */
+    align-items: center;
+    margin-bottom: 0.75rem;
+    font-size: 1rem;
+}
+
+/* Styling khusus untuk Label (Text Kiri) */
+.total-row span:first-child,
+.total-row-sub span:first-child {
+    color: #64748b; /* Warna abu-abu soft */
+    font-weight: 500;
+}
+
+/* Styling khusus untuk Nilai (Angka Kanan) */
+.total-row span:last-child,
+.total-row-sub span:last-child {
+    color: #1e293b; /* Warna gelap */
+    font-weight: 600;
+    font-family: 'Courier New', monospace; /* Monospace agar angka sejajar */
+    letter-spacing: -0.5px;
+}
+
+/* Baris Final Grand Total */
+.total-row-final {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 2px dashed #e2e8f0;
+}
+
+.total-row-final span:first-child {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.total-row-final span:last-child {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: #0056b3; /* Warna biru Alfamart */
+    font-family: 'Inter', sans-serif; /* Kembali ke font utama untuk emphasis */
+}
 
 #message {
     margin: 25px auto;
