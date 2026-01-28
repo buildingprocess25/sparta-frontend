@@ -1385,7 +1385,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const borderStyle = (hasDelay && !isShifted) ? "border: 2px solid #e53e3e;" : "";
 
-                html += `<div class="${barClass}" style="left: ${leftPos}px; width: ${widthPos}px; box-sizing: border-box; ${borderStyle}" title="${task.name} (Shift: ${shift} hari)"> ${range.duration}</div>`;
+                html += `<div class="${barClass}" style="left: ${leftPos}px; width: ${widthPos}px; box-sizing: border-box; ${borderStyle}" title="${task.name} (Shift: ${shift} hari)"> ${range.duration} Hari</div>`;
 
                 // Render Extension Merah (Keterlambatan sendiri)
                 if (hasDelay) {
