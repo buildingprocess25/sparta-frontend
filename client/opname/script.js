@@ -1591,7 +1591,8 @@ const Render = {
         try {
             const url = `${API_BASE_URL}/api/opname/pending?kode_toko=${AppState.selectedStore.kode_toko}&no_ulok=${AppState.selectedUlok}&lingkup=${AppState.selectedLingkup}`;
             const res = await fetch(url);
-            const pendingItems = await res.json();
+            const rawData = await res.json();
+            const pendingItems = Array.isArray(rawData) ? rawData : [];
             
             const renderApprovalTable = () => {
                 let html = `
