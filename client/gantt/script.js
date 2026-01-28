@@ -1482,7 +1482,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // FIX: Ubah > 0 menjadi >= 0 pada parent.endX dan me.startX
                 if (parent && me && parent.endX >= 0 && me.startX >= 0) {
-                    const startX = parent.startX;
+                    const startX = parent.endX;
                     const startY = parent.y;
                     const endX = me.startX;
                     const endY = me.y;
