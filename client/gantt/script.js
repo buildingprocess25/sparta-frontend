@@ -1133,6 +1133,19 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // --- 1. SETUP LOADING SCREEN (Hanya jika Publish/Terkunci) ---
+        const overlay = document.getElementById('loading-overlay');
+        const loadingTitle = document.getElementById('loading-title');
+        const loadingDesc = document.getElementById('loading-desc');
+        const isPublishing = status === 'Terkunci';
+
+        if (isPublishing && overlay) {
+            loadingTitle.textContent = "Sedang Menerbitkan Jadwal...";
+            loadingDesc.textContent = "Mohon tunggu, jangan tutup halaman ini.";
+            overlay.classList.remove('hidden-overlay');
+            overlay.classList.add('active');
+        }
+
         const payload = {
             "Nomor Ulok": currentProject.ulokClean,
             "Lingkup_Pekerjaan": currentProject.work.toUpperCase(),
@@ -1150,8 +1163,7 @@ document.addEventListener('DOMContentLoaded', () => {
             payload[`Kategori_${t.id}`] = t.name;
 
             if (ranges.length > 0) {
-                // Pindahkan pengisian nama kategori ke dalam blok IF ini
-                payload[`Kategori_${t.id}`] = t.name; 
+                payload[`Kategori_${t.id}`] = t.name;
 
                 const pStart = new Date(currentProject.startDate);
                 const tStart = new Date(pStart); tStart.setDate(pStart.getDate() + ranges[0].start - 1);
@@ -1187,16 +1199,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 await fetch(ENDPOINTS.dayInsert, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dayPayload) });
             }
 
-            alert(`Berhasil disimpan status: ${status}`);
-            if (status === 'Terkunci') {
-                isProjectLocked = true;
-                renderApiData();
-            }
+            // --- 2. JIKA SUKSES PUBLISH (TERKUNCI) ---
+            if (isPublishing) {
+                if (overlay) {
+                    loadingTitle.textContent = "Berhasil!";
+                    loadingDesc.textContent = "Jadwal terkunci. Mengalihkan ke halaman utama...";
+                }
 
-            renderChart();
+                // Redirect setelah 1.5 detik ke index.html Gantt (Membersihkan parameter URL)
+                setTimeout(() => {
+                    window.location.href = "../../gantt/index.html";
+                }, 1500);
+            } else {
+                // Jika hanya save biasa (tombol Terapkan), cukup alert kecil
+                alert(`Jadwal berhasil disimpan (Status: ${status})`);
+                renderChart();
+            }
 
         } catch (err) {
             console.error(err);
+            
+            // Sembunyikan loading jika error
+            if (isPublishing && overlay) {
+                overlay.classList.remove('active');
+                overlay.classList.add('hidden-overlay');
+            }
+            
             alert("Gagal menyimpan data: " + err.message);
         }
     }
