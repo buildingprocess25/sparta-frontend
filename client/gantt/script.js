@@ -831,12 +831,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const btnDisabledAttr = isAllTasksFilled ? '' : 'disabled';
         const btnStyle = isAllTasksFilled ? '' : 'background-color: #cbd5e0; cursor: not-allowed;';
-        const lockLabel = isAllTasksFilled ? '🔒 Kunci Jadwal' : '🔒 Lengkapi & Terapkan Dahulu';
+        const lockLabel = isAllTasksFilled ? 'Kunci Jadwal' : 'Lengkapi & Terapkan Dahulu';
 
         html += `</div>
             <div class="task-input-actions">
                 <button class="btn-reset-schedule" onclick="resetTaskSchedule()">Reset</button>
-                <button class="btn-apply-schedule" onclick="applyTaskSchedule()">⚡ Hitung & Terapkan Jadwal</button>
+                <button class="btn-apply-schedule" onclick="applyTaskSchedule()">Hitung & Terapkan Jadwal</button>
             </div>
             <div class="task-input-actions" style="border-top:none; padding-top:0;">
                 <button class="btn-publish" onclick="confirmAndPublish()" style="${btnStyle}" ${btnDisabledAttr}>
