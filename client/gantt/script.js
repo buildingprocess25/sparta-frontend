@@ -660,8 +660,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isProjectLocked) {
                 container.innerHTML = `
                     <div class="api-card locked">
-                        <h3 style="color: #2f855a; margin:0;">✅ Jadwal Terkunci</h3>
-                        <p style="margin-top:5px;">Jadwal sudah diterbitkan. Hubungi Admin jika perlu revisi.</p>
+                        <h3 style="color: #2f855a; margin:0;">Jadwal Terkunci</h3>
+                        <p style="margin-top:5px;">Jadwal sudah diterbitkan dan tidak dapat diubah.</p>
                     </div>`;
             } else {
                 renderContractorInputForm(container);
