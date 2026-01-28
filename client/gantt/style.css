@@ -765,3 +765,85 @@ button:disabled {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
+/* ==========================================================================
+   10. FINAL ACTION BUTTONS STYLING (NEW)
+   ========================================================================== */
+
+/* Container untuk memberikan ruang napas pada tombol final */
+.action-buttons {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #e2e8f0; /* Garis pemisah halus di atasnya */
+    display: flex;
+    gap: 15px; /* Jarak antar tombol */
+    justify-content: flex-end; /* Posisi di kanan */
+}
+
+/* Gaya Dasar Shared untuk Kedua Tombol */
+.action-buttons .btn-apply,
+.action-buttons .btn-publish {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 1rem;
+    padding: 12px 24px; /* Ukuran lebih besar agar mudah diklik */
+    border-radius: 8px; /* Sudut lebih membulat modern */
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Transisi smooth */
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* Shadow dasar */
+    color: white;
+    letter-spacing: 0.5px;
+}
+
+/* Memberi jarak pada icon di dalam tombol */
+.action-buttons button i {
+    margin-right: 10px;
+    font-size: 1.1rem;
+}
+
+/* Efek Hover Shared: Tombol sedikit terangkat */
+.action-buttons .btn-apply:hover,
+.action-buttons .btn-publish:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Efek Klik Shared: Tombol sedikit tertekan */
+.action-buttons .btn-apply:active,
+.action-buttons .btn-publish:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+}
+
+
+/* --- 1. Styling Khusus Tombol "Terapkan" (Biru Segar) --- */
+.btn-apply {
+    /* Gradien biru modern */
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.btn-apply:hover {
+    /* Gradien sedikit lebih terang saat hover */
+    background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+    /* Shadow berwarna biru tipis */
+    box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.4), 0 4px 6px -2px rgba(59, 130, 246, 0.2);
+}
+
+
+/* --- 2. Styling Khusus Tombol "Kunci Jadwal (Final)" (Merah Tegas/Penting) --- */
+.btn-publish {
+    /* Gradien merah (menggunakan warna brand Alfamart sebagai basis) */
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    font-weight: 700; /* Lebih tebal untuk menandakan "Final" */
+}
+
+.btn-publish:hover {
+    /* Gradien merah sedikit lebih menyala */
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    /* Shadow berwarna merah agar terlihat 'urgen' atau penting */
+    box-shadow: 0 10px 15px -3px rgba(220, 38, 38, 0.4), 0 4px 6px -2px rgba(220, 38, 38, 0.2);
+}
