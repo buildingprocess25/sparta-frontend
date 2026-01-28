@@ -1321,8 +1321,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        const projectDuration = parseInt(currentProject.duration) || (currentProject.work === 'ME' ? 100 : 205);
-        const totalDaysToRender = Math.max(projectDuration, maxTaskEndDay) + 5; // Buffer 5 hari
+        const projectDuration = parseInt(currentProject.duration) || 30;
+        const totalDaysToRender = Math.max(projectDuration, maxTaskEndDay);
         const totalChartWidth = totalDaysToRender * DAY_WIDTH;
 
         // --- 3. RENDER HEADER ---
