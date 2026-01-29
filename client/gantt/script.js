@@ -489,33 +489,19 @@ document.addEventListener('DOMContentLoaded', () => {
         let tasksToUse = JSON.parse(JSON.stringify(template));
 
         // Filter tasks based on filtered_categories from API if available
-        if (filteredCategories && Array.isArray(filteredCategories) && filteredCategories.length > 0) {
-            
-            // STEP 1: Bersihkan kategori dari string kosong/null
-            const validCategories = filteredCategories
-                .map(c => c ? String(c).toLowerCase().trim() : "")
-                .filter(c => c.length > 0); // Hapus string kosong agar tidak match semua
+        if (filteredCategories && filteredCategories.length > 0) {
+            const normalizedFilteredCategories = filteredCategories.map(c => c.toLowerCase().trim());
+            tasksToUse = tasksToUse.filter(task => {
+                const normalizedTaskName = task.name.toLowerCase().trim();
+                return normalizedFilteredCategories.some(fc =>
+                    normalizedTaskName.includes(fc) || fc.includes(normalizedTaskName)
+                );
+            });
 
-            // STEP 2: Lakukan filtering hanya jika ada kategori valid
-            if (validCategories.length > 0) {
-                tasksToUse = tasksToUse.filter(task => {
-                    const normalizedTaskName = task.name.toLowerCase().trim();
-                    
-                    return validCategories.some(fc => {
-                        // Pastikan fc tidak kosong sebelum cek includes
-                        if (!fc) return false; 
-                        
-                        // Cek dua arah: "Pekerjaan Dinding" ada di "Dinding"? atau sebaliknya
-                        return normalizedTaskName.includes(fc) || fc.includes(normalizedTaskName);
-                    });
-                });
-
-                // Re-index ID agar urut 1, 2, 3...
-                tasksToUse = tasksToUse.map((task, index) => ({
-                    ...task,
-                    id: index + 1
-                }));
-            }
+            tasksToUse = tasksToUse.map((task, index) => ({
+                ...task,
+                id: index + 1
+            }));
         }
 
         currentTasks = tasksToUse.map(t => ({
@@ -544,18 +530,13 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // 1. Ambil Template Standar (ME/Sipil) untuk mendapatkan Nama yang rapi
             let template = currentProject.work === 'ME' ? taskTemplateME : taskTemplateSipil;
-            const normalizedCategories = filteredCategories
-                .map(c => c ? String(c).trim() : "") // Trim whitespace
-                .filter(c => c.length > 0); // Hapus yang kosong
+            const normalizedCategories = filteredCategories.map(c => c.toLowerCase().trim());
 
-            // Gunakan normalizedCategories (yang sudah bersih) untuk mapping
-            tempTaskList = normalizedCategories.map((catNameRaw, index) => {
-                const catName = catNameRaw.toLowerCase();
-                
-                // Cari nama resmi dari template
+            // 2. Buat List Tugas berdasarkan RAB
+            tempTaskList = normalizedCategories.map((catName, index) => {
+                // Cari nama resmi dari template (agar casing huruf rapi), fallback ke nama dari API
                 const templateItem = template.find(t => t.name.toLowerCase().trim() === catName);
-                // Gunakan catNameRaw (case asli tapi di-trim) jika template tidak ketemu
-                const officialName = templateItem ? templateItem.name : catNameRaw;
+                const officialName = templateItem ? templateItem.name : filteredCategories[index]; // Pakai nama asli dari filteredCategories jika template ga ketemu
 
                 // 3. Cari Data Keterlambatan yang mungkin tersimpan di ganttData lama
                 // Kita harus scan ganttData karena ID (Kategori_X) mungkin bergeser
@@ -805,10 +786,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Generate Options Dependency
             let dependencyOptions = `<option value="">- Tidak Ada -</option>`;
-            currentTasks.forEach(nextTask => {
-                if (nextTask.id > task.id) { 
-                    const selected = (task.dependency == nextTask.id) ? 'selected' : '';
-                    dependencyOptions += `<option value="${nextTask.id}" ${selected}>${nextTask.id}. ${nextTask.name}</option>`;
+            currentTasks.forEach(prevTask => {
+                if (prevTask.id < task.id) {
+                    const selected = (task.dependency == prevTask.id) ? 'selected' : '';
+                    dependencyOptions += `<option value="${prevTask.id}" ${selected}>${prevTask.id}. ${prevTask.name}</option>`;
                 }
             });
 
@@ -1480,8 +1461,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const parent = taskCoordinates[task.dependency];
                 const me = taskCoordinates[task.id];
 
-                // FIX: Ubah > 0 menjadi >= 0 pada parent.endX dan me.startX
-                if (parent && me && parent.endX >= 0 && me.startX >= 0) {
+                if (parent && me && parent.endX > 0 && me.startX > 0) {
                     const startX = parent.endX;
                     const startY = parent.y;
                     const endX = me.startX;
@@ -1489,7 +1469,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // Kurva Bezier
                     const path = `M ${startX} ${startY} 
-                                C ${startX - 30} ${startY}, 
+                                C ${startX + 30} ${startY}, 
                                 ${endX - 30} ${endY}, 
                                 ${endX} ${endY}`;
 
