@@ -1464,6 +1464,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const DAY_WIDTH = 40;
         const ROW_HEIGHT = 50;
+        // Offset vertikal dari tengah baris agar garis mulai dari atas dan berakhir di bawah
+        // Asumsi tinggi visual bar sekitar 26-30px, jadi offset 12-13px dari tengah sudah pas di tepi.
+        const VERTICAL_OFFSET = 13; 
 
         // --- 1. LOGIKA RIPPLE EFFECT (Kalkulasi Pergeseran) ---
         const effectiveEndDates = {};
@@ -1471,7 +1474,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Reset computed shift
         currentTasks.forEach(t => t.computed = { shift: 0 });
 
-        // Calculate visual shifts (Hanya berdampak visual agar chart rapi, tidak ubah data tanggal)
+        // Calculate visual shifts
         currentTasks.forEach(task => {
             const ranges = task.inputData?.ranges || [];
             let shift = 0;
@@ -1480,8 +1483,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const parentEffectiveEnd = effectiveEndDates[task.dependency] || 0;
                 if (ranges.length > 0) {
                     const plannedStart = ranges[0].start;
-                    // Jika jadwal overlap dengan parent, geser visualnya (Kecuali di mode PIC view only jika ingin lihat aslinya)
-                    // Namun untuk kerapian 'S-Curve', kita biarkan logika shift ini bekerja visualnya
                     if (plannedStart <= parentEffectiveEnd) {
                         shift = parentEffectiveEnd - plannedStart + 1;
                     }
@@ -1512,9 +1513,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // Default minimal 30 hari atau durasi project
         const projectDuration = parseInt(currentProject?.duration || 30);
-        const totalDaysToRender = Math.max(projectDuration, maxTaskEndDay) + 5; // +5 untuk buffer kanan
+        const totalDaysToRender = Math.max(projectDuration, maxTaskEndDay) + 5;
         const totalChartWidth = totalDaysToRender * DAY_WIDTH;
 
         // --- 3. RENDER HEADER ---
@@ -1546,9 +1546,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const maxEnd = ranges.length ? Math.max(...ranges.map(r => r.end + shift + (parseInt(r.keterlambatan) || 0))) : 0;
             const minStart = ranges.length ? Math.min(...ranges.map(r => r.start + shift)) : 0;
 
-            // Simpan koordinat titik sambungan (Connection Points)
+            // Simpan koordinat titik tengah Y dan ujung X
             taskCoordinates[task.id] = {
-                y: (index * ROW_HEIGHT) + (ROW_HEIGHT / 2),
+                centerY: (index * ROW_HEIGHT) + (ROW_HEIGHT / 2), // Titik tengah vertikal baris
                 endX: maxEnd * DAY_WIDTH,       // Titik keluar (Kanan)
                 startX: (minStart - 1) * DAY_WIDTH // Titik masuk (Kiri)
             };
@@ -1592,36 +1592,39 @@ document.addEventListener('DOMContentLoaded', () => {
             html += `</div></div>`;
         });
 
-        // --- 5. RENDER DEPENDENCY LINES (IMPROVED SVG CURVES) ---
+        // --- 5. RENDER DEPENDENCY LINES (TOP-RIGHT to BOTTOM-LEFT) ---
         let svgLines = '';
         currentTasks.forEach(task => {
             if (task.dependency) {
                 const parent = taskCoordinates[task.dependency];
                 const me = taskCoordinates[task.id];
 
-                // Pastikan koordinat valid (tidak 0 atau undefined)
                 if (parent && me && parent.endX !== undefined && me.startX !== undefined) {
-                    const startX = parent.endX; // Ujung Kanan Parent
-                    const startY = parent.y;    // Tengah Parent
-                    const endX = me.startX;     // Ujung Kiri Child
-                    const endY = me.y;          // Tengah Child
+                    // REQUEST: Dari ATAS SISI KANAN parent -> ke BAWAH SISI KIRI child
 
-                    // Logic Kurva Bezier yang Stabil
-                    // Jika jarak horizontal sangat dekat atau negatif (overlap), kita perbesar lengkungan
-                    // agar garisnya tetap terlihat "S" dan tidak lurus/patah.
+                    // Start X: Ujung Kanan Parent
+                    const startX = parent.endX; 
+                    // Start Y: Titik Tengah Parent DIKURANGI Offset (Naik ke Atas)
+                    const startY = parent.centerY - VERTICAL_OFFSET; 
+
+                    // End X: Ujung Kiri Child
+                    const endX = me.startX;     
+                    // End Y: Titik Tengah Child DITAMBAH Offset (Turun ke Bawah)
+                    const endY = me.centerY + VERTICAL_OFFSET;          
+
+                    // Logic Kurva Bezier
                     const deltaX = endX - startX;
                     
-                    // Curve Tension: Semakin besar semakin melengkung
-                    // Jika overlap (deltaX < 0), butuh curve lebih besar agar memutar cantik
+                    // Tension curve adjustment
                     let tension = 40; 
                     if (deltaX < 40) tension = 60; 
-                    if (deltaX < 0) tension = 100; // Overlap case (PIC view often hits this)
+                    if (deltaX < 0) tension = 100; // Overlap case
 
-                    // Control Points
+                    // Control Points (Level dengan startY dan endY agar keluar lurus dulu)
                     const cp1x = startX + tension;
-                    const cp1y = startY;
+                    const cp1y = startY; 
                     const cp2x = endX - tension;
-                    const cp2y = endY;
+                    const cp2y = endY; 
 
                     const path = `M ${startX} ${startY} 
                                   C ${cp1x} ${cp1y}, 
@@ -1631,20 +1634,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     const parentTask = currentTasks.find(t => t.id === task.dependency);
                     const tooltipText = parentTask ? `${task.name} menunggu ${parentTask.name}` : '';
 
-                    svgLines += `<path d="${path}" class="dependency-line" fill="none" stroke="#667eea" stroke-width="2" stroke-dasharray="5,3">
+                    // Style garis: Putus-putus (dashed) dan warna biru
+                    svgLines += `<path d="${path}" class="dependency-line" fill="none" stroke="#4299e1" stroke-width="2" stroke-dasharray="4,3" opacity="0.8">
                         <title>${tooltipText}</title>
                     </path>`;
 
-                    // Arrow Head
+                    // Arrow Head (Panah di ujung bawah kiri)
                     const arrowSize = 6;
-                    svgLines += `<polygon points="${endX},${endY} ${endX - arrowSize},${endY - arrowSize / 2} ${endX - arrowSize},${endY + arrowSize / 2}" fill="#667eea" />`;
+                    svgLines += `<polygon points="${endX},${endY} ${endX - arrowSize},${endY - arrowSize / 2} ${endX - arrowSize},${endY + arrowSize / 2}" fill="#4299e1" opacity="0.8" />`;
                 }
             }
         });
 
         const svgHeight = currentTasks.length * ROW_HEIGHT;
         
-        // SVG Container - pointer-events: none penting agar bisa klik bar di bawahnya
+        // SVG Container
         html += `
             <svg class="chart-lines-svg" style="position:absolute; top:0; left:250px; width:${totalChartWidth}px; height:${svgHeight}px; pointer-events:none; z-index:10;">
                 ${svgLines}
