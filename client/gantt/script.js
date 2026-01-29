@@ -787,7 +787,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Generate Options Dependency
             let dependencyOptions = `<option value="">- Tidak Ada -</option>`;
             currentTasks.forEach(prevTask => {
-                if (prevTask.id < task.id) {
+                if (prevTask.id > task.id) {
                     const selected = (task.dependency == prevTask.id) ? 'selected' : '';
                     dependencyOptions += `<option value="${prevTask.id}" ${selected}>${prevTask.id}. ${prevTask.name}</option>`;
                 }
