@@ -875,56 +875,51 @@ document.addEventListener('DOMContentLoaded', () => {
     window.removeRange = async function (taskId, idx, isSaved) {
         const rowId = `range-group-${taskId}-${idx}`;
         const element = document.getElementById(rowId);
+        
+        // Ambil objek task dari memori lokal
+        const taskObj = currentTasks.find(t => t.id === taskId);
 
-        // Jika belum disimpan (masih inputan lokal), langsung hapus elemen HTML
+        // 1. LOGIKA HAPUS DATA LOKAL (Belum Disimpan)
         if (!isSaved) {
             if (element) element.remove();
-            // Update data lokal tasks agar sinkron
-            const taskObj = currentTasks.find(t => t.id === taskId);
             if (taskObj && taskObj.inputData && taskObj.inputData.ranges) {
-                 taskObj.inputData.ranges.splice(idx, 1);
+                taskObj.inputData.ranges.splice(idx, 1);
             }
+            // Update chart agar visual bar hilang
+            renderChart();
+            // Update form agar index array kembali rapi
+            renderApiData(); 
             return;
         }
 
+        // 2. LOGIKA HAPUS DATA SERVER (Sudah Tersimpan)
         if (!confirm("Data ini sudah tersimpan di server. Yakin ingin menghapusnya?")) return;
 
-        const taskObj = currentTasks.find(t => t.id === taskId);
         const taskName = taskObj ? taskObj.name : "";
-
         if (!taskName) {
             alert("Nama tahapan tidak valid.");
             return;
         }
 
-        // --- PERBAIKAN UTAMA DI SINI ---
-        // Alih-alih menghitung ulang tanggal dari input (yang berisiko salah jika StartDate geser),
-        // Kita cari data ASLI di variable 'dayGanttData' yang didapat dari server.
-        
+        // Cari data ASLI di variable 'dayGanttData' (Cache Server)
         let dateStartStr = "";
         let dateEndStr = "";
         let foundMatch = false;
 
-        // 1. Cari data mentah yang sesuai Nama Kategori
         if (dayGanttData && Array.isArray(dayGanttData)) {
-            // Filter semua data milik kategori ini
             const rawDataList = dayGanttData.filter(d => 
                 d.Kategori.toLowerCase().trim() === taskName.toLowerCase().trim()
             );
 
-            // 2. Ambil data sesuai index (idx)
-            // Asumsi: Urutan render di UI sama dengan urutan di array filtered
             if (rawDataList[idx]) {
                 dateStartStr = rawDataList[idx].h_awal;
                 dateEndStr = rawDataList[idx].h_akhir;
                 foundMatch = true;
-                console.log(`🗑️ Menghapus data asli [Index ${idx}]:`, dateStartStr, "-", dateEndStr);
             }
         }
 
-        // FALLBACK: Jika tidak ketemu di raw data (kasus jarang), baru hitung manual
+        // Fallback hitung manual jika cache tidak ketemu
         if (!foundMatch) {
-            console.warn("⚠️ Data asli tidak ditemukan di cache, mencoba hitung manual...");
             const startVal = parseInt(document.getElementById(`start-${taskId}-${idx}`).value) || 0;
             const endVal = parseInt(document.getElementById(`end-${taskId}-${idx}`).value) || 0;
             dateStartStr = getTaskDateString(startVal);
@@ -935,11 +930,8 @@ document.addEventListener('DOMContentLoaded', () => {
             alert("Gagal mendapatkan format tanggal yang valid untuk dihapus.");
             return;
         }
-        // --------------------------------
 
-        // Pastikan Lingkup Pekerjaan sesuai format database (Upper Case)
         const lingkupValue = currentProject.work.toUpperCase() === "ME" ? "ME" : "SIPIL";
-
         const payload = {
             "nomor_ulok": currentProject.ulokClean,
             "lingkup_pekerjaan": lingkupValue,
@@ -952,11 +944,9 @@ document.addEventListener('DOMContentLoaded', () => {
             ]
         };
 
-        console.log("📤 Sending Delete Payload:", payload); // Debugging
-
         try {
             document.body.style.cursor = 'wait';
-            const response = await fetch(ENDPOINTS.dayInsert, { // Endpoint ini handle remove juga
+            const response = await fetch(ENDPOINTS.dayInsert, { 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -964,30 +954,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!response.ok) {
                 const responseText = await response.text();
-                // Parsing error message agar lebih enak dibaca user
                 let errorMsg = responseText;
                 try {
                     const errObj = JSON.parse(responseText);
                     if(errObj.message) errorMsg = errObj.message;
                 } catch(e) {}
-                
                 throw new Error(errorMsg);
             }
 
-            // Jika sukses, hapus dari UI
-            if (element) element.remove();
-
-            // Hapus dari memory lokal currentTasks
+            // === PERBAIKAN UTAMA DISINI ===
+            
+            // 1. Hapus data dari Array Lokal (currentTasks)
+            // Kita menghapus index spesifik tanpa me-reload data lain
             if (taskObj && taskObj.inputData && taskObj.inputData.ranges) {
-                // Kita gunakan filter berdasarkan value di input saat ini untuk update tampilan
-                const currentStartVal = parseInt(document.getElementById(`start-${taskId}-${idx}`)?.value || 0);
-                taskObj.inputData.ranges = taskObj.inputData.ranges.filter((r, i) => i !== idx);
+                taskObj.inputData.ranges.splice(idx, 1);
             }
 
+            // 2. Update Cache Server Lokal (dayGanttData)
+            // Ini penting agar jika user hapus lagi tanpa refresh, urutan index tetap sinkron
+            if (dayGanttData) {
+                // Cari index global di dayGanttData yang cocok dengan kriteria
+                const globalIdx = dayGanttData.findIndex(d => 
+                    d.Kategori.toLowerCase().trim() === taskName.toLowerCase().trim() &&
+                    d.h_awal === dateStartStr && 
+                    d.h_akhir === dateEndStr
+                );
+                if (globalIdx !== -1) {
+                    dayGanttData.splice(globalIdx, 1);
+                }
+            }
+
+            // 3. Render Ulang UI dari Memory Lokal
+            // renderApiData akan menggambar ulang form berdasarkan 'currentTasks'
+            // Karena 'currentTasks' masih memegang inputan user lain (yang belum disave),
+            // maka inputan tersebut TIDAK AKAN HILANG/MUNDUR.
+            renderApiData(); 
+            renderChart();
+
             alert("Data berhasil dihapus.");
-            
-            // Refresh data agar sinkron total
-            changeUlok(); 
+            // HAPUS atau KOMENTARI baris ini:
+            // changeUlok(); 
 
         } catch (err) {
             console.error("Remove Failed:", err);
