@@ -829,7 +829,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             html += `   </div>
-                        <button class="btn-add-range" onclick="addRange(${task.id})" style="margin-top:8px;">+ Tambah Durasi</button>
+                        <button class="btn-add-range" onclick="addRange(${task.id})" style="margin-top:8px;">+ Periode Pekerjaan</button>
                     </div>
                 </div>
             </div>`;
