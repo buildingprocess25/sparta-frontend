@@ -1001,71 +1001,70 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    window.handleDependencyChange = async function (parentId, childId) {
-        // parentId = ID dari Task baris ini (Induk/Parent)
-        // childId  = ID dari Task yang dipilih di dropdown (Anak/Child)
+    window.handleDependencyChange = function (parentId, childId) {
+        // parentId = ID Task baris ini (Induk)
+        // childId  = ID Task yang dipilih di dropdown (Anak)
 
         if (isInitializing) return;
 
-        // Cari Object Data untuk Parent (Induk)
+        // Cari Object Parent (Baris ini)
         const parentTask = currentTasks.find(t => t.id === parseInt(parentId));
         
-        // 1. CARI ANAK LAMA (PENTING!)
-        // Sebelum menyimpan yang baru, kita harus cek apakah Parent ini 
-        // sebelumnya sudah punya hubungan dengan anak lain?
-        // Kita cari: Task mana yang kolom dependency-nya == parentId
+        // 1. Cek apakah sebelumnya ada Anak LAMA yang bergantung ke Parent ini? 
+        // Kita harus hapus keterikatan lokalnya.
         const oldChildTask = currentTasks.find(t => t.dependency === parseInt(parentId));
         
-        // 2. CARI ANAK BARU (Yang baru dipilih di dropdown)
+        // 2. Cari Object Anak BARU (jika ada yang dipilih)
         const newChildTask = childId ? currentTasks.find(t => t.id === parseInt(childId)) : null;
 
         try {
-            document.body.style.cursor = 'wait';
-
-            // A. BERSIHKAN HUBUNGAN LAMA
-            // Jika dulunya Task 1 terhubung ke Task 5, sekarang diganti ke Task 6,
-            // Maka hubungan Task 5 -> Task 1 harus dihapus dulu.
+            // A. UPDATE LOCAL STATE: HAPUS HUBUNGAN LAMA
             if (oldChildTask) {
-                // Hapus data di server
-                await removeDependency(oldChildTask.name, parentTask.name);
-                // Hapus data di local memory
-                oldChildTask.dependency = null; 
+                oldChildTask.dependency = null; // Reset di memory
+                
+                // Update array dependencyData (untuk rendering garis chart)
+                dependencyData = dependencyData.filter(d => 
+                    d.Kategori.toLowerCase() !== oldChildTask.name.toLowerCase()
+                );
             }
 
-            // B. SIMPAN HUBUNGAN BARU
-            // Jika user memilih Task baru (bukan memilih "Tidak Ada")
+            // B. UPDATE LOCAL STATE: SIMPAN HUBUNGAN BARU
             if (newChildTask) {
-                // Cek Validasi Logika (Mencegah loop aneh, opsional tapi bagus)
+                // Validasi sederhana
                 if (newChildTask.id <= parentTask.id) {
                     alert("Hanya bisa memilih tahapan selanjutnya (ID lebih besar).");
-                    renderApiData(); // Reset dropdown
+                    renderApiData(); 
                     return;
                 }
 
-                // Simpan data di server: "Anak bergantung pada Induk"
-                // saveDependency(Yang_Tergantung, Yang_Ditunggu)
-                await saveDependency(newChildTask.name, parentTask.name);
-                
-                // Simpan data di local memory
+                // Set dependency di memory
                 newChildTask.dependency = parseInt(parentId);
                 
-                // Update array dependency global untuk keperluan chart
-                updateLocalDependencyData(newChildTask.name, parentTask.name);
+                // Update array dependencyData (untuk rendering garis chart segera)
+                // Hapus entry lama jika ada (untuk mencegah duplikat)
+                dependencyData = dependencyData.filter(d => 
+                    d.Kategori.toLowerCase() !== newChildTask.name.toLowerCase()
+                );
+                
+                // Push data baru untuk chart
+                dependencyData.push({
+                    "Nomor Ulok": currentProject.ulokClean,
+                    "Lingkup_Pekerjaan": currentProject.work.toUpperCase(),
+                    "Kategori": newChildTask.name,           // Anak
+                    "Kategori_Terikat": parentTask.name      // Induk
+                });
             } 
-            else if (oldChildTask) {
-                // Jika user memilih "- Tidak Ada -", maka update dependencyData lokal agar kosong
-                updateLocalDependencyData(oldChildTask.name, null);
-            }
 
-            console.log(`Update Sukses: ${parentTask.name} dilanjutkan oleh ${newChildTask ? newChildTask.name : 'Tidak Ada'}`);
+            console.log(`Local Update: ${parentTask.name} dilanjutkan oleh ${newChildTask ? newChildTask.name : 'Tidak Ada'}`);
+            
+            // Render ulang chart agar garis muncul/hilang seketika
+            // Kita set hasUserInput = true agar chart dirender
+            hasUserInput = true; 
+            renderChart(); 
 
         } catch (err) {
-            console.error("Dependency update failed:", err);
-            alert("Gagal menyimpan keterikatan: " + err.message);
-            // Jika gagal, refresh tampilan agar dropdown kembali ke posisi benar
-            renderApiData(); 
-        } finally {
-            document.body.style.cursor = 'default';
+            console.error("Local dependency update failed:", err);
+            alert("Gagal update data lokal: " + err.message);
         }
     }
 
@@ -1327,7 +1326,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // --- 1. SETUP LOADING SCREEN (Hanya jika Publish/Terkunci) ---
+        // --- 1. SETUP LOADING SCREEN ---
         const overlay = document.getElementById('loading-overlay');
         const loadingTitle = document.getElementById('loading-title');
         const loadingDesc = document.getElementById('loading-desc');
@@ -1340,6 +1339,7 @@ document.addEventListener('DOMContentLoaded', () => {
             overlay.classList.add('active');
         }
 
+        // Payload Utama (Project Info)
         const payload = {
             "Nomor Ulok": currentProject.ulokClean,
             "Lingkup_Pekerjaan": currentProject.work.toUpperCase(),
@@ -1352,14 +1352,16 @@ document.addEventListener('DOMContentLoaded', () => {
             "Nama_Kontraktor": "PT KONTRAKTOR",
         };
 
+        // --- 2. SIAPKAN DATA HARIAN & UTAMA ---
+        const dayPayload = [];
+        const pStart = new Date(currentProject.startDate);
+
         currentTasks.forEach(t => {
             const ranges = t.inputData.ranges || [];
+            
+            // Masukkan ke Payload Utama (Summary per Task)
             payload[`Kategori_${t.id}`] = t.name;
-
             if (ranges.length > 0) {
-                payload[`Kategori_${t.id}`] = t.name;
-
-                const pStart = new Date(currentProject.startDate);
                 const tStart = new Date(pStart); tStart.setDate(pStart.getDate() + ranges[0].start - 1);
                 const tEnd = new Date(pStart); tEnd.setDate(pStart.getDate() + ranges[ranges.length - 1].end - 1);
 
@@ -1367,13 +1369,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 payload[`Hari_Selesai_Kategori_${t.id}`] = tEnd.toISOString().split('T')[0];
                 payload[`Keterlambatan_Kategori_${t.id}`] = "0";
             }
-        });
 
-        const dayPayload = [];
-        const pStart = new Date(currentProject.startDate);
-
-        currentTasks.forEach(t => {
-            (t.inputData.ranges || []).forEach(r => {
+            // Masukkan ke Payload Harian (Day Insert)
+            ranges.forEach(r => {
                 const dS = new Date(pStart); dS.setDate(pStart.getDate() + r.start - 1);
                 const dE = new Date(pStart); dE.setDate(pStart.getDate() + r.end - 1);
                 dayPayload.push({
@@ -1386,39 +1384,78 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        try {
-            await fetch(ENDPOINTS.insertData, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        // --- 3. SIAPKAN DATA KETERIKATAN (DEPENDENCY) - BARU ---
+        // Kita loop currentTasks untuk mencari siapa yang punya parent
+        const dependencyPayload = [];
+        currentTasks.forEach(childTask => {
+            if (childTask.dependency) {
+                const parentTask = currentTasks.find(p => p.id === childTask.dependency);
+                if (parentTask) {
+                    dependencyPayload.push({
+                        "Kategori": childTask.name.toUpperCase(),       // Yang Bergantung (Anak)
+                        "Kategori_Terikat": parentTask.name.toUpperCase() // Yang Ditunggu (Induk)
+                    });
+                }
+            }
+        });
 
+        try {
+            // A. Simpan Data Utama
+            await fetch(ENDPOINTS.insertData, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify(payload) 
+            });
+
+            // B. Simpan Data Harian (Range)
             if (dayPayload.length > 0) {
-                await fetch(ENDPOINTS.dayInsert, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dayPayload) });
+                await fetch(ENDPOINTS.dayInsert, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify(dayPayload) 
+                });
             }
 
-            // --- 2. JIKA SUKSES PUBLISH (TERKUNCI) ---
+            // C. Simpan Data Keterikatan (Bulk Insert) - BARU
+            // Pastikan format payload sesuai dengan endpoint dependencyInsert
+            if (dependencyPayload.length > 0) {
+                const depRequest = {
+                    "nomor_ulok": currentProject.ulokClean,
+                    "lingkup_pekerjaan": currentProject.work.toUpperCase(),
+                    "dependency_data": dependencyPayload
+                };
+                
+                await fetch(ENDPOINTS.dependencyInsert, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(depRequest)
+                });
+            } 
+            // Opsional: Jika dependencyPayload kosong, mungkin kita perlu mengirim request 'remove' 
+            // untuk membersihkan data lama di server, tapi tergantung logika backend Anda. 
+            // Kode di bawah ini asumsinya 'dependencyInsert' bersifat overwrite atau upsert.
+
+            // --- 4. FINISHING ---
             if (isPublishing) {
                 if (overlay) {
                     loadingTitle.textContent = "Berhasil!";
                     loadingDesc.textContent = "Jadwal terkunci. Mengalihkan ke halaman utama...";
                 }
-
-                // Redirect setelah 1.5 detik ke index.html Gantt (Membersihkan parameter URL)
                 setTimeout(() => {
                     window.location.href = "../../gantt/index.html";
                 }, 1500);
             } else {
-                // Jika hanya save biasa (tombol Terapkan), cukup alert kecil
-                alert(`Jadwal berhasil disimpan (Status: ${status})`);
-                renderChart();
+                alert(`Jadwal & Keterikatan berhasil disimpan (Status: ${status})`);
+                // Refresh data dari server untuk memastikan sinkronisasi ID/Data
+                changeUlok(); 
             }
 
         } catch (err) {
             console.error(err);
-            
-            // Sembunyikan loading jika error
             if (isPublishing && overlay) {
                 overlay.classList.remove('active');
                 overlay.classList.add('hidden-overlay');
             }
-            
             alert("Gagal menyimpan data: " + err.message);
         }
     }
