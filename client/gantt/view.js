@@ -453,13 +453,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==================== 9. CHART RENDER (TETAP SAMA) ====================
+    // ==================== 9. CHART RENDER (UPDATED STYLE) ====================
     function renderChart() {
         const chart = document.getElementById('ganttChart');
+        if (!chart) return;
+
         const DAY_WIDTH = 40;
         const ROW_HEIGHT = 50;
+        // Offset vertikal agar garis mulai dari tengah baris
+        const VERTICAL_OFFSET = 13; 
 
+        // --- 1. LOGIKA RIPPLE EFFECT & CALCULATE SHIFT ---
         const effectiveEndDates = {};
 
+        // Reset computed shift
+        currentTasks.forEach(t => {
+            // Pastikan objek computed ada
+            t.computed = { shift: 0 };
+        });
+
+        // Calculate visual shifts based on dependency
         currentTasks.forEach(task => {
             const ranges = task.inputData?.ranges || [];
             let shift = 0;
@@ -473,7 +486,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             }
-            task.computed = { shift: shift };
+
+            task.computed.shift = shift;
 
             if (ranges.length > 0) {
                 const lastRange = ranges[ranges.length - 1];
@@ -485,6 +499,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+        // --- 2. HITUNG DIMENSI CHART ---
         let maxTaskEndDay = 0;
         currentTasks.forEach(task => {
             const ranges = task.inputData?.ranges || [];
@@ -496,16 +511,20 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        const projectDuration = parseInt(currentProject.duration) || 30;
-        const totalDaysToRender = Math.max(projectDuration, maxTaskEndDay);
+        const projectDuration = parseInt(currentProject?.duration || 30);
+        // Tambahkan buffer +5 hari agar tampilan tidak mepet kanan (sesuai script.js)
+        const totalDaysToRender = Math.max(projectDuration, maxTaskEndDay) + 5;
         const totalChartWidth = totalDaysToRender * DAY_WIDTH;
 
+        // --- 3. RENDER HEADER ---
         const headerTitle = "Timeline Project";
+        // Cursor default karena view only
         const cursorStyle = "cursor: default;";
 
         let html = '<div class="chart-header">';
         html += '<div class="task-column">Tahapan</div>';
         html += `<div class="timeline-column" style="width: ${totalChartWidth}px;">`;
+
         for (let i = 0; i < totalDaysToRender; i++) {
             const dayNumber = i + 1;
             const isSup = supervisionDays[dayNumber] === true;
@@ -518,18 +537,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let taskCoordinates = {};
 
+        // --- 4. RENDER TASKS (BARS) ---
         currentTasks.forEach((task, index) => {
             const ranges = task.inputData?.ranges || [];
             const shift = task.computed.shift;
 
             let durTxt = ranges.reduce((s, r) => s + r.duration, 0);
+
+            // Koordinat Bar (Visual)
             const maxEnd = ranges.length ? Math.max(...ranges.map(r => r.end + shift + (parseInt(r.keterlambatan) || 0))) : 0;
             const minStart = ranges.length ? Math.min(...ranges.map(r => r.start + shift)) : 0;
 
+            // Simpan koordinat titik tengah Y dan ujung X untuk garis SVG
             taskCoordinates[task.id] = {
-                y: (index * ROW_HEIGHT) + (ROW_HEIGHT / 2),
-                endX: maxEnd * DAY_WIDTH,
-                startX: (minStart - 1) * DAY_WIDTH
+                centerY: (index * ROW_HEIGHT) + (ROW_HEIGHT / 2), 
+                endX: maxEnd * DAY_WIDTH,       
+                startX: (minStart - 1) * DAY_WIDTH 
             };
 
             html += `<div class="task-row"><div class="task-name"><span>${task.name}</span><span class="task-duration">${durTxt} hari</span></div>`;
@@ -538,8 +561,10 @@ document.addEventListener('DOMContentLoaded', () => {
             ranges.forEach((range) => {
                 const actualStart = range.start + shift;
                 const actualEnd = range.end + shift;
+
                 const leftPos = (actualStart - 1) * DAY_WIDTH;
                 const widthPos = (range.duration * DAY_WIDTH) - 1;
+
                 const hasDelay = range.keterlambatan && range.keterlambatan > 0;
                 const isShifted = shift > 0;
 
@@ -551,8 +576,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 const borderStyle = (hasDelay && !isShifted) ? "border: 2px solid #e53e3e;" : "";
+
                 html += `<div class="${barClass}" style="left: ${leftPos}px; width: ${widthPos}px; box-sizing: border-box; ${borderStyle}" title="${task.name} (Shift: ${shift} hari)"> ${range.duration} Hari</div>`;
 
+                // Render Bar Merah (Keterlambatan) dengan Style Gradient sesuai script.js
                 if (hasDelay) {
                     const delayLeftPos = actualEnd * DAY_WIDTH;
                     const delayWidthPos = range.keterlambatan * DAY_WIDTH - 1;
@@ -560,6 +587,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
+            // Supervision Markers
             for (const [day, isActive] of Object.entries(supervisionDays)) {
                 if (isActive) {
                     const dInt = parseInt(day);
@@ -570,28 +598,66 @@ document.addEventListener('DOMContentLoaded', () => {
             html += `</div></div>`;
         });
 
+        // --- 5. RENDER DEPENDENCY LINES (SVG OVERLAY) ---
+        // Menggunakan definisi marker panah dan logic kurva yang sama dengan script.js
+        const svgDefs = `
+            <defs>
+                <marker id="depArrow" viewBox="0 0 10 6" refX="7" refY="3" markerWidth="8" markerHeight="6" orient="auto">
+                    <path d="M0,0 L10,3 L0,6 Z" class="dependency-arrow" fill="#4299e1" opacity="0.95"></path>
+                </marker>
+            </defs>`;
+
         let svgLines = '';
         currentTasks.forEach(task => {
             if (task.dependency) {
                 const parent = taskCoordinates[task.dependency];
                 const me = taskCoordinates[task.id];
-                if (parent && me && parent.endX > 0 && me.startX > 0) {
-                    const startX = parent.endX;
-                    const startY = parent.y;
-                    const endX = me.startX;
-                    const endY = me.y;
-                    const path = `M ${startX} ${startY} C ${startX + 30} ${startY}, ${endX - 30} ${endY}, ${endX} ${endY}`;
+
+                if (parent && me && parent.endX !== undefined && me.startX !== undefined) {
+                    const startX = parent.endX;                        
+                    const startY = parent.centerY;                     
+                    const endX = me.startX;                            
+                    const endY = me.centerY;                           
+
+                    // Logic Bezier Curve dengan tension dinamis agar lebih mulus
+                    const deltaX = endX - startX;
+                    let tension = 40;                                   
+                    if (deltaX < 40) tension = 60;                      
+                    if (deltaX < 0) tension = 100;                      
+
+                    const cp1x = startX + tension;
+                    const cp1y = startY;
+                    const cp2x = endX - tension;
+                    const cp2y = endY;
+
+                    const path = `M ${startX} ${startY} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${endX} ${endY}`;
+
                     const parentTask = currentTasks.find(t => t.id === task.dependency);
                     const tooltipText = parentTask ? `${task.name} bergantung pada ${parentTask.name}` : '';
-                    svgLines += `<path d="${path}" class="dependency-line" data-from="${task.dependency}" data-to="${task.id}"><title>${tooltipText}</title></path>`;
-                    const arrowSize = 6;
-                    svgLines += `<polygon points="${endX},${endY} ${endX - arrowSize},${endY - arrowSize / 2} ${endX - arrowSize},${endY + arrowSize / 2}" class="dependency-arrow" fill="#667eea"/>`;
+
+                    // Garis penghubung
+                    svgLines += `<path d="${path}" class="dependency-line" marker-end="url(#depArrow)" opacity="0.95">
+                        <title>${tooltipText}</title>
+                    </path>`;
+
+                    // Titik konektor (Dots) pada pangkal dan ujung
+                    svgLines += `<circle class="dependency-node" cx="${startX}" cy="${startY}" r="4" fill="#4299e1" />`;
+                    svgLines += `<circle class="dependency-node" cx="${endX}" cy="${endY}" r="4" fill="#4299e1" />`;
                 }
             }
         });
 
         const svgHeight = currentTasks.length * ROW_HEIGHT;
-        html += `<svg class="chart-lines-svg" style="width:${totalChartWidth}px; height:${svgHeight}px;"><defs><marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#667eea"/></marker></defs>${svgLines}</svg>`;
+        
+        // Render SVG Container sebagai Overlay Absolut
+        // Offset left: 250px disesuaikan dengan lebar kolom Task Name
+        html += `
+            <svg class="chart-lines-svg" style="position:absolute; top:0; left:250px; width:${totalChartWidth}px; height:${svgHeight}px; pointer-events:none; z-index:10;">
+                ${svgDefs}
+                ${svgLines}
+            </svg>
+        `;
+
         html += `</div>`;
         chart.innerHTML = html;
     }
