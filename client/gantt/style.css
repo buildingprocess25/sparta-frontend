@@ -665,7 +665,7 @@ button:disabled {
     fill: none;
     stroke: #4299e1;
     /* blue */
-    stroke-width: 2.25px;
+    stroke-width: 2px;
     stroke-linecap: round;
     stroke-linejoin: round;
     stroke-dasharray: 4 3;
@@ -673,17 +673,24 @@ button:disabled {
     pointer-events: auto;
     /* enable hover */
     cursor: pointer;
-    filter: drop-shadow(0 0 1px rgba(66, 153, 225, 0.35));
+    filter: drop-shadow(0 0 1px rgba(66, 153, 225, 0.28));
 }
 
 .dependency-line:hover {
     stroke: #3182ce;
-    stroke-width: 3px;
+    stroke-width: 2.8px;
     stroke-dasharray: none;
 }
 
 .dependency-arrow {
     fill: #4299e1;
+}
+
+.dependency-node {
+    fill: #fff;
+    stroke: #4299e1;
+    stroke-width: 1.5px;
+    filter: drop-shadow(0 1px 1px rgba(66, 153, 225, 0.35));
 }
 
 /* Dependency indicator badge on task bar */

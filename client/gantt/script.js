@@ -1598,7 +1598,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // SVG defs for arrow marker (ensures arrowhead aligns with curve end)
         const svgDefs = `
             <defs>
-                <marker id="depArrow" viewBox="0 0 10 6" refX="9" refY="3" markerWidth="10" markerHeight="6" orient="auto">
+                <marker id="depArrow" viewBox="0 0 10 6" refX="7" refY="3" markerWidth="8" markerHeight="6" orient="auto">
                     <path d="M0,0 L10,3 L0,6 Z" class="dependency-arrow" fill="#4299e1" opacity="0.95"></path>
                 </marker>
             </defs>`;
@@ -1610,11 +1610,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const me = taskCoordinates[task.id];
 
                 if (parent && me && parent.endX !== undefined && me.startX !== undefined) {
-                    // Anchor: source top-right (parent) -> target bottom-left (child)
+                    // Anchor: source right-center (parent) -> target left-center (child)
                     const startX = parent.endX;                        // right edge of parent bar
-                    const startY = parent.centerY - VERTICAL_OFFSET;   // top edge of parent bar
+                    const startY = parent.centerY;                     // center of parent bar
                     const endX = me.startX;                            // left edge of child bar
-                    const endY = me.centerY + VERTICAL_OFFSET;         // bottom edge of child bar
+                    const endY = me.centerY;                           // center of child bar
 
                     // Bezier curve: subtle horizontal lead-in/out
                     const deltaX = endX - startX;
@@ -1636,6 +1636,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     svgLines += `<path d="${path}" class="dependency-line" marker-end="url(#depArrow)" opacity="0.95">
                         <title>${tooltipText}</title>
                     </path>`;
+
+                    // Small dots at anchors for clearer start/target points
+                    svgLines += `<circle class="dependency-node" cx="${startX}" cy="${startY}" r="4" />`;
+                    svgLines += `<circle class="dependency-node" cx="${endX}" cy="${endY}" r="4" />`;
                 }
             }
         });
