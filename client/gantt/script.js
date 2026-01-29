@@ -663,20 +663,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 minStart = Math.min(...ranges.map(r => r.start));
             }
 
-            // Find dependency from API data (Based on Name Match)
+            // Find dependency from API data
+            // Correct semantics: for CURRENT (child) task, find its PARENT task id.
+            // Server stores records as { Kategori: parentName, Kategori_Terikat: childName }.
             let dependencyTaskId = null;
             if (dependencyData && dependencyData.length > 0) {
-                const depEntry = dependencyData.find(d =>
-                    d.Kategori && d.Kategori.toLowerCase().trim() === normalizedName
+                // Primary: current item appears as CHILD in dependencyData (Kategori_Terikat)
+                const depAsChild = dependencyData.find(d =>
+                    d.Kategori_Terikat && String(d.Kategori_Terikat).toLowerCase().trim() === normalizedName
                 );
-                if (depEntry && depEntry.Kategori_Terikat) {
-                    const terikatName = depEntry.Kategori_Terikat.toLowerCase().trim();
-                    const terikatTask = tempTaskList.find(t =>
-                        t.name.toLowerCase().trim() === terikatName
-                    );
-                    if (terikatTask) {
-                        dependencyTaskId = terikatTask.id;
-                    }
+                if (depAsChild && depAsChild.Kategori) {
+                    const parentNameNorm = String(depAsChild.Kategori).toLowerCase().trim();
+                    const parentTask = tempTaskList.find(t => t.name.toLowerCase().trim() === parentNameNorm);
+                    if (parentTask) dependencyTaskId = parentTask.id;
+                } else {
+                    // Backward-compat: if older data had current as PARENT, skip assigning here
+                    // to avoid inverted linkage. We only bind child -> parent direction.
                 }
             }
 
@@ -1593,6 +1595,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // --- 5. RENDER DEPENDENCY LINES (TOP-RIGHT to BOTTOM-LEFT) ---
+        // SVG defs for arrow marker (ensures arrowhead aligns with curve end)
+        const svgDefs = `
+            <defs>
+                <marker id="depArrow" viewBox="0 0 10 6" refX="9" refY="3" markerWidth="10" markerHeight="6" orient="auto">
+                    <path d="M0,0 L10,3 L0,6 Z" class="dependency-arrow" fill="#4299e1" opacity="0.95"></path>
+                </marker>
+            </defs>`;
+
         let svgLines = '';
         currentTasks.forEach(task => {
             if (task.dependency) {
@@ -1622,14 +1632,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     const parentTask = currentTasks.find(t => t.id === task.dependency);
                     const tooltipText = parentTask ? `${task.name} menunggu ${parentTask.name}` : '';
 
-                    // Style: dashed blue, rounded caps for cleaner joins
-                    svgLines += `<path d="${path}" class="dependency-line" fill="none" stroke="#4299e1" stroke-width="2" stroke-dasharray="4,3" stroke-linecap="round" opacity="0.9">
+                    // Style: smooth line with marker-end arrow
+                    svgLines += `<path d="${path}" class="dependency-line" marker-end="url(#depArrow)" opacity="0.95">
                         <title>${tooltipText}</title>
                     </path>`;
-
-                    // Arrow head at target bottom-left, pointing right into the bar
-                    const arrowSize = 6;
-                    svgLines += `<polygon points="${endX},${endY} ${endX - arrowSize},${endY - arrowSize / 2} ${endX - arrowSize},${endY + arrowSize / 2}" fill="#4299e1" opacity="0.9" />`;
                 }
             }
         });
@@ -1639,6 +1645,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // SVG Container
         html += `
             <svg class="chart-lines-svg" style="position:absolute; top:0; left:250px; width:${totalChartWidth}px; height:${svgHeight}px; pointer-events:none; z-index:10;">
+                ${svgDefs}
                 ${svgLines}
             </svg>
         `;

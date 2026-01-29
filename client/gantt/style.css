@@ -609,7 +609,8 @@ button:disabled {
 }
 
 .bar.shifted {
-    background: linear-gradient(135deg, #f6ad55 0%, #ed8936 100%); /* Oranye */
+    background: linear-gradient(135deg, #f6ad55 0%, #ed8936 100%);
+    /* Oranye */
     color: #fff;
     border: 1px solid #c05621;
 }
@@ -662,30 +663,27 @@ button:disabled {
 
 .dependency-line {
     fill: none;
-    stroke: #667eea;
-    /* Indigo/Purple for better visibility */
-    stroke-width: 2px;
-    stroke-dasharray: 6 3;
-    transition: all 0.3s ease;
+    stroke: #4299e1;
+    /* blue */
+    stroke-width: 2.25px;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 4 3;
+    transition: all 0.2s ease;
     pointer-events: auto;
-    /* Enable hover */
+    /* enable hover */
     cursor: pointer;
+    filter: drop-shadow(0 0 1px rgba(66, 153, 225, 0.35));
 }
 
 .dependency-line:hover {
-    stroke: #5a67d8;
+    stroke: #3182ce;
     stroke-width: 3px;
     stroke-dasharray: none;
 }
 
 .dependency-arrow {
-    fill: #667eea;
-    transition: fill 0.3s ease;
-}
-
-.dependency-line:hover+.dependency-arrow,
-.dependency-arrow:hover {
-    fill: #5a67d8;
+    fill: #4299e1;
 }
 
 /* Dependency indicator badge on task bar */
@@ -741,7 +739,8 @@ button:disabled {
     width: 60px;
     height: 60px;
     border: 6px solid #f3f3f3;
-    border-top: 6px solid var(--primary); /* Menggunakan variabel merah alfamart */
+    border-top: 6px solid var(--primary);
+    /* Menggunakan variabel merah alfamart */
     border-radius: 50%;
     animation: spin 1s linear infinite;
     margin-bottom: 20px;
@@ -762,8 +761,13 @@ button:disabled {
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 /* ==========================================================================
@@ -774,10 +778,13 @@ button:disabled {
 .action-buttons {
     margin-top: 30px;
     padding-top: 20px;
-    border-top: 1px solid #e2e8f0; /* Garis pemisah halus di atasnya */
+    border-top: 1px solid #e2e8f0;
+    /* Garis pemisah halus di atasnya */
     display: flex;
-    gap: 15px; /* Jarak antar tombol */
-    justify-content: flex-end; /* Posisi di kanan */
+    gap: 15px;
+    /* Jarak antar tombol */
+    justify-content: flex-end;
+    /* Posisi di kanan */
 }
 
 /* Gaya Dasar Shared untuk Kedua Tombol */
@@ -786,15 +793,19 @@ button:disabled {
     font-family: 'Inter', sans-serif;
     font-weight: 600;
     font-size: 1rem;
-    padding: 12px 24px; /* Ukuran lebih besar agar mudah diklik */
-    border-radius: 8px; /* Sudut lebih membulat modern */
+    padding: 12px 24px;
+    /* Ukuran lebih besar agar mudah diklik */
+    border-radius: 8px;
+    /* Sudut lebih membulat modern */
     border: none;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Transisi smooth */
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* Shadow dasar */
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Transisi smooth */
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    /* Shadow dasar */
     color: white;
     letter-spacing: 0.5px;
 }
@@ -838,7 +849,8 @@ button:disabled {
 .btn-publish {
     /* Gradien merah (menggunakan warna brand Alfamart sebagai basis) */
     background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-    font-weight: 700; /* Lebih tebal untuk menandakan "Final" */
+    font-weight: 700;
+    /* Lebih tebal untuk menandakan "Final" */
 }
 
 .btn-publish:hover {
@@ -854,9 +866,11 @@ button:disabled {
     padding: 20px;
     background: #fff;
     border-radius: 12px;
-    box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.05); /* Shadow ke atas */
+    box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.05);
+    /* Shadow ke atas */
     display: flex;
-    justify-content: space-between; /* Kiri: Info, Kanan: Tombol */
+    justify-content: space-between;
+    /* Kiri: Info, Kanan: Tombol */
     align-items: center;
     border: 1px solid #e2e8f0;
 }
