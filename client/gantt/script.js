@@ -808,7 +808,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div style="width:30%; min-width: 150px;"> 
                         <label style="font-size:11px; color:#718096; font-weight:600; display:block; margin-bottom:4px;">${labelKeterikatan}</label>
                         
-                        <select class="form-control dep-select" data-task-id="${task.id}" style="font-size:12px; padding:6px; width:100%;" onchange="handleDependencyChange(${task.id}, this.value)">
+                        <select class="form-control dep-select" data-task-id="${task.id}" style="font-size:12px; padding:6px; width:100%;">
                             ${dependencyOptions}
                         </select>
                         
@@ -997,50 +997,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    window.handleDependencyChange = async function (parentId, childId) {
-        if (isInitializing) return;
-        const parentTask = currentTasks.find(t => t.id === parseInt(parentId));
-        
-        const oldChildTask = currentTasks.find(t => t.dependency === parseInt(parentId));
-        
-        const newChildTask = childId ? currentTasks.find(t => t.id === parseInt(childId)) : null;
-
-        try {
-            document.body.style.cursor = 'wait';
-
-            if (oldChildTask) {
-                await removeDependency(oldChildTask.name, parentTask.name);
-                oldChildTask.dependency = null; 
-            }
-            if (newChildTask) {
-                if (newChildTask.id <= parentTask.id) {
-                    alert("Hanya bisa memilih tahapan selanjutnya (ID lebih besar).");
-                    renderApiData(); // Reset dropdown
-                    return;
-                }
-
-                await saveDependency(newChildTask.name, parentTask.name);
-                
-                newChildTask.dependency = parseInt(parentId);
-                
-                updateLocalDependencyData(newChildTask.name, parentTask.name);
-            } 
-            else if (oldChildTask) {
-                updateLocalDependencyData(oldChildTask.name, null);
-            }
-
-            console.log(`Update Sukses: ${parentTask.name} dilanjutkan oleh ${newChildTask ? newChildTask.name : 'Tidak Ada'}`);
-            renderBottomActionBar();
-
-        } catch (err) {
-            console.error("Dependency update failed:", err);
-            alert("Gagal menyimpan keterikatan: " + err.message);
-            renderApiData();
-        } finally {
-            document.body.style.cursor = 'default';
-        }
-    }
-
     async function saveDependency(kategori, kategoriTerikat) {
         const payload = {
             "nomor_ulok": currentProject.ulokClean,
@@ -1127,111 +1083,176 @@ document.addEventListener('DOMContentLoaded', () => {
         updateStats();
     }
 
-    window.applyTaskSchedule = function () {
-        if (isInitializing) return;
+    window.applyTaskSchedule = async function () { // Tambahkan async
+    if (isInitializing) return;
 
-        let tempTasks = JSON.parse(JSON.stringify(currentTasks)); // Deep copy data
-        let error = false;
-        const maxAllowedDay = parseInt(currentProject.duration) || 999;
+    // Tampilkan loading cursor
+    document.body.style.cursor = 'wait';
+    const btnApply = document.querySelector('.btn-apply-schedule');
+    if(btnApply) btnApply.textContent = "Menyimpan...";
 
-        // 1. Reset Dependency di tempTasks dulu
-        tempTasks.forEach(t => t.dependency = null);
+    let tempTasks = JSON.parse(JSON.stringify(currentTasks)); 
+    let error = false;
+    const maxAllowedDay = parseInt(currentProject.duration) || 999;
 
-        // 2. BACA INPUT DARI UI (Dropdown & Tanggal)
-        currentTasks.forEach(realTask => {
-            const container = document.getElementById(`ranges-${realTask.id}`);
-            const depSelect = document.querySelector(`.dep-select[data-task-id="${realTask.id}"]`);
-            
-            // Baca Dropdown: Value yang dipilih adalah CHILD ID
-            const selectedChildId = depSelect ? parseInt(depSelect.value) : null;
-            
-            // Mapping Dependency: Jika Baris A memilih B, maka B bergantung pada A.
-            if (selectedChildId) {
-                const childTaskInTemp = tempTasks.find(t => t.id === selectedChildId);
-                if (childTaskInTemp) {
-                    childTaskInTemp.dependency = realTask.id; // Anak bergantung pada Parent
-                }
-            }
+    // 1. Reset Dependency di tempTasks dulu
+    tempTasks.forEach(t => t.dependency = null);
 
-            // Baca Range Tanggal
-            if (container) {
-                let newRanges = [];
-                Array.from(container.children).forEach(row => {
-                    const s = parseInt(row.querySelector('[data-type="start"]').value) || 0;
-                    const e = parseInt(row.querySelector('[data-type="end"]').value) || 0;
-                    if (s !== 0 && e !== 0) {
-                        if (e < s) error = true;
-                        if (e > maxAllowedDay) error = true;
-                        newRanges.push({ start: s, end: e, duration: e - s + 1 });
-                    }
-                });
-                const myTaskInTemp = tempTasks.find(t => t.id === realTask.id);
-                if (myTaskInTemp) myTaskInTemp.inputData = { ranges: newRanges };
-            }
-        });
+    // 2. BACA INPUT DARI UI (Dropdown & Tanggal)
+    // Kita simpan list dependency baru untuk dikirim ke server nanti
+    let newDependencyList = []; 
 
-        if (error) {
-            alert("Terdapat kesalahan pada input tanggal (Cek durasi max / start > end).");
-            return;
-        }
-
-        // ============================================================
-        // 3. VALIDASI KETERIKATAN (STRICT MODE) - [LOGIKA BARU]
-        // ============================================================
-        // Aturan: Start Child HARUS > End Parent.
-        // Jika (Start Child <= End Parent) -> Munculkan Alert & Stop.
+    currentTasks.forEach(realTask => {
+        const container = document.getElementById(`ranges-${realTask.id}`);
+        const depSelect = document.querySelector(`.dep-select[data-task-id="${realTask.id}"]`);
         
-        for (const task of tempTasks) {
-            // Cek jika task ini punya "Induk" (Dependency)
-            if (task.dependency) {
-                const parentId = parseInt(task.dependency);
-                const parentTask = tempTasks.find(pt => pt.id === parentId);
-
-                // Pastikan Induk dan Anak punya input tanggal
-                if (parentTask && parentTask.inputData.ranges.length > 0 && task.inputData.ranges.length > 0) {
-                    
-                    // Ambil Hari Selesai Paling Akhir dari Induk
-                    const parentMaxEnd = Math.max(...parentTask.inputData.ranges.map(r => r.end));
-                    
-                    // Ambil Hari Mulai Paling Awal dari Anak
-                    const childMinStart = Math.min(...task.inputData.ranges.map(r => r.start));
-
-                    // LOGIKA VALIDASI:
-                    // Anak tidak boleh mulai SEBELUM atau SAMA DENGAN Induk selesai.
-                    // Contoh: Induk selesai hari 5. Anak mulai hari 5 (Gagal). Anak mulai hari 6 (Sukses).
-                    if (childMinStart <= parentMaxEnd) {
-                        alert(
-                            `❌ VALIDASI JADWAL GAGAL\n\n` +
-                            `Tahapan "${task.name}" (Mulai Hari ke-${childMinStart}) tidak boleh mendahului atau bersamaan dengan selesainya ` +
-                            `Tahapan "${parentTask.name}" (Selesai Hari ke-${parentMaxEnd}).\n\n` +
-                            `Harap ubah jadwal "${task.name}" agar dimulai minimal Hari ke-${parentMaxEnd + 1}.`
-                        );
-                        return; // HENTIKAN PROSES. Tidak disimpan.
-                    }
-                }
+        // Baca Dropdown: Value yang dipilih adalah CHILD ID
+        const selectedChildId = depSelect ? parseInt(depSelect.value) : null;
+        
+        // Mapping Dependency: Jika Baris A memilih B, maka B bergantung pada A.
+        if (selectedChildId) {
+            const childTaskInTemp = tempTasks.find(t => t.id === selectedChildId);
+            const parentTaskInTemp = tempTasks.find(t => t.id === realTask.id);
+            
+            if (childTaskInTemp && parentTaskInTemp) {
+                childTaskInTemp.dependency = realTask.id; // Update Lokal
+                
+                // Masukkan ke antrian simpan server
+                newDependencyList.push({
+                    parentName: parentTaskInTemp.name,
+                    childName: childTaskInTemp.name
+                });
             }
         }
 
-        // 4. Update Final Data (Jika Lolos Validasi)
-        tempTasks.forEach(task => {
-            const ranges = task.inputData.ranges;
-            const totalDur = ranges.reduce((sum, r) => sum + r.duration, 0);
-            const minStart = ranges.length ? Math.min(...ranges.map(r => r.start)) : 0;
-            task.start = minStart;
-            task.duration = totalDur;
-            
-            // Hapus data shift (karena sekarang manual user yang atur)
-            if(task.computed) task.computed.shift = 0; 
-        });
+        // Baca Range Tanggal (Sama seperti sebelumnya)
+        if (container) {
+            let newRanges = [];
+            Array.from(container.children).forEach(row => {
+                const s = parseInt(row.querySelector('[data-type="start"]').value) || 0;
+                const e = parseInt(row.querySelector('[data-type="end"]').value) || 0;
+                if (s !== 0 && e !== 0) {
+                    if (e < s) error = true;
+                    if (e > maxAllowedDay) error = true;
+                    newRanges.push({ start: s, end: e, duration: e - s + 1 });
+                }
+            });
+            const myTaskInTemp = tempTasks.find(t => t.id === realTask.id);
+            if (myTaskInTemp) myTaskInTemp.inputData = { ranges: newRanges };
+        }
+    });
 
-        currentTasks = tempTasks;
-        hasUserInput = true;
-        saveProjectSchedule("Active");
-        renderChart(); 
-        updateStats();
-        renderApiData();
-        renderBottomActionBar();
+    if (error) {
+        alert("Terdapat kesalahan pada input tanggal (Cek durasi max / start > end).");
+        document.body.style.cursor = 'default';
+        if(btnApply) btnApply.textContent = "Hitung & Terapkan Jadwal";
+        return;
     }
+
+    // 3. VALIDASI KETERIKATAN (STRICT MODE)
+    for (const task of tempTasks) {
+        if (task.dependency) {
+            const parentId = parseInt(task.dependency);
+            const parentTask = tempTasks.find(pt => pt.id === parentId);
+            if (parentTask && parentTask.inputData.ranges.length > 0 && task.inputData.ranges.length > 0) {
+                const parentMaxEnd = Math.max(...parentTask.inputData.ranges.map(r => r.end));
+                const childMinStart = Math.min(...task.inputData.ranges.map(r => r.start));
+
+                if (childMinStart <= parentMaxEnd) {
+                    alert(
+                        `❌ VALIDASI JADWAL GAGAL\n\n` +
+                        `Tahapan "${task.name}" (Mulai Hari ke-${childMinStart}) tidak boleh mendahului atau bersamaan dengan selesainya ` +
+                        `Tahapan "${parentTask.name}" (Selesai Hari ke-${parentMaxEnd}).\n\n` +
+                        `Harap ubah jadwal "${task.name}" agar dimulai minimal Hari ke-${parentMaxEnd + 1}.`
+                    );
+                    document.body.style.cursor = 'default';
+                    if(btnApply) btnApply.textContent = "Hitung & Terapkan Jadwal";
+                    return; 
+                }
+            }
+        }
+    }
+
+    // 4. Update Final Data Lokal
+    tempTasks.forEach(task => {
+        const ranges = task.inputData.ranges;
+        const totalDur = ranges.reduce((sum, r) => sum + r.duration, 0);
+        const minStart = ranges.length ? Math.min(...ranges.map(r => r.start)) : 0;
+        task.start = minStart;
+        task.duration = totalDur;
+        if(task.computed) task.computed.shift = 0; 
+    });
+
+    currentTasks = tempTasks;
+    hasUserInput = true;
+
+    // ==================== NEW: SINKRONISASI DEPENDENCY KE SERVER ====================
+    try {
+        // A. Simpan Jadwal Utama (Gantt Data & Tanggal)
+        await saveProjectSchedule("Active");
+
+        // B. Simpan Dependency (Batch Update)
+        // 1. Siapkan payload HAPUS semua dependency lama (Clean Slate)
+        // Kita gunakan dependencyData yang ada di memori (state dari server sebelumnya)
+        if (dependencyData.length > 0) {
+            const removePayload = {
+                "nomor_ulok": currentProject.ulokClean,
+                "lingkup_pekerjaan": currentProject.work.toUpperCase(),
+                "remove_dependency_data": dependencyData.map(d => ({
+                    "Kategori": d.Kategori,
+                    "Kategori_Terikat": d.Kategori_Terikat // Opsional tergantung backend, tapi aman dikirim
+                }))
+            };
+            // Kirim request hapus
+            await fetch(ENDPOINTS.dependencyInsert, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(removePayload)
+            });
+        }
+
+        // 2. Siapkan payload INSERT dependency baru dari UI
+        if (newDependencyList.length > 0) {
+            const insertPayload = {
+                "nomor_ulok": currentProject.ulokClean,
+                "lingkup_pekerjaan": currentProject.work.toUpperCase(),
+                "dependency_data": newDependencyList.map(item => ({
+                    "Kategori": item.parentName.toUpperCase(),
+                    "Kategori_Terikat": item.childName.toUpperCase()
+                }))
+            };
+            // Kirim request simpan baru
+            await fetch(ENDPOINTS.dependencyInsert, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(insertPayload)
+            });
+        }
+
+        // 3. Update Variable Lokal dependencyData agar sinkron tanpa refresh
+        dependencyData = newDependencyList.map(item => ({
+            "Nomor Ulok": currentProject.ulokClean,
+            "Lingkup_Pekerjaan": currentProject.work.toUpperCase(),
+            "Kategori": item.parentName,
+            "Kategori_Terikat": item.childName
+        }));
+
+        console.log("✅ Dependencies Synced:", dependencyData);
+
+    } catch (err) {
+        console.error("Sync Error:", err);
+        alert("Jadwal tersimpan, namun gagal menyimpan data keterikatan: " + err.message);
+    } finally {
+        document.body.style.cursor = 'default';
+        if(btnApply) btnApply.textContent = "Hitung & Terapkan Jadwal";
+    }
+    // ==============================================================================
+
+    renderChart(); 
+    updateStats();
+    renderApiData(); // Re-render form untuk update state dropdown
+    renderBottomActionBar(); // Cek ulang validasi tombol kunci
+}
 
     window.confirmAndPublish = function () {
         // Cegah save saat inisialisasi/refresh
