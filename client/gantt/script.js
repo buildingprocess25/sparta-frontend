@@ -423,6 +423,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Render semua komponen
         renderProjectInfo();
         renderApiData();
+        renderBottomActionBar();
 
         if (hasUserInput) {
             renderChart();
@@ -843,11 +844,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 <button class="btn-reset-schedule" onclick="resetTaskSchedule()">Reset</button>
                 <button class="btn-apply-schedule" onclick="applyTaskSchedule()">Hitung & Terapkan Jadwal</button>
             </div>
-            <div class="task-input-actions" style="border-top:none; padding-top:0;">
-                <button class="btn-publish" onclick="confirmAndPublish()" style="${btnStyle}" ${btnDisabledAttr}>
-                    ${lockLabel}
-                </button>
-            </div>
         </div>`;
         container.innerHTML = html;
     }
@@ -1002,68 +998,44 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     window.handleDependencyChange = async function (parentId, childId) {
-        // parentId = ID dari Task baris ini (Induk/Parent)
-        // childId  = ID dari Task yang dipilih di dropdown (Anak/Child)
-
         if (isInitializing) return;
-
-        // Cari Object Data untuk Parent (Induk)
         const parentTask = currentTasks.find(t => t.id === parseInt(parentId));
         
-        // 1. CARI ANAK LAMA (PENTING!)
-        // Sebelum menyimpan yang baru, kita harus cek apakah Parent ini 
-        // sebelumnya sudah punya hubungan dengan anak lain?
-        // Kita cari: Task mana yang kolom dependency-nya == parentId
         const oldChildTask = currentTasks.find(t => t.dependency === parseInt(parentId));
         
-        // 2. CARI ANAK BARU (Yang baru dipilih di dropdown)
         const newChildTask = childId ? currentTasks.find(t => t.id === parseInt(childId)) : null;
 
         try {
             document.body.style.cursor = 'wait';
 
-            // A. BERSIHKAN HUBUNGAN LAMA
-            // Jika dulunya Task 1 terhubung ke Task 5, sekarang diganti ke Task 6,
-            // Maka hubungan Task 5 -> Task 1 harus dihapus dulu.
             if (oldChildTask) {
-                // Hapus data di server
                 await removeDependency(oldChildTask.name, parentTask.name);
-                // Hapus data di local memory
                 oldChildTask.dependency = null; 
             }
-
-            // B. SIMPAN HUBUNGAN BARU
-            // Jika user memilih Task baru (bukan memilih "Tidak Ada")
             if (newChildTask) {
-                // Cek Validasi Logika (Mencegah loop aneh, opsional tapi bagus)
                 if (newChildTask.id <= parentTask.id) {
                     alert("Hanya bisa memilih tahapan selanjutnya (ID lebih besar).");
                     renderApiData(); // Reset dropdown
                     return;
                 }
 
-                // Simpan data di server: "Anak bergantung pada Induk"
-                // saveDependency(Yang_Tergantung, Yang_Ditunggu)
                 await saveDependency(newChildTask.name, parentTask.name);
                 
-                // Simpan data di local memory
                 newChildTask.dependency = parseInt(parentId);
                 
-                // Update array dependency global untuk keperluan chart
                 updateLocalDependencyData(newChildTask.name, parentTask.name);
             } 
             else if (oldChildTask) {
-                // Jika user memilih "- Tidak Ada -", maka update dependencyData lokal agar kosong
                 updateLocalDependencyData(oldChildTask.name, null);
             }
 
             console.log(`Update Sukses: ${parentTask.name} dilanjutkan oleh ${newChildTask ? newChildTask.name : 'Tidak Ada'}`);
+            renderBottomActionBar();
 
         } catch (err) {
             console.error("Dependency update failed:", err);
             alert("Gagal menyimpan keterikatan: " + err.message);
-            // Jika gagal, refresh tampilan agar dropdown kembali ke posisi benar
-            renderApiData(); 
+            renderApiData();
         } finally {
             document.body.style.cursor = 'default';
         }
@@ -1145,6 +1117,7 @@ document.addEventListener('DOMContentLoaded', () => {
         hasUserInput = false;
         dependencyData = [];
         renderApiData();
+        renderBottomActionBar();
         document.getElementById("ganttChart").innerHTML = `
             <div style="text-align: center; padding: 60px; color: #6c757d;">
                 <div style="font-size: 48px; margin-bottom: 20px;">ℹ️</div>
@@ -1257,6 +1230,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderChart(); 
         updateStats();
         renderApiData();
+        renderBottomActionBar();
     }
 
     window.confirmAndPublish = function () {
@@ -1457,7 +1431,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==================== 12. CHART RENDER ====================
-    // ==================== 12. CHART RENDER (UPDATED) ====================
     function renderChart() {
         const chart = document.getElementById('ganttChart');
         const DAY_WIDTH = 40;
@@ -1647,6 +1620,67 @@ document.addEventListener('DOMContentLoaded', () => {
 
         html += `</div>`;
         chart.innerHTML = html;
+    }
+
+    // ==================== FUNGSI BARU: TOMBOL BAWAH ====================
+    window.renderBottomActionBar = function () {
+        const container = document.getElementById('bottom-action-container');
+        if (!container) return;
+
+        // Reset konten
+        container.innerHTML = '';
+
+        // 1. Cek Mode Aplikasi (Hanya Kontraktor yang bisa kunci)
+        if (APP_MODE !== 'kontraktor') return;
+
+        // 2. Cek apakah Project Terkunci
+        if (isProjectLocked) {
+             container.innerHTML = `
+                <div class="bottom-info-text">
+                    ✅ <strong>Status: Terkunci.</strong> Jadwal telah diterbitkan ke PIC.
+                </div>`;
+             return;
+        }
+
+        // 3. Validasi Data (Sama seperti logika sebelumnya)
+        // a. Cek Tanggal Lengkap
+        const isAllDatesFilled = currentTasks.length > 0 && currentTasks.every(t =>
+            t.inputData && t.inputData.ranges && t.inputData.ranges.length > 0
+        );
+
+        // b. Cek Keterikatan (Validasi Forward Chaining)
+        const sortedTasks = [...currentTasks].sort((a, b) => a.id - b.id);
+        const lastTaskId = sortedTasks.length > 0 ? sortedTasks[sortedTasks.length - 1].id : 0;
+        
+        const isAllConnected = sortedTasks.every(task => {
+            if (task.id === lastTaskId) return true; // Task terakhir boleh tidak punya anak
+            // Cek apakah ada task lain yang menjadikan task ini sebagai dependency
+            return currentTasks.some(child => child.dependency === task.id);
+        });
+
+        const isReadyToLock = isAllDatesFilled && isAllConnected;
+
+        // 4. Siapkan Label & Atribut
+        let btnText = isReadyToLock ? "Kunci & Terbitkan Jadwal" : "Lengkapi Jadwal Dahulu";
+        let btnAttr = isReadyToLock ? "" : "disabled";
+        
+        // Info text di sebelah kiri tombol
+        let infoText = isReadyToLock 
+            ? "Pastikan grafik di atas sudah sesuai sebelum mengunci." 
+            : "Harap lengkapi <strong>Durasi</strong> dan <strong>Keterikatan</strong> pada semua tahapan.";
+
+        // 5. Render HTML
+        container.innerHTML = `
+            <div class="bottom-info-text">
+                ℹ️ ${infoText}
+            </div>
+            <button class="btn-publish-bottom" onclick="confirmAndPublish()" ${btnAttr}>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                ${btnText}
+            </button>
+        `;
     }
 
     function updateProjectFromRab(rab) {
