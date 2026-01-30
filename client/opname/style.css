@@ -408,6 +408,49 @@ tr:hover td { background-color: #f8fafc; }
 
 @media (max-width: 768px) {
 
+    /* === GLOBAL APP HEADER (NAVBAR) FIX === */
+    .app-header {
+        flex-direction: column; /* Ubah orientasi jadi vertikal (atas-bawah) */
+        height: auto; /* Tinggi otomatis menyesuaikan isi */
+        padding: 1.5rem 1rem;
+        gap: 1rem;
+        justify-content: center;
+    }
+
+    /* Reset posisi Logo */
+    .header-logo {
+        position: static; /* Matikan posisi absolute */
+        transform: none; /* Matikan centering transform */
+        width: 100px; /* Ukuran logo di HP */
+        margin-bottom: 5px;
+        left: auto;
+        top: auto;
+    }
+
+    /* Judul di tengah */
+    .app-header div {
+        width: 100%;
+        text-align: center;
+    }
+
+    .app-header h1 {
+        font-size: 1.5rem; /* Ukuran font judul sedikit lebih kecil */
+        margin: 0;
+    }
+
+    /* Reset Tombol Logout/Dashboard */
+    .header-logout {
+        position: static; /* Matikan posisi absolute */
+        transform: none;
+        right: auto;
+        top: auto;
+        width: 100%; /* Tombol selebar layar */
+        display: flex;
+        justify-content: center;
+        margin-top: 5px;
+        padding: 10px;
+    }
+
     /* === 1. OPNAME HEADER & NAVIGATION === */
     /* Target div header di dalam card Opname */
     .card .d-flex.align-center.gap-2 {
