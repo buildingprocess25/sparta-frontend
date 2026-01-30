@@ -73,6 +73,10 @@ body {
     box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
 }
 
+#password {
+    text-transform: uppercase; /* Secara visual langsung terlihat kapital */
+}
+
 button[type="submit"] {
     width: 100%;
     padding: 0.85rem;

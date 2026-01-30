@@ -23,6 +23,12 @@ async function logLoginAttempt(username, cabang, status) {
 
 document.addEventListener("DOMContentLoaded", () => {
     const passwordInput = document.getElementById("password");
+    passwordInput.addEventListener("input", function() {
+        const start = this.selectionStart;
+        const end = this.selectionEnd;
+        this.value = this.value.toUpperCase();
+        this.setSelectionRange(start, end);
+    });
     const togglePassword = document.getElementById("togglePassword");
     const eyeOpen = document.getElementById("eyeOpen");
     const eyeSlashed = document.getElementById("eyeSlashed");
@@ -44,7 +50,7 @@ document.addEventListener("DOMContentLoaded", () => {
         e.preventDefault();
 
         const username = loginForm.username.value;
-        const password = passwordInput.value; // Password = Kode Cabang
+        const password = passwordInput.value.toUpperCase();
 
         loginMessage.textContent = "Logging in...";
         loginMessage.className = "login-message";
