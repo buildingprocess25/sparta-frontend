@@ -105,7 +105,7 @@ function initApp() {
     document.querySelectorAll(".input-decimal").forEach(input => {
         input.addEventListener("input", (e) => {
             e.target.value = formatDecimalInput(e.target.value);
-            // Export Button - langsung export data tabel ke CSV
+            // Export Button - hanya field yang diminta dan tampilkan tabel preview + total
             const exportBtn = document.getElementById('exportBtn');
             if (exportBtn) {
                 exportBtn.addEventListener('click', function () {
@@ -114,13 +114,14 @@ function initApp() {
                         return;
                     }
                     // Siapkan data untuk export
-                    const header = ['No', 'Kode Toko', 'Nama Toko', 'Cabang', 'Status'];
+                    const header = ['No', 'Kode Toko', 'Nama Toko', 'Cabang', 'Waktu Update', 'Terakhir Diedit'];
                     const rows = filteredDocuments.map((doc, i) => [
                         i + 1,
                         doc.kode_toko || '',
                         doc.nama_toko || '',
                         doc.cabang || '',
-                        (doc._exportStatus === 'complete' || doc.status === 'complete') ? 'Sudah Lengkap' : 'Belum Lengkap'
+                        doc.updated_at || '',
+                        doc.last_edited || ''
                     ]);
                     let csvContent = header.join(',') + '\n' + rows.map(r => r.join(',')).join('\n');
                     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -132,6 +133,22 @@ function initApp() {
                     a.click();
                     document.body.removeChild(a);
                     URL.revokeObjectURL(url);
+
+                    // Tampilkan tabel preview dan total data di bawah tombol Export
+                    let previewHtml = `<div style="margin-top:2rem"><b>Total Toko: ${filteredDocuments.length}</b></div>`;
+                    previewHtml += '<table class="table" style="margin-top:1rem"><thead><tr>' +
+                        header.map(h => `<th>${h}</th>`).join('') + '</tr></thead><tbody>';
+                    rows.forEach(row => {
+                        previewHtml += '<tr>' + row.map(cell => `<td>${cell}</td>`).join('') + '</tr>';
+                    });
+                    previewHtml += '</tbody></table>';
+                    let previewDiv = document.getElementById('export-preview');
+                    if (!previewDiv) {
+                        previewDiv = document.createElement('div');
+                        previewDiv.id = 'export-preview';
+                        exportBtn.parentNode.appendChild(previewDiv);
+                    }
+                    previewDiv.innerHTML = previewHtml;
                 });
             }
         });
