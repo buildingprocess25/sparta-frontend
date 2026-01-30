@@ -499,7 +499,9 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // 1. Filter Template: Hanya ambil item yang COCOK dengan RAB
             tasksToUse = tasksToUse.filter(task => {
-                const normalizedTaskName = task.name.toLowerCase().trim();X
+                // PERBAIKAN: Menghapus 'X' yang sebelumnya ada di ujung baris ini
+                const normalizedTaskName = task.name.toLowerCase().trim();
+                
                 return normalizedFilteredCategories.some(fc => 
                     normalizedTaskName.includes(fc) || fc.includes(normalizedTaskName)
                 );
@@ -509,7 +511,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tasksToUse = tasksToUse.map((task, index) => ({
                 ...task,
                 id: index + 1
-            }));X
+            })); // PERBAIKAN: Menghapus 'X' di sini juga
         }
 
         currentTasks = tasksToUse.map(t => ({
