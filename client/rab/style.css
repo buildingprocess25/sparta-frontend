@@ -468,28 +468,45 @@ table tbody td select:focus {
 
     /* === 2. HEADER ADJUSTMENTS === */
     header {
-        gap: 0.5rem;
+        flex-direction: column; /* Penting: Susun elemen dari atas ke bawah */
+        height: auto; /* Biarkan tinggi menyesuaikan konten */
+        padding: 1.5rem 1rem;
+        gap: 1rem; /* Jarak antar elemen */
+        align-items: center; /* Pastikan semua rata tengah */
     }
 
-    header h1 {
-        font-size: 1.2rem; /* Judul lebih kecil agar tidak makan tempat */
-        line-height: 1.4;
-    }
-
+    /* Reset posisi Logo */
     .header-logo {
-        width: 100px; /* Logo diperkecil proporsional */
-        margin-bottom: 5px;
+        position: static; /* Matikan absolute positioning */
+        transform: none; /* Matikan centering desktop */
+        width: 100px; /* Ukuran logo di HP */
+        height: auto;
+        margin: 0; /* Hapus margin desktop */
     }
 
+    /* Reset Judul */
+    header h1 {
+        font-size: 1.25rem; 
+        line-height: 1.4;
+        margin: 0;
+        text-align: center;
+        width: 100%; /* Pastikan teks tidak terpotong */
+    }
+
+    /* Reset Tombol Dashboard */
     .btn-back-header {
-        position: relative; /* Ubah dari absolute ke relative agar tidak menumpuk */
-        top: auto;
-        right: auto;
-        transform: none;
-        margin-top: 10px;
-        width: 100%;
-        justify-content: center;
-        background: rgba(255, 255, 255, 0.15);
+        position: static; /* Matikan absolute positioning */
+        transform: none; /* Matikan centering desktop */
+        width: 100%; /* Tombol selebar layar */
+        display: flex;
+        justify-content: center; /* Teks & Icon di tengah tombol */
+        margin-top: 0.5rem;
+        padding: 10px;
+        background: rgba(255, 255, 255, 0.2); /* Background sedikit lebih terang agar terlihat tombol */
+    }
+    
+    .btn-back-header:hover {
+        background: rgba(255, 255, 255, 0.3);
     }
 
     /* === 3. COMPLEX FORM INPUTS (NOMOR ULOK) === */
