@@ -105,25 +105,33 @@ function initApp() {
     document.querySelectorAll(".input-decimal").forEach(input => {
         input.addEventListener("input", (e) => {
             e.target.value = formatDecimalInput(e.target.value);
-            // Export Button
+            // Export Button - langsung export data tabel ke CSV
             const exportBtn = document.getElementById('exportBtn');
             if (exportBtn) {
                 exportBtn.addEventListener('click', function () {
-                    // Simpan data tabel yang sedang tampil ke sessionStorage
-                    try {
-                        const exportData = filteredDocuments.map((doc) => ({
-                            kodeToko: doc.kode_toko || "",
-                            namaToko: doc.nama_toko || "",
-                            cabang: doc.cabang || "",
-                            status: doc._exportStatus || "",
-                        }));
-                        sessionStorage.setItem('svdokumen_export', JSON.stringify(exportData));
-                    } catch (e) { }
-                    const cabang = document.getElementById('filter-cabang').value;
-                    const status = document.getElementById('filter-status').value;
-                    // Kirim ke halaman export dengan query string
-                    const params = new URLSearchParams({ cabang, status });
-                    window.location.href = `export.html?${params.toString()}`;
+                    if (!filteredDocuments.length) {
+                        alert('Tidak ada data untuk diexport!');
+                        return;
+                    }
+                    // Siapkan data untuk export
+                    const header = ['No', 'Kode Toko', 'Nama Toko', 'Cabang', 'Status'];
+                    const rows = filteredDocuments.map((doc, i) => [
+                        i + 1,
+                        doc.kode_toko || '',
+                        doc.nama_toko || '',
+                        doc.cabang || '',
+                        (doc._exportStatus === 'complete' || doc.status === 'complete') ? 'Sudah Lengkap' : 'Belum Lengkap'
+                    ]);
+                    let csvContent = header.join(',') + '\n' + rows.map(r => r.join(',')).join('\n');
+                    const blob = new Blob([csvContent], { type: 'text/csv' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'export_dokumen.csv';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
                 });
             }
         });
