@@ -286,6 +286,17 @@ async function saveTemp(payload) {
     }).then(r => r.json());
 }
 
+async function cekStatus(nomorUlok) {
+    if (!nomorUlok) return null;
+    try {
+        const res = await fetch(`${API_BASE_URL}/doc/status/${nomorUlok}`);
+        return await res.json();
+    } catch (e) {
+        console.error("Gagal cek status:", e);
+        return null; // Asumsikan aman jika error, atau throw error tergantung kebijakan
+    }
+}
+
 // ==========================================
 // 5. EVENT LISTENERS
 // ==========================================
@@ -548,39 +559,66 @@ function formatDateInput(dateStr) {
     catch { return ""; }
 }
 
+function preloadImage(src) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve(src);
+        img.onerror = () => resolve(src); // Tetap resolve agar tidak memblokir Promise.all
+        img.src = src;
+    });
+}
+
 async function loadTempData(ulok) {
     if(!ulok) return;
-    showLoading("Cek data server...");
+    showLoading("Sinkronisasi data..."); // Ubah text loading
     try {
         const res = await getTempByUlok(ulok);
         if (res.ok && res.data) {
-            populateForm(res.data); // Ini akan mengisi form detail toko
+            populateForm(res.data);
+            
             if (Array.isArray(res.data.photos)) {
                 STATE.photos = {};
-                const promises = res.data.photos.map((pid, idx) => {
-                    if(!pid) return null;
+                const preloadPromises = []; // Array untuk menampung promise gambar
+
+                res.data.photos.forEach((pid, idx) => {
+                    if(!pid) return; // skip jika null
+                    
                     const id = idx + 1;
                     const url = `${API_BASE_URL}/doc/view-photo/${pid}`;
+                    
+                    // Masukkan ke queue preload
+                    preloadPromises.push(preloadImage(url));
+
+                    // Set state
                     STATE.photos[id] = {
                         url: url,
                         point: ALL_POINTS.find(p => p.id === id),
-                        timestamp: new Date().toISOString()
+                        timestamp: new Date().toISOString(),
+                        // Versi React menyimpan note juga jika ada, di vanilla belum ada logic get note
+                        // Jika backend mengembalikan struktur object, sesuaikan di sini.
+                        // Asumsi backend saat ini mengembalikan array ID string.
                     };
-                    return new Promise(r => { 
-                        const img = new Image(); 
-                        img.onload = r; img.onerror = r; 
-                        img.src = url; 
-                    });
                 });
-                await Promise.all(promises);
+
+                // Tunggu semua gambar selesai di-download browser sebelum update UI
+                if (preloadPromises.length > 0) {
+                    await Promise.all(preloadPromises);
+                }
                 
+                // Logic penentuan nomor foto berikutnya
                 const taken = Object.keys(STATE.photos).map(Number);
                 const next = taken.length > 0 ? Math.max(...taken) + 1 : 1;
                 STATE.currentPhotoNumber = next > 38 ? 38 : next;
             }
         }
-    } catch(e) { console.error(e); } 
-    finally { hideLoading(); }
+    } catch(e) { 
+        console.error(e); 
+        showToast("Gagal memuat data tersimpan", "error");
+    } finally { 
+        hideLoading(); 
+        // Render ulang denah setelah data siap
+        renderFloorPlan(); 
+    }
 }
 
 async function saveFormDataBackground() {
@@ -795,7 +833,26 @@ function showWarningModal(msg, onOk) {
     show(getEl("warning-modal"));
 }
 
-function generateAndSendPDF() {
+async function generateAndSendPDF() {
+    // 1. CEK STATUS VALIDASI TERLEBIH DAHULU (Fitur yang hilang)
+    const ulok = STATE.formData.nomorUlok;
+    if (ulok) {
+        showLoading("Mengecek status dokumen...");
+        try {
+            const statusRes = await cekStatus(ulok);
+            // Sesuaikan logika ini dengan FloorPlan.js React
+            if (statusRes && (statusRes.status === "DISETUJUI" || statusRes.status === "MENUNGGU VALIDASI")) {
+                hideLoading();
+                showToast(`Dokumen berstatus ${statusRes.status}, tidak bisa disimpan ulang!`, "error");
+                // Tampilkan modal peringatan juga agar lebih jelas
+                showWarningModal(`Gagal Simpan!\nDokumen ini sudah berstatus: ${statusRes.status}.\nAnda tidak diperbolehkan mengubah data lagi.`);
+                return; // STOP PROSES
+            }
+        } catch (e) {
+            console.warn("Gagal cek status, melanjutkan...", e);
+        }
+    }
+
     showLoading("Membuat PDF...");
     const worker = new Worker("pdf.worker.js", { type: "module" });
 
@@ -808,45 +865,74 @@ function generateAndSendPDF() {
     worker.onmessage = async (e) => {
         const { ok, pdfBase64, pdfBlob, error } = e.data;
         if(!ok) {
-            console.error(error); alert("Gagal membuat PDF");
+            console.error(error); 
+            showToast("Gagal membuat PDF", "error");
             hideLoading(); worker.terminate(); return;
         }
 
         try {
-            showLoading("Mengirim PDF ke Email...");
+            showLoading("Mengirim PDF & Email...");
             const user = STATE.user;
             const safeDate = STATE.formData.tanggalAmbilFoto || "unknown";
             const filename = `Dokumentasi_${STATE.formData.kodeToko}_${safeDate}.pdf`;
 
-            const payload = { ...STATE.formData, pdfBase64, emailPengirim: user.email || "" };
+            // Payload lengkap
+            const payload = { 
+                ...STATE.formData, 
+                pdfBase64, 
+                emailPengirim: user.email || "" 
+            };
             
+            // 2. SAVE TEMP TERAKHIR (Seperti di React, simpan state terakhir ke temp db)
+            await saveTemp(payload);
+
+            // 3. SAVE KE GOOGLE DRIVE & SPREADSHEET
             const resSave = await fetch(`${API_BASE_URL}/doc/save-toko`, {
                 method: "POST", headers:{"Content-Type":"application/json"},
                 body: JSON.stringify(payload)
             });
             const jsonSave = await resSave.json();
-            if(!jsonSave.ok) throw new Error("Gagal simpan ke Spreadsheet");
+            
+            if(!jsonSave.ok) throw new Error(jsonSave.error || "Gagal simpan ke Spreadsheet");
 
+            // 4. KIRIM EMAIL
             await fetch(`${API_BASE_URL}/doc/send-pdf-email`, {
                 method:"POST", headers:{"Content-Type":"application/json"},
                 body: JSON.stringify({
-                    email: user.email, pdfBase64, filename, pdfUrl: jsonSave.pdfUrl, ...STATE.formData
+                    email: user.email, 
+                    pdfBase64, 
+                    filename, 
+                    pdfUrl: jsonSave.pdfUrl, 
+                    ...STATE.formData
                 })
             });
 
+            // 5. DOWNLOAD FILE LOKAL
             const url = URL.createObjectURL(pdfBlob);
             const a = document.createElement("a");
             a.href = url; a.download = filename;
             document.body.appendChild(a); a.click(); a.remove();
 
+            // Set flag berhasil (localStorage trick seperti di React)
+            localStorage.setItem("saved_ok", "1");
             showToast("Berhasil disimpan & dikirim! ✅");
+            
+            // Opsional: Reload halaman atau update UI
+            setTimeout(() => {
+                // Bisa redirect atau refresh jika perlu
+            }, 2000);
+
         } catch(err) {
-            console.error(err); alert("Error upload: " + err.message);
+            console.error(err); 
+            showToast("Error upload: " + err.message, "error");
         } finally {
             hideLoading(); worker.terminate();
         }
     };
+    
     worker.onerror = (e) => {
-        console.error("Worker Error", e); hideLoading(); worker.terminate();
+        console.error("Worker Error", e); 
+        showToast("Error Worker PDF", "error");
+        hideLoading(); worker.terminate();
     };
 }
