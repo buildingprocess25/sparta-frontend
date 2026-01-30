@@ -1086,8 +1086,9 @@ function handleExportData() {
     URL.revokeObjectURL(url);
 }
 
+
 // ==========================================
-// Fitur Export to PDF (With Totals)
+// Fitur Export to PDF (With Totals & Details)
 // ==========================================
 function handleExportToPDF() {
     // 1. Cek Ketersediaan Library
@@ -1108,7 +1109,6 @@ function handleExportToPDF() {
 
     // --- HITUNG TOTAL ---
     const totalData = filteredDocuments.length;
-    // Hitung berapa yang lengkap dan belum
     let completeCount = 0;
     let incompleteCount = 0;
 
@@ -1122,7 +1122,14 @@ function handleExportToPDF() {
         }
 
         const statusText = statusCheck.complete ? "Sudah Lengkap" : "Belum Lengkap";
-        const missingText = statusCheck.complete ? "-" : `${statusCheck.missingCount} Item`;
+
+        // PERUBAHAN 1: Tampilkan list item kekurangan dipisah koma/baris baru
+        // Jika lengkap, strip (-). Jika kurang, gabungkan listnya.
+        const missingText = statusCheck.complete ? "-" : statusCheck.missingList.join(', ');
+
+        // PERUBAHAN 2: Perbaiki pengambilan field Waktu Update (biasanya 'timestamp')
+        const waktuUpdate = docItem.timestamp || docItem.updated_at || "-";
+        const editor = docItem.last_edit || docItem.pic_name || "-";
 
         // Format data untuk baris tabel
         return [
@@ -1131,9 +1138,9 @@ function handleExportToPDF() {
             docItem.nama_toko || "-",
             docItem.cabang || "-",
             statusText,
-            missingText,
-            docItem.updated_at || "-",
-            docItem.last_edit || docItem.pic_name || "-"
+            missingText,   // Kolom 5: Sekarang berisi teks detail
+            waktuUpdate,   // Kolom 6: Sudah diperbaiki
+            editor
         ];
     });
 
@@ -1148,15 +1155,14 @@ function handleExportToPDF() {
     doc.setFontSize(10);
     doc.text(`Tanggal Cetak: ${today}`, 14, 22);
 
-    // Tampilkan Filter Info (Opsional)
+    // Tampilkan Filter Info
     const activeCabang = document.getElementById("filter-cabang")?.value || "Semua Cabang";
     doc.text(`Filter Cabang: ${activeCabang}`, 14, 27);
 
     // --- BAGIAN TOTAL (SUMMARY) ---
-    // Kita buat kotak kecil atau text summary di atas tabel
     doc.setDrawColor(0);
     doc.setFillColor(240, 240, 240);
-    doc.rect(14, 32, 100, 20, 'F'); // Kotak background abu-abu
+    doc.rect(14, 32, 100, 20, 'F');
 
     doc.setFontSize(10);
     doc.setTextColor(0, 0, 0);
@@ -1172,29 +1178,36 @@ function handleExportToPDF() {
 
     // --- GENERATE TABEL ---
     doc.autoTable({
-        startY: 55, // Mulai di bawah summary
-        head: [['No', 'Kode', 'Nama Toko', 'Cabang', 'Status', 'Kekurangan', 'Update Terakhir', 'Editor']],
+        startY: 55,
+        // Update header kolom ke-6 jadi 'Detail Kekurangan'
+        head: [['No', 'Kode', 'Nama Toko', 'Cabang', 'Status', 'Detail Kekurangan', 'Update Terakhir', 'Editor']],
         body: tableRows,
         theme: 'grid',
-        headStyles: { fillColor: [41, 128, 185] }, // Warna biru header
-        styles: { fontSize: 9 },
+        headStyles: { fillColor: [41, 128, 185], valign: 'middle', halign: 'center' },
+        styles: { fontSize: 8, valign: 'top' }, // Font dikecilkan sedikit agar muat
         columnStyles: {
-            0: { cellWidth: 10 }, // No
-            1: { cellWidth: 20 }, // Kode
-            2: { cellWidth: 50 }, // Nama
-            3: { cellWidth: 25 }, // Cabang
-            4: { cellWidth: 30 }, // Status
-            5: { cellWidth: 25 }, // Kekurangan
+            0: { cellWidth: 10, halign: 'center' }, // No
+            1: { cellWidth: 15 }, // Kode
+            2: { cellWidth: 40 }, // Nama Toko
+            3: { cellWidth: 20 }, // Cabang
+            4: { cellWidth: 25 }, // Status
+            5: { cellWidth: 80 }, // Detail Kekurangan (Dibuat LEBAR agar muat list item)
+            6: { cellWidth: 35 }, // Update Terakhir
+            7: { cellWidth: 'auto' } // Editor (Sisa ruang)
         },
         didParseCell: function (data) {
-            // Warnai teks status secara otomatis
+            // Warnai teks status
             if (data.section === 'body' && data.column.index === 4) {
                 if (data.cell.raw === 'Belum Lengkap') {
-                    data.cell.styles.textColor = [200, 0, 0]; // Merah
+                    data.cell.styles.textColor = [200, 0, 0];
+                    data.cell.styles.fontStyle = 'bold';
                 } else {
-                    data.cell.styles.textColor = [0, 100, 0]; // Hijau
+                    data.cell.styles.textColor = [0, 100, 0];
+                    data.cell.styles.fontStyle = 'bold';
                 }
             }
+            // Khusus kolom 'Detail Kekurangan', jika teks panjang otomatis akan wrap (turun baris)
+            // karena sifat default autoTable.
         }
     });
 
