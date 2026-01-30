@@ -145,3 +145,59 @@ button[type="submit"]:active {
     width: 100%;
     height: 100%;
 }
+
+/* =========================================
+   MOBILE RESPONSIVE OVERRIDES (LOGIN)
+   ========================================= */
+
+@media (max-width: 480px) {
+    /* Mengatur ulang layout container agar pas di layar sempit */
+    .login-container {
+        padding: 1.5rem; /* Kurangi padding (desktop: 2.5rem) */
+        width: 90%; /* Beri jarak kiri-kanan */
+        max-width: none; /* Reset max-width */
+    }
+
+    /* Mengecilkan ukuran logo */
+    .login-logo {
+        height: 40px;
+        margin-bottom: 0.75rem;
+    }
+
+    /* Mengecilkan font judul */
+    .login-header h1 {
+        font-size: 1.4rem;
+    }
+
+    .login-header h3 {
+        font-size: 1rem; /* Sub-judul Login */
+    }
+
+    /* Mengatur tombol kembali agar lebih rapi */
+    .btn-back {
+        font-size: 0.85rem;
+        margin-bottom: 0.5rem;
+    }
+
+    /* Pastikan input font size minimal 16px untuk mencegah 
+       auto-zoom pada browser iOS (iPhone) saat mengetik */
+    .form-group input {
+        font-size: 16px; 
+        padding: 0.65rem 0.85rem;
+    }
+}
+
+/* === LANDSCAPE MODE FIX === */
+/* Mencegah form terpotong saat HP dimiringkan (layar pendek) */
+@media (max-height: 600px) {
+    body {
+        height: auto; /* Matikan fix height 100vh */
+        min-height: 100vh;
+        padding: 2rem 0; /* Beri jarak atas bawah */
+        align-items: flex-start; /* Mulai dari atas, bukan tengah */
+    }
+    
+    .login-container {
+        margin: 20px auto; /* Margin aman saat di-scroll */
+    }
+}
