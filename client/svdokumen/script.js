@@ -113,6 +113,11 @@ function initApp() {
         exportBtn.addEventListener('click', handleExportData);
     }
 
+    const exportPdfBtn = document.getElementById('btn-export-pdf');
+    if (exportPdfBtn) {
+        exportPdfBtn.addEventListener('click', handleExportToPDF);
+    }
+
     setupAutoCalculation();
 
     // Search & Filter
@@ -1079,4 +1084,121 @@ function handleExportData() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+}
+
+// ==========================================
+// Fitur Export to PDF (With Totals)
+// ==========================================
+function handleExportToPDF() {
+    // 1. Cek Ketersediaan Library
+    if (!window.jspdf) {
+        alert("Library PDF belum dimuat. Pastikan Anda terhubung ke internet.");
+        return;
+    }
+
+    // 2. Cek Data
+    if (!filteredDocuments || filteredDocuments.length === 0) {
+        alert('Tidak ada data untuk diexport (Tabel kosong)!');
+        return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    // Gunakan orientasi 'l' (landscape) agar tabel muat banyak kolom
+    const doc = new jsPDF('l', 'mm', 'a4');
+
+    // --- HITUNG TOTAL ---
+    const totalData = filteredDocuments.length;
+    // Hitung berapa yang lengkap dan belum
+    let completeCount = 0;
+    let incompleteCount = 0;
+
+    const tableRows = filteredDocuments.map((docItem, index) => {
+        const statusCheck = checkDocumentCompleteness(docItem.file_links);
+
+        if (statusCheck.complete) {
+            completeCount++;
+        } else {
+            incompleteCount++;
+        }
+
+        const statusText = statusCheck.complete ? "Sudah Lengkap" : "Belum Lengkap";
+        const missingText = statusCheck.complete ? "-" : `${statusCheck.missingCount} Item`;
+
+        // Format data untuk baris tabel
+        return [
+            index + 1,
+            docItem.kode_toko || "-",
+            docItem.nama_toko || "-",
+            docItem.cabang || "-",
+            statusText,
+            missingText,
+            docItem.updated_at || "-",
+            docItem.last_edit || docItem.pic_name || "-"
+        ];
+    });
+
+    // --- HEADER PDF ---
+    const today = new Date().toLocaleDateString('id-ID', {
+        day: 'numeric', month: 'long', year: 'numeric'
+    });
+
+    doc.setFontSize(16);
+    doc.text("Laporan Status Dokumen Toko", 14, 15);
+
+    doc.setFontSize(10);
+    doc.text(`Tanggal Cetak: ${today}`, 14, 22);
+
+    // Tampilkan Filter Info (Opsional)
+    const activeCabang = document.getElementById("filter-cabang")?.value || "Semua Cabang";
+    doc.text(`Filter Cabang: ${activeCabang}`, 14, 27);
+
+    // --- BAGIAN TOTAL (SUMMARY) ---
+    // Kita buat kotak kecil atau text summary di atas tabel
+    doc.setDrawColor(0);
+    doc.setFillColor(240, 240, 240);
+    doc.rect(14, 32, 100, 20, 'F'); // Kotak background abu-abu
+
+    doc.setFontSize(10);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Total Toko: ${totalData}`, 18, 38);
+
+    doc.setTextColor(0, 100, 0); // Hijau
+    doc.text(`Sudah Lengkap: ${completeCount}`, 18, 43);
+
+    doc.setTextColor(200, 0, 0); // Merah
+    doc.text(`Belum Lengkap: ${incompleteCount}`, 18, 48);
+
+    doc.setTextColor(0, 0, 0); // Reset Hitam
+
+    // --- GENERATE TABEL ---
+    doc.autoTable({
+        startY: 55, // Mulai di bawah summary
+        head: [['No', 'Kode', 'Nama Toko', 'Cabang', 'Status', 'Kekurangan', 'Update Terakhir', 'Editor']],
+        body: tableRows,
+        theme: 'grid',
+        headStyles: { fillColor: [41, 128, 185] }, // Warna biru header
+        styles: { fontSize: 9 },
+        columnStyles: {
+            0: { cellWidth: 10 }, // No
+            1: { cellWidth: 20 }, // Kode
+            2: { cellWidth: 50 }, // Nama
+            3: { cellWidth: 25 }, // Cabang
+            4: { cellWidth: 30 }, // Status
+            5: { cellWidth: 25 }, // Kekurangan
+        },
+        didParseCell: function (data) {
+            // Warnai teks status secara otomatis
+            if (data.section === 'body' && data.column.index === 4) {
+                if (data.cell.raw === 'Belum Lengkap') {
+                    data.cell.styles.textColor = [200, 0, 0]; // Merah
+                } else {
+                    data.cell.styles.textColor = [0, 100, 0]; // Hijau
+                }
+            }
+        }
+    });
+
+    // --- SAVE FILE ---
+    const dateStr = new Date().toISOString().slice(0, 10);
+    doc.save(`Laporan_Dokumen_${dateStr}.pdf`);
 }
