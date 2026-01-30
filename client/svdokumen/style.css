@@ -190,15 +190,6 @@ header h1 {
     font-size: 1rem;
 }
 
-/* Responsiveness: Jika layar kecil, badge mengisi lebar penuh atau menyesuaikan */
-@media (max-width: 768px) {
-    .total-badge {
-        order: 2; /* Mengatur urutan jika perlu */
-        flex-grow: 1;
-        justify-content: center;
-    }
-}
-
 /* === TABLE STYLES === */
 .table-container {
     width: 100%;
@@ -929,3 +920,147 @@ input:disabled { background-color: #f9f9f9; color: #555; border-color: #ddd; cur
 }
 
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+/* =========================================
+   MOBILE RESPONSIVE OVERRIDES
+   (Max-width: 768px matches tablets and phones)
+   ========================================= */
+
+@media (max-width: 768px) {
+    
+    /* === HEADER ADJUSTMENTS === */
+    header {
+        flex-direction: column;
+        height: auto;
+        padding: 1.5rem 1rem;
+        gap: 1rem;
+    }
+
+    /* Reset absolute positioning for mobile flow */
+    .header-logo {
+        position: static;
+        transform: none;
+        width: 100px; /* Sedikit lebih kecil agar proporsional */
+        margin-bottom: 0.5rem;
+    }
+
+    .btn-back-header {
+        position: static;
+        transform: none;
+        width: 100%; /* Tombol full width agar mudah ditekan */
+        justify-content: center;
+        margin-top: 0.5rem;
+    }
+
+    header h1 {
+        font-size: 1.25rem; /* Font size judul dikecilkan sedikit */
+        margin: 0;
+    }
+
+    /* === CONTAINER & PADDING === */
+    .container {
+        padding: 0 1rem;
+        margin: 1rem auto;
+    }
+
+    .view-section {
+        padding: 1.25rem; /* Mengurangi padding card utama */
+    }
+
+    /* === CONTROLS STACKING (Search, Filter, Button) === */
+    .table-controls {
+        flex-direction: column;
+        align-items: stretch; /* Memaksa elemen selebar layar */
+        gap: 12px;
+    }
+
+    .search-input, 
+    .filter-select, 
+    .btn-primary,
+    .total-badge {
+        width: 100%;
+        min-width: 0; /* Mencegah overflow flex item */
+    }
+
+    /* Pindahkan badge total ke atas agar user langsung tahu jumlah data */
+    .total-badge {
+        order: -1; 
+        justify-content: center;
+        margin-bottom: 5px;
+    }
+
+    /* === RESPONSIVE TABLE (SCROLLABLE) === */
+    .table-container {
+        /* Mengaktifkan scroll horizontal */
+        overflow-x: auto; 
+        -webkit-overflow-scrolling: touch; /* Smooth scroll di iOS */
+        border: 1px solid #e5e5e5;
+    }
+
+    /* Memastikan tombol aksi tidak terlalu lebar di mobile, 
+       bisa dibuat stack vertikal jika kolom terlalu sempit */
+    .table td:last-child {
+        min-width: 140px;
+    }
+    
+    .action-buttons {
+        flex-direction: column; /* Tombol edit/hapus atas-bawah biar hemat tempat horizontal */
+        gap: 6px;
+    }
+    
+    .btn-action + .btn-action {
+        margin-left: 0;
+    }
+    
+    .btn-action {
+        width: 100%;
+    }
+
+    /* === FORM & GRID ADJUSTMENTS === */
+    /* Paksa menjadi 1 kolom pada layar kecil */
+    .form-grid {
+        grid-template-columns: 1fr; 
+        gap: 1rem;
+    }
+
+    /* === UPLOAD SECTION === */
+    .upload-grid {
+        grid-template-columns: 1fr; /* Kartu upload jadi 1 kolom ke bawah */
+    }
+
+    .upload-section-group {
+        padding: 1rem;
+    }
+
+    .upload-section-title {
+        font-size: 1rem;
+    }
+
+    /* === MODAL & TOAST === */
+    .modal-box {
+        width: 90%;
+        padding: 1.5rem;
+    }
+
+    .toast {
+        left: 20px;
+        right: 20px;
+        bottom: 20px;
+        text-align: center;
+        width: auto;
+    }
+
+    /* === USER GREETING === */
+    .user-greeting-wrapper {
+        margin-top: 15px;
+    }
+    
+    .user-info {
+        font-size: 0.8rem;
+        padding: 6px 16px;
+        width: 90%; /* Agar tidak terlalu lebar di HP */
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
