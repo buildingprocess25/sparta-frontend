@@ -488,40 +488,49 @@ document.addEventListener('DOMContentLoaded', () => {
     function loadDefaultTasks(selectedValue) {
         let template = currentProject.work === 'ME' ? taskTemplateME : taskTemplateSipil;
         
-        // Clone template agar tidak merubah referensi asli
-        let tasksToUse = JSON.parse(JSON.stringify(template));
-
-        // Filter tasks based on filtered_categories from API if available (DARI RAB)
+        // Cek apakah ada data kategori dari RAB (API)
         if (filteredCategories && Array.isArray(filteredCategories) && filteredCategories.length > 0) {
             console.log("📋 Menggunakan Filter Kategori dari RAB:", filteredCategories);
             
-            const normalizedFilteredCategories = filteredCategories.map(c => c.toLowerCase().trim());
-            
-            // 1. Filter Template: Hanya ambil item yang COCOK dengan RAB
-            tasksToUse = tasksToUse.filter(task => {
-                // PERBAIKAN: Menghapus 'X' yang sebelumnya ada di ujung baris ini
-                const normalizedTaskName = task.name.toLowerCase().trim();
-                
-                return normalizedFilteredCategories.some(fc => 
-                    normalizedTaskName.includes(fc) || fc.includes(normalizedTaskName)
-                );
+            // PERBAIKAN: Gunakan RAB sebagai Sumber Utama (Source of Truth)
+            // Loop array dari RAB, bukan memfilter template.
+            currentTasks = filteredCategories.map((rabItemName, index) => {
+                const rabNameClean = rabItemName.toLowerCase().trim();
+
+                // Cari padanan di template untuk standardisasi (Opsional)
+                const templateMatch = template.find(t => {
+                    const tName = t.name.toLowerCase().trim();
+                    return tName === rabNameClean || tName.includes(rabNameClean) || rabNameClean.includes(tName);
+                });
+                const finalName = templateMatch ? templateMatch.name : rabItemName;
+
+                return {
+                    id: index + 1,
+                    name: finalName, // Nama sesuai RAB atau Template
+                    start: 0,
+                    duration: 0,
+                    dependencies: [],
+                    dependency: null,
+                    keterlambatan: 0,
+                    inputData: { ranges: [] }
+                };
             });
 
-            // 2. Re-Map ID agar urut kembali (1, 2, 3...)
-            tasksToUse = tasksToUse.map((task, index) => ({
-                ...task,
-                id: index + 1
-            })); // PERBAIKAN: Menghapus 'X' di sini juga
+        } else {
+            // Fallback: Jika RAB kosong, gunakan Full Template Default
+            console.warn("⚠️ Data RAB kosong/tidak valid. Menggunakan template default.");
+            currentTasks = JSON.parse(JSON.stringify(template)).map(t => ({
+                ...t,
+                inputData: { ranges: [] }
+            }));
         }
 
-        currentTasks = tasksToUse.map(t => ({
-            ...t,
-            inputData: { ranges: [] }
-        }));
-        
         projectTasks[selectedValue] = currentTasks;
         hasUserInput = false;
         isProjectLocked = false;
+        
+        // Render ulang agar perubahan terlihat
+        renderApiData();
     }
 
     // ==================== 8. PARSING LOGIC ====================
