@@ -233,35 +233,105 @@ header h1 {
     border-left: 6px solid #2b6cb0;
 }
 
-/* --- RESPONSIVE --- */
-@media (max-width: 640px) {
+/* =========================================
+   MOBILE RESPONSIVE OVERRIDES (SPK FORM)
+   ========================================= */
+
+@media (max-width: 768px) {
+    
+    /* === 1. HEADER ADJUSTMENTS === */
+    /* Menyamakan layout header dengan halaman lain */
     header {
         flex-direction: column;
+        height: auto;
+        padding: 1.5rem 1rem;
         gap: 1rem;
-        padding-bottom: 1.5rem;
     }
-    
+
     .header-logo {
         position: static;
         transform: none;
+        width: 100px;
         margin-bottom: 0.5rem;
+    }
+
+    header h1 {
+        font-size: 1.3rem; /* Font sedikit lebih kecil */
+        margin: 0;
+        line-height: 1.4;
     }
 
     .btn-back-header {
         position: static;
         transform: none;
-        width: 100%;
+        width: 100%; /* Tombol full width */
         justify-content: center;
         margin-top: 0.5rem;
+        background: rgba(255, 255, 255, 0.2);
     }
 
+    /* === 2. CONTAINER & FORM === */
     .container {
-        padding: 1.5rem;
-        margin: 1rem;
+        padding: 1.25rem; /* Kurangi padding container */
+        margin: 1rem auto;
+        width: 95%; /* Maksimalkan lebar */
+    }
+
+    /* Input Standard & Select */
+    .form-container input:not([type="hidden"]):not(.input-inline),
+    .form-container select:not(.input-inline),
+    .control {
+        font-size: 16px; /* Mencegah auto-zoom di iOS */
+        padding: 12px; /* Area sentuh lebih besar */
+    }
+
+    /* === 3. COMPLEX INLINE INPUTS (SPK & PAR) === */
+    /* Menangani input nomor yang berjejer (Bulan/Tahun) */
+    .inline-group-container {
+        gap: 8px;
+        background: #f8fafc; /* Beri background tipis agar terlihat satu kesatuan */
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px dashed #cbd5e0;
+    }
+
+    /* Teks statis (Contoh: /PROPNDEV-) diperkecil sedikit */
+    .text-label {
+        font-size: 0.8rem; 
+        white-space: normal; /* Izinkan teks turun baris jika sempit */
+    }
+
+    /* Input kecil (Bulan/Tahun) dibuat flexibel */
+    .input-inline {
+        min-width: 60px; /* Lebar minimal agar angka tidak terpotong */
+        flex: 1; /* Biarkan input melebar mengisi ruang kosong */
+        font-size: 16px !important;
+        text-align: center;
+        padding: 10px !important;
+    }
+
+    /* Separator (garis miring / atau strip -) */
+    .separator {
+        font-weight: bold;
+        color: #cbd5e0;
+    }
+
+    /* === 4. RAB DETAILS BOX === */
+    #rab-details {
+        padding: 1rem !important;
+        font-size: 0.9rem;
     }
     
-    /* Pada layar HP, search select padding disesuaikan */
-    .search-select .control {
-        padding: 0.9rem;
+    #rab-details p {
+        margin-bottom: 8px;
+        line-height: 1.4;
+        word-wrap: break-word; /* Mencegah teks panjang merusak layout */
+    }
+
+    /* === 5. SUBMIT BUTTON === */
+    #submit-button {
+        padding: 14px;
+        font-size: 1.1rem;
+        margin-top: 1rem;
     }
 }
