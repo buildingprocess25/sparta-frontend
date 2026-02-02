@@ -309,7 +309,7 @@ async function loadSpkData(cabang) {
 
 async function getTempByUlok(nomorUlok) {
     // [FIX] Endpoint ke /get-temp
-    const res = await fetch(`${API_BASE_URL}/get-temp`, {
+    const res = await fetch(`${API_BASE_URL}/doc/get-temp`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nomorUlok }),
     });
