@@ -1,19 +1,20 @@
-// pdf.worker.js (Versi Vanilla JS)
+// pdf.worker.js
 
-// 1. Import library jsPDF dari CDN (gunakan importScripts untuk Web Worker klasik)
+// 1. Import library jsPDF dari CDN (gunakan importScripts untuk Web Worker)
 importScripts("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
 
 self.onmessage = async (e) => {
     try {
+        // Terima data lengkap dari script.js
         const { formData, capturedPhotos, allPhotoPoints } = e.data;
         
-        // Akses jsPDF dari global object (karena importScripts)
+        // Akses jsPDF dari global object
         const { jsPDF } = self.jspdf; 
         const doc = new jsPDF();
         
         // --- SETUP HALAMAN & FONT ---
         const pageWidth = doc.internal.pageSize.getWidth();
-        const pageHeight = doc.internal.pageSize.getHeight();
+        // const pageHeight = doc.internal.pageSize.getHeight(); // (Opsional, jika butuh tinggi halaman)
         const margin = 15;
         let yPos = 20;
 
@@ -25,7 +26,10 @@ self.onmessage = async (e) => {
             
             doc.setFontSize(10);
             doc.setFont("helvetica", "normal");
-            doc.text(`Toko: ${formData.namaToko} (${formData.kodeToko})`, pageWidth / 2, 22, { align: "center" });
+            // Pastikan data tidak null/undefined sebelum diakses
+            const namaToko = formData.namaToko || "-";
+            const kodeToko = formData.kodeToko || "-";
+            doc.text(`Toko: ${namaToko} (${kodeToko})`, pageWidth / 2, 22, { align: "center" });
             
             doc.setLineWidth(0.5);
             doc.line(margin, 25, pageWidth - margin, 25);
@@ -59,7 +63,7 @@ self.onmessage = async (e) => {
         // Urutkan foto berdasarkan ID
         const sortedIds = Object.keys(capturedPhotos).map(Number).sort((a, b) => a - b);
         
-        // Config Grid Foto (2 Kolom x 2 Baris per halaman = 4 Foto)
+        // Config Grid Foto
         const photoWidth = 80;
         const photoHeight = 60; // Rasio 4:3
         const gapX = 10;
@@ -67,7 +71,7 @@ self.onmessage = async (e) => {
         
         let count = 0;
         
-        // Mulai halaman foto
+        // Mulai halaman foto jika ada foto
         if (sortedIds.length > 0) {
             doc.addPage();
             addHeader("DOKUMENTASI FOTO");
@@ -94,7 +98,10 @@ self.onmessage = async (e) => {
             // Judul Foto
             doc.setFontSize(9);
             doc.setFont("helvetica", "bold");
-            const label = allPhotoPoints.find(p => p.id === id)?.label || `Foto #${id}`;
+            
+            // Cari label dari array allPhotoPoints yang dikirim dari script.js
+            const pointInfo = allPhotoPoints.find(p => p.id === id);
+            const label = pointInfo ? pointInfo.label : `Foto #${id}`;
             
             // Text wrapping agar tidak nabrak
             const splitTitle = doc.splitTextToSize(`${id}. ${label}`, photoWidth);
@@ -103,13 +110,20 @@ self.onmessage = async (e) => {
             // Render Gambar
             try {
                 if (photo.url && photo.url.startsWith("data:image")) {
+                    // Jika base64, render langsung
                     doc.addImage(photo.url, "JPEG", x, y, photoWidth, photoHeight);
-                } else if (photo.url && photo.url.includes("fototidakbisadiambil")) {
-                     // Handle kasus khusus jika foto default (opsional: bisa draw rect atau text)
+                } else {
+                     // Jika URL biasa (bukan base64), gambar kotak abu-abu dengan text
+                     // karena worker tidak bisa fetch gambar dari URL external dengan mudah tanpa CORS
                      doc.setDrawColor(200);
                      doc.setFillColor(240);
                      doc.rect(x, y, photoWidth, photoHeight, "FD");
-                     doc.text("TIDAK BISA DIFOTO", x + photoWidth/2, y + photoHeight/2, {align:"center"});
+                     
+                     let statusText = "FOTO TERSIMPAN";
+                     if(photo.url.includes("fototidakbisadiambil")) statusText = "TIDAK BISA DIFOTO";
+                     
+                     doc.setFontSize(8);
+                     doc.text(statusText, x + photoWidth/2, y + photoHeight/2, {align:"center"});
                 }
             } catch (err) {
                 console.error("Error add image PDF", err);
@@ -127,13 +141,14 @@ self.onmessage = async (e) => {
         }
 
         // --- OUTPUT ---
-        const pdfBase64 = doc.output('datauristring'); // Format: "data:application/pdf;base64,..."
+        const pdfBase64 = doc.output('datauristring');
         const pdfBlob = doc.output('blob');
 
         // Kirim balik ke main thread
         self.postMessage({ ok: true, pdfBase64, pdfBlob });
 
     } catch (error) {
-        self.postMessage({ ok: false, error: error.message });
+        // Tangkap error detail
+        self.postMessage({ ok: false, error: error.message, stack: error.stack });
     }
 };

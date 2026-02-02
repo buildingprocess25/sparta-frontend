@@ -905,10 +905,12 @@ function showWarningModal(msg, onOk) {
 async function generateAndSendPDF() {
     const ulok = STATE.formData.nomorUlok;
     
+    // 1. Cek Status Dokumen
     if (ulok) {
         showLoading("Mengecek status dokumen...");
         try {
             const statusRes = await cekStatus(ulok);
+            // Jika status sudah final, tolak
             if (statusRes && (statusRes.status === "DISETUJUI" || statusRes.status === "MENUNGGU VALIDASI")) {
                 hideLoading();
                 showToast(`Dokumen status ${statusRes.status}, tidak bisa disimpan!`, "error");
@@ -919,47 +921,58 @@ async function generateAndSendPDF() {
     }
 
     showLoading("Membuat PDF...");
-    // Pastikan path pdf.worker.js benar relatif terhadap HTML
+    
+    // Inisialisasi Worker
     const worker = new Worker("pdf.worker.js"); 
 
+    // KIRIM SEMUA DATA YANG DIBUTUHKAN WORKER DI SINI
     worker.postMessage({
-        formData: STATE.formData,
-        capturedPhotos: STATE.photos,
-        allPhotoPoints: ALL_POINTS
+        formData: STATE.formData,      // Data text form
+        capturedPhotos: STATE.photos,  // Data foto (url/base64)
+        allPhotoPoints: ALL_POINTS     // Data label titik foto (PENTING)
     });
 
     worker.onmessage = async (e) => {
         const { ok, pdfBase64, pdfBlob, error } = e.data;
+        
         if(!ok) {
-            console.error(error); 
-            showToast("Gagal membuat PDF", "error");
-            hideLoading(); worker.terminate(); return;
+            console.error("Worker Error:", error); 
+            showToast("Gagal membuat PDF: " + error, "error");
+            hideLoading(); 
+            worker.terminate(); 
+            return;
         }
 
         try {
             showLoading("Mengirim PDF & Email...");
             const user = STATE.user;
             const safeDate = formatDateInput(STATE.formData.tanggalAmbilFoto) || "unknown";
-            const filename = `Dokumentasi_${STATE.formData.kodeToko}_${safeDate}.pdf`;
+            const filename = `Dokumentasi_${STATE.formData.kodeToko || "TOKO"}_${safeDate}.pdf`;
 
+            // Payload untuk save-toko
             const payload = { 
                 ...STATE.formData, 
                 pdfBase64, 
                 emailPengirim: user.email || "" 
             };
             
+            // Simpan Data Sementara (Backup)
             await saveTemp(payload);
 
-            const resSave = await fetch(`${API_BASE_URL}/doc/save-toko`, {
-                method: "POST", headers:{"Content-Type":"application/json"},
+            // Simpan Final ke Spreadsheet
+            const resSave = await fetch(`${API_BASE_URL}/save-toko`, {
+                method: "POST", 
+                headers: {"Content-Type":"application/json"},
                 body: JSON.stringify(payload)
             });
             const jsonSave = await resSave.json();
             
             if(!jsonSave.ok) throw new Error(jsonSave.error || "Gagal simpan ke Spreadsheet");
 
-            await fetch(`${API_BASE_URL}/doc/send-pdf-email`, {
-                method:"POST", headers:{"Content-Type":"application/json"},
+            // Kirim Email
+            await fetch(`${API_BASE_URL}/send-pdf-email`, {
+                method:"POST", 
+                headers:{"Content-Type":"application/json"},
                 body: JSON.stringify({
                     email: user.email, 
                     pdfBase64, 
@@ -969,6 +982,7 @@ async function generateAndSendPDF() {
                 })
             });
 
+            // Download Otomatis
             const url = URL.createObjectURL(pdfBlob);
             const a = document.createElement("a");
             a.href = url; a.download = filename;
@@ -981,13 +995,15 @@ async function generateAndSendPDF() {
             console.error(err); 
             showToast("Error upload: " + err.message, "error");
         } finally {
-            hideLoading(); worker.terminate();
+            hideLoading(); 
+            worker.terminate();
         }
     };
     
     worker.onerror = (e) => {
-        console.error("Worker Error", e); 
+        console.error("Worker Error Event", e); 
         showToast("Error Worker PDF", "error");
-        hideLoading(); worker.terminate();
+        hideLoading(); 
+        worker.terminate();
     };
 }
