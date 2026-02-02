@@ -908,7 +908,7 @@ async function generateAndSendPDF() {
     }
 
     showLoading("Membuat PDF...");
-    const worker = new Worker("pdf.worker.js", { type: "module" });
+    const worker = new Worker("pdf.worker.js");
 
     worker.postMessage({
         formData: STATE.formData,
