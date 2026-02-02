@@ -62,6 +62,7 @@ const Auth = {
         else if (mainAuthEmail && mainAuthCabang) {
             console.log("Mendeteksi sesi Sparta Utama. Mencoba login otomatis ke Opname...");
             try {
+                // Mencoba login menggunakan data dari Session Storage (Integrasi)
                 const result = await Auth.login(mainAuthEmail, mainAuthCabang);
                 if (result.success) {
                     console.log("Auto-login Opname berhasil.");
@@ -112,11 +113,8 @@ const Auth = {
         AppState.activeView = 'dashboard';
         AppState.selectedStore = null;
 
-        if (sessionStorage.getItem("authenticated") === "true") {
-            window.location.href = "../../dashboard/index.html";
-        } else {
-            Render.app();
-        }
+        // Redirect ke Dashboard Utama karena tidak ada login page lokal
+        window.location.href = "../../dashboard/index.html";
     },
 
     startIdleTimer: () => {
@@ -364,73 +362,81 @@ const PDFGenerator = {
         startY += 10;
 
         // Filter IL agar tidak muncul di tabel RAB awal (biasanya RAB awal tidak ada IL)
-        const rabCategories = groupDataByCategory(rabData.filter((item) => !item.is_il));
+        const rabDataFiltered = rabData.filter((item) => !item.is_il);
+        const rabCategories = groupDataByCategory(rabDataFiltered);
+        
         let lastY = startY;
         let categoryNumber = 1;
         let grandTotalRAB = 0;
 
-        for (const categoryName of Object.keys(rabCategories)) {
-            if (lastY + 50 > pageHeight - 20) { addFooter(doc.getNumberOfPages()); doc.addPage(); lastY = margin + 10; }
-            
-            doc.setFontSize(11).setFont("helvetica", "bold");
-            doc.text(`${categoryNumber}. ${categoryName}`, margin, lastY);
+        if (rabDataFiltered.length === 0) {
+            doc.setFontSize(10).setFont("helvetica", "italic");
+            doc.text("Tidak ada data RAB awal.", margin, lastY);
             lastY += 10;
-            categoryNumber++;
+        } else {
+            for (const categoryName of Object.keys(rabCategories)) {
+                if (lastY + 50 > pageHeight - 20) { addFooter(doc.getNumberOfPages()); doc.addPage(); lastY = margin + 10; }
+                
+                doc.setFontSize(11).setFont("helvetica", "bold");
+                doc.text(`${categoryNumber}. ${categoryName}`, margin, lastY);
+                lastY += 10;
+                categoryNumber++;
 
-            let catMaterialTotal = 0;
-            let catUpahTotal = 0;
+                let catMaterialTotal = 0;
+                let catUpahTotal = 0;
 
-            const categoryTableBody = rabCategories[categoryName].map((item, idx) => {
-                const volume = toNumberVol_PDF(item.volume);
-                const hargaMaterial = toNumberID_PDF(item.harga_material);
-                const hargaUpah = toNumberID_PDF(item.harga_upah);
-                const totalMaterial = volume * hargaMaterial;
-                const totalUpah = volume * hargaUpah;
-                const totalHarga = totalMaterial + totalUpah;
+                const categoryTableBody = rabCategories[categoryName].map((item, idx) => {
+                    const volume = toNumberVol_PDF(item.volume);
+                    const hargaMaterial = toNumberID_PDF(item.harga_material);
+                    const hargaUpah = toNumberID_PDF(item.harga_upah);
+                    const totalMaterial = volume * hargaMaterial;
+                    const totalUpah = volume * hargaUpah;
+                    const totalHarga = totalMaterial + totalUpah;
 
-                catMaterialTotal += totalMaterial;
-                catUpahTotal += totalUpah;
-                grandTotalRAB += totalHarga;
+                    catMaterialTotal += totalMaterial;
+                    catUpahTotal += totalUpah;
+                    grandTotalRAB += totalHarga;
 
-                return [
-                    idx + 1, item.jenis_pekerjaan, item.satuan, volume.toFixed(2),
-                    formatRupiah(hargaMaterial), formatRupiah(hargaUpah),
-                    formatRupiah(totalMaterial), formatRupiah(totalUpah),
-                    formatRupiah(totalHarga)
-                ];
-            });
+                    return [
+                        idx + 1, item.jenis_pekerjaan, item.satuan, volume.toFixed(2),
+                        formatRupiah(hargaMaterial), formatRupiah(hargaUpah),
+                        formatRupiah(totalMaterial), formatRupiah(totalUpah),
+                        formatRupiah(totalHarga)
+                    ];
+                });
 
-            // Subtotal row
-            categoryTableBody.push(["", "", "", "", "", "SUB TOTAL", formatRupiah(catMaterialTotal), formatRupiah(catUpahTotal), formatRupiah(catMaterialTotal + catUpahTotal)]);
+                // Subtotal row
+                categoryTableBody.push(["", "", "", "", "", "SUB TOTAL", formatRupiah(catMaterialTotal), formatRupiah(catUpahTotal), formatRupiah(catMaterialTotal + catUpahTotal)]);
 
-            doc.autoTable({
-                head: [
-                    ["NO.", "JENIS PEKERJAAN", "SATUAN", "VOLUME", { content: "HARGA SATUAN (Rp)", colSpan: 2, styles: { halign: "center" } }, { content: "TOTAL HARGA (Rp)", colSpan: 3, styles: { halign: "center" } }],
-                    ["", "", "", "", "Material", "Upah", "Material", "Upah", "TOTAL HARGA (Rp)"]
-                ],
-                body: categoryTableBody,
-                startY: lastY,
-                margin: { left: margin, right: margin },
-                theme: "grid",
-                styles: { fontSize: 8, cellPadding: 2, lineWidth: 0.1 },
-                headStyles: { fillColor: [205, 234, 242], textColor: [0, 0, 0], fontSize: 8, fontStyle: "bold", halign: "center" },
-                columnStyles: { 
-                    0: { cellWidth: 8, halign: "center" }, 
-                    1: { cellWidth: 40 },
-                    8: { fontStyle: "bold", halign: "right" }
-                },
-                didParseCell: (data) => {
-                    if(data.section === 'body') {
-                        // Highlight baris Subtotal
-                        if (data.row.index === data.table.body.length - 1) {
-                            data.cell.styles.fillColor = [242, 242, 242];
-                            if(data.column.index >= 5) data.cell.styles.fontStyle = 'bold';
+                doc.autoTable({
+                    head: [
+                        ["NO.", "JENIS PEKERJAAN", "SATUAN", "VOLUME", { content: "HARGA SATUAN (Rp)", colSpan: 2, styles: { halign: "center" } }, { content: "TOTAL HARGA (Rp)", colSpan: 3, styles: { halign: "center" } }],
+                        ["", "", "", "", "Material", "Upah", "Material", "Upah", "TOTAL HARGA (Rp)"]
+                    ],
+                    body: categoryTableBody,
+                    startY: lastY,
+                    margin: { left: margin, right: margin },
+                    theme: "grid",
+                    styles: { fontSize: 8, cellPadding: 2, lineWidth: 0.1 },
+                    headStyles: { fillColor: [205, 234, 242], textColor: [0, 0, 0], fontSize: 8, fontStyle: "bold", halign: "center" },
+                    columnStyles: { 
+                        0: { cellWidth: 8, halign: "center" }, 
+                        1: { cellWidth: 40 },
+                        8: { fontStyle: "bold", halign: "right" }
+                    },
+                    didParseCell: (data) => {
+                        if(data.section === 'body') {
+                            // Highlight baris Subtotal
+                            if (data.row.index === data.table.body.length - 1) {
+                                data.cell.styles.fillColor = [242, 242, 242];
+                                if(data.column.index >= 5) data.cell.styles.fontStyle = 'bold';
+                            }
                         }
+                        if(data.column.index > 2) data.cell.styles.halign = 'right';
                     }
-                    if(data.column.index > 2) data.cell.styles.halign = 'right';
-                }
-            });
-            lastY = doc.lastAutoTable.finalY + 10;
+                });
+                lastY = doc.lastAutoTable.finalY + 10;
+            }
         }
 
         // Summary RAB
@@ -731,7 +737,9 @@ const Render = {
         }
 
         if (!AppState.user) {
-            Render.login(app);
+            // Karena tidak ada form login lokal, redirect ke dashboard utama
+            alert("Sesi Anda telah berakhir atau belum login. Silakan login kembali melalui Dashboard Utama.");
+            window.location.href = "../../dashboard/index.html"; 
             return;
         }
 
@@ -759,9 +767,7 @@ const Render = {
     header: () => {
         const header = document.createElement('header');
         header.className = 'app-header';
-        const isFromMainAuth = sessionStorage.getItem("authenticated") === "true";
-        const logoutText = isFromMainAuth ? "Dashboard" : "Keluar";
-
+        
         header.innerHTML = `
             <img src="../../assets/Alfamart-Emblem.png" alt="Alfamart" class="header-logo" onerror="this.style.display='none'; this.parentElement.insertAdjacentHTML('afterbegin', '<b style=\\'position:absolute;left:20px;color:white\\'>ALFAMART</b>')">
             <div style="text-align:center;">
@@ -772,7 +778,7 @@ const Render = {
                     <line x1="19" y1="12" x2="5" y2="12"></line>
                     <polyline points="12 19 5 12 12 5"></polyline>
                 </svg>
-                <span>${logoutText}</span>
+                <span>Dashboard</span>
             </button>
         `;
         header.querySelector('#btn-logout').onclick = () => Auth.logout();
@@ -791,85 +797,7 @@ const Render = {
         return wrapper;
     },
 
-    login: (container) => {
-        const eyeOpen = `
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>`;
-        const eyeClosed = `
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.243 4.243L6.228 6.228" />
-            </svg>`;
-
-        container.innerHTML = `
-            <div class="login-wrapper">
-                <div class="login-card">
-                    <a href="https://sparta-alfamart.vercel.app/dashboard/index.html" class="btn-back-link">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="19" y1="12" x2="5" y2="12"></line>
-                            <polyline points="12 19 5 12 12 5"></polyline>
-                        </svg>
-                        <span>Kembali</span>
-                    </a>
-
-                    <div class="login-header">
-                        <img src="../../assets/Alfamart-Emblem.png" alt="Logo Alfamart" style="height: 50px; margin-bottom: 1rem;">
-                        <h1>Building & Maintenance</h1>
-                        <h3>Opname</h3>
-                    </div>
-
-                    <div id="login-error" class="alert-error" style="display:none;"></div>
-
-                    <form id="login-form">
-                        <div class="form-group-custom">
-                            <label for="username">Username / Email</label>
-                            <input type="text" id="username" class="input-custom" placeholder="Masukkan email Anda" required>
-                        </div>
-                        <div class="form-group-custom">
-                            <label for="password">Password</label>
-                            <div class="password-wrapper">
-                                <input type="password" id="password" class="input-custom" placeholder="Masukkan kata sandi Anda" required>
-                                <button type="button" class="toggle-password-btn" id="toggle-pw" title="Lihat password">
-                                    ${eyeOpen}
-                                </button>
-                            </div>
-                        </div>
-                        <button type="submit" class="btn-submit-custom">Login</button>
-                    </form>
-                </div>
-            </div>
-        `;
-
-        const form = document.getElementById('login-form');
-        const pwInput = document.getElementById('password');
-        const toggleBtn = document.getElementById('toggle-pw');
-
-        toggleBtn.onclick = () => {
-            const isPassword = pwInput.type === 'password';
-            pwInput.type = isPassword ? 'text' : 'password';
-            toggleBtn.innerHTML = isPassword ? eyeClosed : eyeOpen;
-            toggleBtn.title = isPassword ? "Sembunyikan password" : "Lihat password";
-        };
-
-        form.onsubmit = async (e) => {
-            e.preventDefault();
-            const btn = form.querySelector('button[type="submit"]');
-            const errDiv = document.getElementById('login-error');
-            
-            btn.disabled = true; 
-            btn.innerHTML = "Loading...";
-            errDiv.style.display = 'none';
-
-            const result = await Auth.login(document.getElementById('username').value, pwInput.value);
-            if (!result.success) {
-                errDiv.innerText = result.message;
-                errDiv.style.display = 'block';
-                btn.disabled = false;
-                btn.innerText = "Login";
-            }
-        };
-    },
+    // Render.login DIHAPUS karena sudah terintegrasi
 
     dashboard: (container) => {
         const role = AppState.user.role;
