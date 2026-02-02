@@ -19,10 +19,12 @@ const STATE = {
     capturedBlob: null, 
     currentPoint: null, 
     stream: null,
-    currentPhotoNote: null
+    currentPhotoNote: null,
+    isLoadingData: false, // Tambahan untuk proteksi klik
+    isSavingBackground: false // Tambahan untuk indikator save background
 };
 
-// Data titik koordinat (DATA INI TETAP SAMA)
+// Data titik koordinat (TETAP SAMA)
 const PHOTO_POINTS = {
     1: [
         { id: 1, x: 67.8, y: 92.8, label: "KANAN 50 M" },
@@ -449,6 +451,7 @@ function initEventListeners() {
         formInput.addEventListener("submit", (e) => {
             e.preventDefault();
             updateStateFormData();
+            // PERBAIKAN: Gunakan status saving background, jangan block user di sini
             showToast("Menyimpan data...", "success");
             saveFormDataBackground().then(() => switchToView("floorplan"));
         });
@@ -479,48 +482,80 @@ function initEventListeners() {
     const btnRetake = getEl("btn-retake");
     if(btnRetake) btnRetake.addEventListener("click", resetCameraUI);
     
+    // PERBAIKAN: Logic Confirm Capture Optimistic
     const btnConfirm = getEl("btn-confirm-snap");
-    if(btnConfirm) btnConfirm.addEventListener("click", async () => {
+    if(btnConfirm) btnConfirm.addEventListener("click", () => {
         if (STATE.capturedBlob && STATE.capturedBlob !== "TIDAK_BISA_DIFOTO") {
-            await saveCapturedPhoto();
+            saveCapturedPhotoOptimistic();
         } else {
              closeCamera(); 
         }
     });
 
+    // PERBAIKAN: Logic Upload Photo
     const inpFile = getEl("inp-file-upload");
     if(inpFile) {
         inpFile.addEventListener("change", (e) => {
             const file = e.target.files[0];
             if(!file) return;
-            showLoading("Mengunggah foto..."); 
+            // Kita gunakan logic optimistic juga untuk upload agar seragam
             const reader = new FileReader();
-            reader.onloadend = async () => {
+            reader.onloadend = () => {
                 const base64 = reader.result;
-                try {
-                    await savePhotoToBackend(base64, null);
-                } catch (err) {
-                    showToast("Gagal upload: " + err.message, "error");
-                } finally {
-                    hideLoading();
+                // Simpan ke state sementara dulu (Optimistic)
+                const pointId = STATE.currentPoint.id;
+                STATE.photos[pointId] = {
+                    url: base64,
+                    point: STATE.currentPoint,
+                    timestamp: new Date().toISOString(),
+                    note: null
+                };
+                
+                // Update counter
+                if (pointId === STATE.currentPhotoNumber) {
+                    let next = pointId + 1;
+                    if (next > 38) next = 38;
+                    STATE.currentPhotoNumber = next;
                 }
+                
+                // Close & Render
+                closeCamera();
+                renderFloorPlan();
+                showToast(`Foto #${pointId} berhasil diunggah (menyimpan...)`, "success");
+
+                // Save Background
+                savePhotoToBackend(base64, null, pointId);
             };
             reader.readAsDataURL(file);
         });
     }
 
+    // PERBAIKAN: Logic Tidak Bisa Difoto (Optimistic)
     const btnCant = getEl("btn-cant-snap");
     if(btnCant) {
-        btnCant.addEventListener("click", async () => {
-            showLoading("Memproses...");
-            try {
-                STATE.currentPhotoNote = "TIDAK BISA DIFOTO";
-                await savePhotoToBackend(null, "TIDAK BISA DIFOTO");
-            } catch (err) {
-                showToast("Error: " + err.message, "error");
-            } finally {
-                hideLoading();
+        btnCant.addEventListener("click", () => {
+            const pointId = STATE.currentPoint.id;
+            
+            // Set state optimistic
+            STATE.photos[pointId] = {
+                url: "fototidakbisadiambil.jpeg", // Placeholder
+                point: STATE.currentPoint,
+                timestamp: new Date().toISOString(),
+                note: "TIDAK BISA DIFOTO"
+            };
+
+            if (pointId === STATE.currentPhotoNumber) {
+                let next = pointId + 1;
+                if (next > 38) next = 38;
+                STATE.currentPhotoNumber = next;
             }
+
+            closeCamera();
+            renderFloorPlan();
+            showToast(`Foto #${pointId} ditandai tidak bisa (menyimpan...)`);
+            
+            // Save Background
+            savePhotoToBackend(null, "TIDAK BISA DIFOTO", pointId);
         });
     }
 
@@ -634,6 +669,7 @@ function preloadImage(src) {
 
 async function loadTempData(ulok, isManualOverride = false) {
     if(!ulok) return;
+    STATE.isLoadingData = true; // Set flag
     showLoading("Sinkronisasi data..."); 
     try {
         const res = await getTempByUlok(ulok);
@@ -671,14 +707,17 @@ async function loadTempData(ulok, isManualOverride = false) {
     } catch(e) { 
         console.error(e); 
     } finally { 
+        STATE.isLoadingData = false; // Reset flag
         hideLoading(); 
         renderFloorPlan(); 
     }
 }
 
 async function saveFormDataBackground() {
+    STATE.isSavingBackground = true;
     try { await saveTemp(STATE.formData); console.log("Form saved background"); } 
     catch(e) { console.error("Save fail", e); }
+    finally { STATE.isSavingBackground = false; }
 }
 
 // ==========================================
@@ -703,7 +742,6 @@ function renderFloorPlan() {
         if (completed === 38) show(compSec); else hide(compSec);
     }
 
-    // UPDATE: Gunakan path gambar relatif agar tidak error 404
     const imgMap = { 
         1: "floor.png", 
         2: "floor3.jpeg", 
@@ -728,7 +766,12 @@ function renderFloorPlan() {
             btn.style.top = `${p.y}%`;
             btn.textContent = p.id;
             
-            if (!STATE.photos[p.id] && p.id > STATE.currentPhotoNumber) {
+            // PERBAIKAN: Proteksi klik saat loading
+            if (STATE.isLoadingData) {
+                btn.disabled = true;
+                btn.style.cursor = "wait";
+            }
+            else if (!STATE.photos[p.id] && p.id > STATE.currentPhotoNumber) {
                 btn.disabled = true; 
                 btn.style.opacity = 0.6;
                 btn.style.cursor = "not-allowed";
@@ -801,6 +844,12 @@ window.viewLargePhoto = (url) => {
 };
 
 async function openCamera(point) {
+    // PERBAIKAN: Cek flag loading agar aman
+    if (STATE.isLoadingData) {
+        showToast("Sedang memuat data, harap tunggu...", "error");
+        return;
+    }
+
     STATE.currentPoint = point;
     getEl("cam-title").textContent = `Foto #${point.id}: ${point.label}`;
     
@@ -867,26 +916,46 @@ function resetCameraUI() {
     hide(getEl("actions-post-capture"));
 }
 
-async function saveCapturedPhoto() {
-    showLoading("Menyimpan foto...");
-    try {
-        let base64 = null;
-        let note = STATE.currentPhotoNote || null;
-        
-        if (STATE.capturedBlob && STATE.capturedBlob !== "TIDAK_BISA_DIFOTO") {
-            base64 = await new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result);
-                reader.readAsDataURL(STATE.capturedBlob);
-            });
-        }
-        await savePhotoToBackend(base64, note);
-    } catch (e) { alert("Gagal simpan: " + e.message); } 
-    finally { hideLoading(); }
+// === PERBAIKAN: FUNGSI BARU OPTIMISTIC UI ===
+async function saveCapturedPhotoOptimistic() {
+    // 1. Ambil data foto dari blob
+    let base64 = null;
+    if (STATE.capturedBlob) {
+        base64 = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(STATE.capturedBlob);
+        });
+    }
+
+    const pointId = STATE.currentPoint.id;
+
+    // 2. Update UI secara INSTAN (Optimistic)
+    STATE.photos[pointId] = {
+        url: base64, // Pakai base64 lokal untuk preview
+        point: STATE.currentPoint,
+        timestamp: new Date().toISOString(),
+        note: null
+    };
+
+    // 3. Majukan pointer foto selanjutnya
+    if (pointId === STATE.currentPhotoNumber) {
+        let next = pointId + 1;
+        if (next > 38) next = 38;
+        STATE.currentPhotoNumber = next;
+    }
+
+    // 4. Tutup kamera & Refresh Denah (User merasa aplikasi sangat cepat)
+    closeCamera();
+    renderFloorPlan();
+    showToast(`Foto #${pointId} disimpan!`);
+
+    // 5. Kirim ke Server di BACKGROUND (Jangan pakai await blocking)
+    savePhotoToBackend(base64, null, pointId);
 }
 
-async function savePhotoToBackend(base64, note) {
-    const pointId = STATE.currentPoint.id;
+// Fungsi Backend Save (Background Process)
+async function savePhotoToBackend(base64, note, pointId) {
     const payload = {
         nomorUlok: STATE.formData.nomorUlok,
         photoId: pointId,
@@ -894,26 +963,16 @@ async function savePhotoToBackend(base64, note) {
         photoBase64: base64
     };
 
-    const res = await saveTemp(payload);
-    if (!res.ok) throw new Error(res.error || "Gagal save server");
-
-    STATE.photos[pointId] = {
-        // UPDATE: Gunakan path relatif untuk fallback image
-        url: base64 || "fototidakbisadiambil.jpeg", 
-        point: STATE.currentPoint,
-        timestamp: new Date().toISOString(),
-        note: note
-    };
-
-    if (pointId === STATE.currentPhotoNumber) {
-        let next = pointId + 1;
-        if (next > 38) next = 38;
-        STATE.currentPhotoNumber = next;
+    try {
+        // Jangan pakai showLoading() di sini agar tidak memblokir layar
+        const res = await saveTemp(payload);
+        if (!res.ok) throw new Error(res.error || "Gagal save server");
+        console.log(`Foto #${pointId} synced to server.`);
+    } catch (e) {
+        console.error("Gagal save foto background:", e);
+        showToast(`Gagal sync foto #${pointId}: ${e.message}`, "error");
+        // Opsional: Tandai foto error di UI jika perlu
     }
-    STATE.currentPhotoNote = null;
-    closeCamera();
-    renderFloorPlan();
-    showToast(`Foto #${pointId} tersimpan!`);
 }
 
 function showWarningModal(msg, onOk) {
@@ -981,9 +1040,10 @@ async function generateAndSendPDF() {
                 emailPengirim: user.email || "" 
             };
             
+            // Simpan Temp Dulu (Backup)
             await saveTemp(payload);
 
-            // UPDATE: Gunakan path /doc/save-toko (WAJIB ADA /doc/)
+            // Simpan ke Toko (Sheet/Drive)
             const resSave = await fetch(`${API_BASE_URL}/doc/save-toko`, {
                 method: "POST", 
                 headers: {"Content-Type":"application/json"},
@@ -993,7 +1053,7 @@ async function generateAndSendPDF() {
             
             if(!jsonSave.ok) throw new Error(jsonSave.error || "Gagal simpan ke Spreadsheet");
 
-            // UPDATE: Gunakan path /doc/send-pdf-email
+            // Kirim Email
             await fetch(`${API_BASE_URL}/doc/send-pdf-email`, {
                 method:"POST", 
                 headers:{"Content-Type":"application/json"},
@@ -1006,11 +1066,13 @@ async function generateAndSendPDF() {
                 })
             });
 
+            // Download Lokal
             const url = URL.createObjectURL(pdfBlob);
             const a = document.createElement("a");
             a.href = url; a.download = filename;
             document.body.appendChild(a); a.click(); a.remove();
 
+            // Reload Page agar state bersih
             localStorage.setItem("saved_ok", "1");
             location.reload(); 
             
