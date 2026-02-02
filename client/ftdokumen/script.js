@@ -702,9 +702,9 @@ function renderFloorPlan() {
         if (completed === 38) show(compSec); else hide(compSec);
     }
 
-    const imgMap = { 1: "floor.png", 2: "floor3.jpeg", 3: "floor2.jpeg" };
+    const imgMap = { 1: "../../assets/floor.png", 2: "../../assets/floor3.jpeg", 3: "../../assets/floor2.jpeg" };
     const floorImg = getEl("floor-img");
-    if(floorImg) floorImg.src = imgMap[STATE.currentPage] || "floor.png";
+    if(floorImg) floorImg.src = imgMap[STATE.currentPage] || "../../assets/floor.png";
 
     const container = getEl("points-container");
     if(container) {
