@@ -2,193 +2,238 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sparta - Dokumentasi Bangunan</title>
-    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dokumentasi Toko Baru</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <div id="app">
-        <header class="app-header">
-            <div class="header-top">
-                <h1>FOTO DOKUMENTASI BANGUNAN TOKO BARU ALFAMART</h1>
-            </div>
-            <div class="header-bottom">
-                <span class="header-left" id="headerCabangText">Building & Maintenance — ...</span>
-                <div class="header-right">
-                    <button id="btnBackToDashboard" class="btn-logout">
-                        Keluar
-                    </button>
-                </div>
-            </div>
-        </header>
+    <header class="app-header hidden" id="main-header">
+        <a href="/">
+            <img src="../../assets/Alfamart-Emblem.png" alt="Alfamart Logo" class="header-logo" />
+        </a>
+        <h1>Dokumentasi Bangunan</h1>
+        <button class="btn-back-header" id="btn-logout">
+            <i class="fa-solid fa-right-from-bracket"></i>
+            <span>Logout</span>
+        </button>
+    </header>
 
-        <main class="main-content">
-            <section id="view-form" class="view">
-                <div class="form-container-card">
-                    <div class="form-header-title">
-                        <h2>Form Input Dokumentasi</h2>
-                        <p>Lengkapi data berikut sebelum mengambil foto dokumentasi</p>
-                    </div>
-
-                    <form id="dataForm">
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label>Cabang *</label>
-                                <input type="text" name="cabang" id="inputCabang" readonly class="readonly-input">
-                            </div>
-
-                            <div class="form-group">
-                                <label>Nomor Ulok</label>
-                                <input type="text" name="nomorUlok" id="inputNomorUlok" placeholder="Contoh: Z001-2510-0001" required>
-                                <small style="display:block; margin-top:4px; color:#666;">Input manual nomor ulok</small>
-                            </div>
-
-                            <div class="form-group">
-                                <label>Kontraktor Sipil *</label>
-                                <input type="text" name="kontraktorSipil" placeholder="Isi nama kontraktor sipil" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Kontraktor ME *</label>
-                                <input type="text" name="kontraktorMe" placeholder="Isi nama kontraktor ME" required>
-                            </div>
-
-                            <div class="form-group">
-                                <label>SPK Awal *</label>
-                                <input type="date" name="spkAwal" required>
-                            </div>
-                            <div class="form-group">
-                                <label>SPK Akhir *</label>
-                                <input type="date" name="spkAkhir" required>
-                            </div>
-
-                            <div class="form-group">
-                                <label>Nama Toko *</label>
-                                <input type="text" name="namaToko" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Kode Toko *</label>
-                                <input type="text" name="kodeToko" maxlength="4" pattern="[A-Z0-9]{4}" title="4 digit kode toko" required>
-                            </div>
-
-                            <div class="form-group">
-                                <label>Tanggal GO *</label>
-                                <input type="date" name="tanggalGo" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Tanggal ST *</label>
-                                <input type="date" name="tanggalSt" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Tanggal Ambil Foto *</label>
-                                <input type="date" name="tanggalAmbilFoto" required>
-                            </div>
-                        </div>
-
-                        <div class="form-actions">
-                            <button type="submit" class="btn-primary">Lanjut ke Foto</button>
-                        </div>
-                    </form>
-                </div>
-            </section>
-
-            <section id="view-floorplan" class="view hidden">
-                <div class="floor-plan-header">
-                    <button id="btnBackToForm" class="btn-back">← Kembali ke Form</button>
-                    <div class="store-info">
-                        <h2 id="fpStoreName">-</h2>
-                        <p id="fpDate">-</p>
-                    </div>
-                    <div class="progress-info">
-                        <span id="progressText">Progress: 0/38 foto</span>
-                        <div class="progress-bar-bg">
-                            <div id="progressBarFill" class="progress-fill" style="width: 0%"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="floor-plan-content">
-                    <div class="floor-plan-wrapper">
-                        <div class="floor-plan-image-container">
-                            <img id="floorImage" src="./assets/floor.png" alt="Denah Lantai" class="floor-plan-bg">
-                            <div id="pointsContainer"></div>
-                        </div>
-
-                        <div class="pagination-controls">
-                            <button class="pagination-btn active" data-page="1">1</button>
-                            <button class="pagination-btn" data-page="2">2</button>
-                            <button class="pagination-btn" data-page="3">3</button>
-                        </div>
-                    </div>
-
-                    <div class="photo-list-container">
-                        <h3>Daftar Foto (<span id="countPhoto">0</span>/38)</h3>
-                        <div id="photoGrid" class="photo-grid">
-                            </div>
-                    </div>
-
-                    <div id="completionSection" class="completion-section hidden">
-                        <h2>🎉 Semua Foto Berhasil Diambil!</h2>
-                        <p>38 foto dokumentasi telah berhasil dikumpulkan.</p>
-                        <button id="btnFinish" class="btn-primary">Simpan & Kirim PDF</button>
-                    </div>
-                </div>
-            </section>
-        </main>
+    <div class="user-greeting-wrapper hidden" id="sub-header">
+        <div class="user-info">
+            <i class="fa-solid fa-user-circle" style="color: #d62828; margin-right: 5px;"></i>
+            <span id="header-user-info">User | Cabang</span>
+            <span style="margin: 0 8px; color: #ccc;">|</span>
+            <span id="current-date-display" style="font-weight: normal; color: #666;"></span>
+        </div>
     </div>
 
-    <div id="cameraModal" class="modal hidden">
-        <div class="modal-content">
-            <div class="camera-header">
-                <h3 id="cameraTitle">Foto #1</h3>
-                <button id="btnCloseCamera" class="btn-close">×</button>
+    <main class="container">
+        
+        <div id="view-login" class="view-section" style="max-width: 450px; margin: 4rem auto; text-align: center;">
+            <img src="../../assets/Alfamart-Emblem.png" alt="Logo" style="height: 40px; margin-bottom: 1rem;">
+            <h2 style="margin-bottom: 0.5rem;">Building & Maintenance</h2>
+            <p style="color: #666; margin-bottom: 2rem;">Foto Dokumentasi Bangunan Toko Baru</p>
+
+            <div id="login-info-msg" class="hidden" style="background: #fff7ed; color: #b45309; border: 1px solid #fcd34d; padding: 10px; border-radius: 6px; margin-bottom: 1rem; font-size: 0.9rem; text-align: left;"></div>
+            <div id="login-error-msg" class="hidden" style="background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; padding: 10px; border-radius: 6px; margin-bottom: 1rem; font-size: 0.9rem; text-align: left;"></div>
+
+            <form id="form-login" style="text-align: left;">
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label>Username (Email)</label>
+                    <input type="text" id="login-username" placeholder="Masukkan email..." required>
+                </div>
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label>Cabang (Kode)</label>
+                    <div style="position: relative;">
+                        <input type="password" id="login-password" placeholder="Masukkan kode cabang..." required style="width: 100%;">
+                        <button type="button" id="btn-toggle-pass" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #666;">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" id="btn-submit-login" class="btn-primary full-width">Login</button>
+            </form>
+        </div>
+
+        <div id="view-form" class="view-section hidden">
+            <h2 class="section-title">Data Dokumentasi</h2>
+            <form id="data-input-form"> <div class="form-grid">
+                    
+                    <div class="form-group">
+                        <label>Cabang</label>
+                        <input type="text" id="inp-cabang" readonly style="background-color: #f5f5f5; cursor: not-allowed;">
+                    </div>
+
+                    <div class="form-group" style="grid-column: span 2;"> <label>Nomor Ulok</label>
+                        <select id="sel-ulok" style="padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px;">
+                            <option value="">-- Loading data... --</option>
+                        </select>
+                        <input type="text" id="inp-ulok-manual" class="hidden" placeholder="Contoh: Z001-2510-0001">
+                        
+                        <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 5px;">
+                            <span style="font-size: 0.85rem; color: #666;">Input Manual?</span>
+                            <input type="checkbox" id="chk-manual-ulok">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Kontraktor Sipil</label>
+                        <input type="text" id="inp-sipil" placeholder="Nama Kontraktor Sipil" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Kontraktor ME</label>
+                        <input type="text" id="inp-me" placeholder="Nama Kontraktor ME" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>SPK Awal</label>
+                        <input type="date" id="inp-spk-awal" required>
+                    </div>
+                    <div class="form-group">
+                        <label>SPK Akhir</label>
+                        <input type="date" id="inp-spk-akhir" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Kode Toko</label>
+                        <input type="text" id="inp-kode-toko" maxlength="4" placeholder="T123" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Nama Toko</label>
+                        <input type="text" id="inp-nama-toko" placeholder="ALFAMART CONTOH" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Tanggal GO</label>
+                        <input type="date" id="inp-tgl-go" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Tanggal ST</label>
+                        <input type="date" id="inp-tgl-st" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Tanggal Ambil Foto</label>
+                        <input type="date" id="inp-tgl-foto" required>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Lanjut ke Denah & Foto</button>
+                </div>
+            </form>
+        </div>
+
+        <div id="view-floorplan" class="view-section hidden">
+            <div class="floor-plan-header">
+                <button id="btn-back-form" class="btn-text">← Kembali ke Data</button>
+                <div style="text-align: right;">
+                    <div id="fp-store-name" style="font-weight: bold; color: var(--primary);">NAMA TOKO</div>
+                    <div id="fp-date" style="font-size: 0.85rem; color: #666;">-</div>
+                </div>
+            </div>
+
+            <div style="background: #eee; height: 8px; border-radius: 4px; margin-bottom: 1rem; overflow: hidden;">
+                <div id="progress-fill" style="background: var(--color-success); height: 100%; width: 0%; transition: width 0.3s;"></div>
+            </div>
+            <div style="text-align: right; font-size: 0.8rem; margin-bottom: 1.5rem;" id="progress-text">Progress: 0/38</div>
+
+            <div class="floor-plan-content">
+                <div class="floor-plan-wrapper">
+                    <div class="pagination-controls" style="margin-bottom: 1rem; background: transparent;">
+                        <button class="pagination-btn active" data-page="1">Area Luar</button>
+                        <button class="pagination-btn" data-page="2">Area Dalam 1</button>
+                        <button class="pagination-btn" data-page="3">Area Dalam 2</button>
+                    </div>
+
+                    <div class="floor-plan-image-container" id="map-container" style="position: relative;">
+                        <img id="floor-img" src="../../assets/floor.png" alt="Denah" class="floor-plan-bg">
+                        <div id="points-container"></div> 
+                    </div>
+                </div>
+
+                <div class="photo-list-container">
+                    <h3>Daftar Foto</h3>
+                    <div id="photo-list-grid" class="photo-list-scroll">
+                        </div>
+                    
+                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee;">
+                        <button id="btn-save-pdf" class="btn-primary full-width">
+                            <i class="fa-solid fa-file-pdf"></i> Simpan & Kirim PDF
+                        </button>
+                    </div>
+                </div>
             </div>
             
-            <div class="camera-body">
-                <video id="cameraFeed" autoplay playsinline class="camera-video"></video>
-                <img id="photoPreview" class="camera-image hidden">
-                <canvas id="cameraCanvas" class="hidden"></canvas>
+            <div id="completion-section" class="hidden" style="text-align: center; margin-top: 2rem; padding: 2rem; background: #ecfdf5; border-radius: 8px; border: 1px solid #a7f3d0;">
+                <h3 style="color: var(--color-success);">Semua Foto Lengkap! 🎉</h3>
+                <p>Silakan tekan tombol "Simpan & Kirim PDF" di atas.</p>
+            </div>
+        </div>
+
+    </main>
+
+    <div id="camera-modal" class="modal-overlay hidden" style="z-index: 2000;">
+        <div class="camera-container">
+            <div id="cam-preview-container" style="position: relative; width: 100%; height: 100%;">
+                <video id="cam-video" autoplay playsinline style="width:100%; height:100%; object-fit: cover;"></video>
+                <div style="position: absolute; inset: 0; pointer-events: none; border: 2px solid rgba(255,255,255,0.3); display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr;">
+                    <div style="border: 1px solid rgba(255,255,255,0.1);"></div>
+                    <div style="border: 1px solid rgba(255,255,255,0.1);"></div>
+                    <div style="border: 1px solid rgba(255,255,255,0.1);"></div>
+                    <div style="border: 1px solid rgba(255,255,255,0.1);"></div>
+                </div>
             </div>
 
-            <div class="camera-footer">
-                <div id="actionCapture" class="camera-actions">
-                    <button id="btnCantPhoto" class="btn-secondary btn-icon-text">
-                        🚫 <span class="mobile-hide">Tidak Bisa</span>
-                    </button>
-                    
-                    <button id="btnCapture" class="btn-shutter"></button>
-                    
-                    <label class="btn-secondary btn-icon-text upload-label">
-                        📤 <span class="mobile-hide">Upload</span>
-                        <input type="file" id="fileInput" accept="image/*" hidden>
+            <div id="photo-result-container" class="hidden" style="width: 100%; height: 100%; background: black; display: flex; align-items: center; justify-content: center;">
+                <img id="captured-img" style="max-width: 100%; max-height: 100%;" />
+            </div>
+            
+            <canvas id="cam-canvas" style="display:none;"></canvas>
+
+            <div class="camera-ui">
+                <div class="camera-header">
+                    <span id="cam-title" style="color:white; font-weight:bold; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">Titik X</span>
+                    <button id="btn-close-cam" style="background:transparent; border:none; color:white; font-size:2rem; cursor: pointer;">&times;</button>
+                </div>
+
+                <div id="actions-pre-capture" class="camera-controls">
+                    <label class="btn-secondary" style="border-radius: 50%; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; padding: 0;">
+                        <i class="fa-solid fa-upload"></i>
+                        <input type="file" id="inp-file-upload" accept="image/*" style="display:none;">
                     </label>
+
+                    <button id="btn-snap" class="btn-capture"></button>
+
+                    <button id="btn-cant-snap" class="btn-secondary" style="border-radius: 50%; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; padding: 0; color: #dc2626; border-color: #dc2626;">
+                        <i class="fa-solid fa-ban"></i>
+                    </button>
                 </div>
-                
-                <div id="actionConfirm" class="camera-actions hidden">
-                    <button id="btnRetake" class="btn-secondary">🔄 Ambil Ulang</button>
-                    <button id="btnSavePhoto" class="btn-primary">✓ Gunakan Foto</button>
+
+                <div id="actions-post-capture" class="capture-actions hidden">
+                    <button id="btn-retake" class="btn-secondary">Ulang</button>
+                    <button id="btn-confirm-snap" class="btn-primary">Gunakan</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="warningModal" class="modal-overlay hidden">
-        <div class="modal-box warning">
-            <div class="icon-circle warning-icon">!</div>
-            <h3>Sesi Berakhir</h3>
-            <p id="warningMsg"></p>
-            <button id="btnLogoutNow" class="btn-warning-close">OK</button>
+    <div id="warning-modal" class="modal-overlay hidden" style="z-index: 3000;">
+        <div style="background: white; padding: 2rem; border-radius: 12px; max-width: 400px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+            <div style="width: 50px; height: 50px; background: #fef3c7; color: #d97706; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem auto; font-size: 1.5rem; font-weight: bold;">!</div>
+            <h3 style="color: #92400e; margin-bottom: 0.5rem;">Peringatan</h3>
+            <p id="warning-msg" style="color: #555; margin-bottom: 1.5rem; white-space: pre-line;">-</p>
+            <button id="btn-warning-ok" style="background: #d97706; color: white; border: none; padding: 0.6rem 2rem; border-radius: 6px; font-weight: bold; cursor: pointer;">OK</button>
         </div>
     </div>
 
-    <div id="loadingOverlay" class="loading-overlay hidden">
+    <div id="form-status-toast" class="toast">Notifikasi</div>
+    <div id="loading-overlay" class="loading-overlay hidden">
         <div class="spinner"></div>
-        <div id="loadingText">Memproses...</div>
+        <div id="loading-text" style="margin-top: 1rem; font-weight: 600; color: #333;">Loading...</div>
     </div>
-    <div id="toast" class="toast hidden"></div>
 
     <script src="script.js"></script>
 </body>
