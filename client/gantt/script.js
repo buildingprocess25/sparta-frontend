@@ -873,17 +873,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     window.createRangeHTML = function (taskId, idx, start, end, isSaved = false) {
+        // --- PERBAIKAN: Ambil Max Durasi dari Project ---
+        // Jika durasi tidak ada/nol, set default aman (misal 100) atau 999
+        const maxDuration = currentProject && currentProject.duration ? parseInt(currentProject.duration) : 999;
+        
         const btnColor = isSaved ? 'background: #fed7d7; color: #c53030;' : 'background: #e2e8f0; color: #4a5568;';
+
+        const validationLogic = `if(parseInt(this.value) > ${maxDuration}) { alert('Maksimal durasi proyek ini adalah ${maxDuration} hari'); this.value = ${maxDuration}; } if(this.value < 0) this.value = 1;`;
+
         return `
         <div class="range-input-group" id="range-group-${taskId}-${idx}" data-range-idx="${idx}">
             <div class="input-group">
                 <label>H</label>
-                <input type="number" class="task-day-input" id="start-${taskId}-${idx}" data-task-id="${taskId}" data-type="start" value="${start}" min="0" ${isSaved ? 'readonly style="background:#f7fafc"' : ''}>
+                <input type="number" class="task-day-input" id="start-${taskId}-${idx}" 
+                    data-task-id="${taskId}" data-type="start" value="${start}" 
+                    min="1" max="${maxDuration}" 
+                    oninput="${validationLogic}"
+                    ${isSaved ? 'readonly style="background:#f7fafc"' : ''}>
             </div>
             <span class="input-separator">-</span>
             <div class="input-group">
                 <label>H</label>
-                <input type="number" class="task-day-input" id="end-${taskId}-${idx}" data-task-id="${taskId}" data-type="end" value="${end}" min="0" ${isSaved ? 'readonly style="background:#f7fafc"' : ''}>
+                <input type="number" class="task-day-input" id="end-${taskId}-${idx}" 
+                    data-task-id="${taskId}" data-type="end" value="${end}" 
+                    min="1" max="${maxDuration}" 
+                    oninput="${validationLogic}"
+                    ${isSaved ? 'readonly style="background:#f7fafc"' : ''}>
             </div>
             <button class="btn-remove-range" style="${btnColor}" onclick="removeRange(${taskId}, ${idx}, ${isSaved})">×</button>
         </div>`;
@@ -1123,7 +1138,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let tempTasks = JSON.parse(JSON.stringify(currentTasks));
         let error = false;
-        const maxAllowedDay = parseInt(currentProject.duration) || 999;
+        const maxAllowedDay = currentProject && currentProject.duration ? parseInt(currentProject.duration) : 999;
 
         // 1. Reset Dependency di tempTasks dulu
         tempTasks.forEach(t => t.dependency = null);
