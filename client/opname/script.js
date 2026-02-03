@@ -603,11 +603,12 @@ const PDFGenerator = {
             else if (delta < 0) totalKurang += delta;
         });
 
-        const ppnTambah = totalTambah * 0.11;
-        const ppnKurang = totalKurang * 0.11;
-        const totalTambahPPN = totalTambah + ppnTambah;
-        const totalKurangPPN = totalKurang + ppnKurang;
-        
+        const totalTambahBulat = Math.floor(totalTambah / 10000) * 10000;
+        const totalKurangBulat = Math.ceil(totalKurang / 10000) * 10000;
+        const ppnTambah = totalTambahBulat * 0.11;
+        const ppnKurang = totalKurangBulat * 0.11;
+        const totalTambahPPN = totalTambahBulat + ppnTambah;
+        const totalKurangPPN = totalKurangBulat + ppnKurang;
         const deltaPPN = totalTambahPPN + totalKurangPPN;
         const totalSetelahPPNOpname = totalSetelahPPNRAB + deltaPPN;
 
