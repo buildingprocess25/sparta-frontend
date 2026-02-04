@@ -1,6 +1,12 @@
 const APPS_SCRIPT_POST_URL = "https://script.google.com/macros/s/AKfycbzPubDTa7E2gT5HeVLv9edAcn1xaTiT3J4BtAVYqaqiFAvFtp1qovTXpqpm-VuNOxQJ/exec";
 const PYTHON_API_LOGIN_URL = "https://sparta-backend-5hdj.onrender.com/api/login";
 
+(function() {
+    if (window.location.pathname.includes('/auth')) {
+        window.location.replace('/');
+    }
+})();
+
 async function logLoginAttempt(username, cabang, status) {
     const logData = {
         requestType: "loginAttempt",
