@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // --- Konfigurasi Jadwal ---
         const isWeekday = day >= 1 && day <= 5; // Senin (1) - Jumat (5)
-        const isWorkingHours = hour >= 6 && hour < 18; // 06:00 - 17:59
+        const isWorkingHours = hour >= 6 && hour < 9; // 06:00 - 17:59
 
         // --- Validasi ---
         if (isWeekday && isWorkingHours) {
