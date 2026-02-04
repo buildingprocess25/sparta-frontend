@@ -1,13 +1,12 @@
 // ==========================================
 // 1. CONFIG & AUTHENTICATION
 // ==========================================
-// Adjust endpoint accordingly. Assuming standard REST structure.
-const BASE_URL = "https://sparta-backend-5hdj.onrender.com"; 
+const BASE_URL = "https://sparta-backend-5hdj.onrender.com"; // Sesuaikan jika perlu
 let currentUser = null;
 let allLogs = [];
 let filteredLogs = [];
 let currentPage = 1;
-const itemsPerPage = 15; // Increased per page since rows are simpler
+const itemsPerPage = 15;
 
 document.addEventListener("DOMContentLoaded", () => {
     checkAuth();
@@ -17,7 +16,6 @@ document.addEventListener("DOMContentLoaded", () => {
 function checkAuth() {
     const isAuthenticated = sessionStorage.getItem("authenticated");
     if (isAuthenticated !== "true") {
-        // Redirect logic if needed, or just handle gracefully
         window.location.href = "../../auth/index.html"; 
         return;
     }
@@ -37,12 +35,13 @@ function checkAuth() {
 // 2. INITIALIZATION & NAVIGATION
 // ==========================================
 function initApp() {
-    // Search & Filter Listeners
+    // Listener Search
     const searchInput = document.getElementById("search-input");
     if (searchInput) {
         searchInput.addEventListener("input", (e) => handleSearch(e.target.value));
     }
 
+    // Listener Filter Cabang
     const filterSelect = document.getElementById("filter-cabang");
     if (filterSelect) {
         filterSelect.addEventListener("change", () => {
@@ -51,11 +50,10 @@ function initApp() {
         });
     }
 
-    // Export Buttons
+    // Listener Export
     document.getElementById('exportBtn')?.addEventListener('click', handleExportCSV);
     document.getElementById('btn-export-pdf')?.addEventListener('click', handleExportPDF);
 
-    // Initial Fetch
     fetchLogs();
 }
 
@@ -65,8 +63,7 @@ function initApp() {
 async function fetchLogs() {
     showLoading(true);
     try {
-        // TODO: Ensure this endpoint exists in your Backend
-        // If your backend stores logs in a specific collection, point to that.
+        // Ganti URL ini dengan endpoint User Log yang sesuai
         const url = `${BASE_URL}/api/logs/list`; 
 
         const res = await fetch(url);
@@ -74,17 +71,18 @@ async function fetchLogs() {
 
         const rawData = await res.json();
         
-        // Handle various response structures
-        if (Array.isArray(rawData)) {
-            allLogs = rawData;
-        } else if (rawData.data && Array.isArray(rawData.data)) {
+        // ADAPTASI JSON BARU: Data ada di dalam property "data"
+        if (rawData && Array.isArray(rawData.data)) {
             allLogs = rawData.data;
+        } else if (Array.isArray(rawData)) {
+            // Fallback jika API mengembalikan array langsung
+            allLogs = rawData;
         } else {
             allLogs = [];
         }
 
         updateCabangFilterOptions();
-        handleSearch(""); // Initial render
+        handleSearch(""); // Render awal
 
     } catch (err) {
         console.error("Error fetching logs:", err);
@@ -101,10 +99,11 @@ function handleSearch(keyword) {
     const filterCabang = document.getElementById("filter-cabang")?.value || "";
 
     filteredLogs = allLogs.filter(log => {
+        // Safe access properti JSON
         const email = (log.email || "").toLowerCase();
         const cabang = (log.cabang || "").toString();
         
-        // Search by Email match
+        // Search by Email
         const matchText = email.includes(term);
         // Filter by Cabang
         const matchCabang = filterCabang === "" || cabang === filterCabang;
@@ -112,11 +111,10 @@ function handleSearch(keyword) {
         return matchText && matchCabang;
     });
 
-    // Sort by Date Descending (Newest first)
-    // Assuming 'timestamp' or 'created_at' exists
+    // Sort Descending berdasarkan timestamp (terbaru diatas)
     filteredLogs.sort((a, b) => {
-        const dateA = new Date(a.timestamp || a.created_at || 0);
-        const dateB = new Date(b.timestamp || b.created_at || 0);
+        const dateA = new Date(a.timestamp || 0);
+        const dateB = new Date(b.timestamp || 0);
         return dateB - dateA; 
     });
 
@@ -150,13 +148,17 @@ function renderTable() {
     paginatedItems.forEach((log, index) => {
         const row = document.createElement("tr");
         
-        // Format Timestamp nicely
-        const rawTime = log.timestamp || log.created_at || new Date().toISOString();
-        const formattedTime = new Date(rawTime).toLocaleString('id-ID', {
-            day: 'numeric', month: 'short', year: 'numeric',
-            hour: '2-digit', minute: '2-digit', second: '2-digit'
-        });
+        // Format Timestamp: "YYYY-MM-DDTHH:mm:ss" -> "30 Jan 2026, 08:50"
+        let formattedTime = "-";
+        if (log.timestamp) {
+            const dateObj = new Date(log.timestamp);
+            formattedTime = dateObj.toLocaleString('id-ID', {
+                day: 'numeric', month: 'short', year: 'numeric',
+                hour: '2-digit', minute: '2-digit', second: '2-digit'
+            });
+        }
 
+        // Generate Row tanpa tombol aksi
         row.innerHTML = `
             <td>${startIndex + index + 1}</td>
             <td>${log.cabang || "-"}</td>
@@ -203,6 +205,7 @@ function updateCabangFilterOptions() {
     const currentVal = select.value;
     const cabangSet = new Set();
     
+    // Ambil data cabang unik dari log
     allLogs.forEach(log => {
         if (log.cabang) cabangSet.add(log.cabang);
     });
@@ -229,7 +232,7 @@ function showToast(msg) {
 }
 
 // ==========================================
-// 5. EXPORT LOGIC
+// 5. EXPORT LOGIC (CSV & PDF)
 // ==========================================
 function handleExportCSV() {
     if (!filteredLogs.length) {
@@ -239,7 +242,7 @@ function handleExportCSV() {
 
     const headers = ['No', 'Cabang', 'Email User', 'Waktu Akses'];
     const rows = filteredLogs.map((log, i) => {
-        const time = log.timestamp || log.created_at || "-";
+        const time = log.timestamp || "-";
         return [
             i + 1,
             `"${(log.cabang || "").replace(/"/g, '""')}"`,
@@ -267,12 +270,15 @@ function handleExportPDF() {
     }
 
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('p', 'mm', 'a4'); // Portrait is enough for 4 cols
+    const doc = new jsPDF('p', 'mm', 'a4');
 
     // Data Rows
     const tableRows = filteredLogs.map((log, i) => {
-        const rawTime = log.timestamp || log.created_at || "-";
-        const formattedTime = new Date(rawTime).toLocaleString('id-ID');
+        let formattedTime = log.timestamp;
+        try {
+             formattedTime = new Date(log.timestamp).toLocaleString('id-ID');
+        } catch(e) { formattedTime = log.timestamp; }
+
         return [i + 1, log.cabang || "-", log.email || "-", formattedTime];
     });
 
@@ -283,18 +289,18 @@ function handleExportPDF() {
     doc.text(`Tanggal Cetak: ${new Date().toLocaleDateString('id-ID')}`, 14, 22);
     doc.text(`Total Records: ${filteredLogs.length}`, 14, 27);
 
-    // Table
+    // Table Generation
     doc.autoTable({
         startY: 35,
         head: [['No', 'Cabang', 'Email User', 'Waktu Akses']],
         body: tableRows,
         theme: 'grid',
-        headStyles: { fillColor: [220, 38, 38], valign: 'middle', halign: 'center' }, // Alfamart Red
+        headStyles: { fillColor: [220, 38, 38], valign: 'middle', halign: 'center' }, // Merah Alfamart
         styles: { fontSize: 9 },
         columnStyles: {
             0: { cellWidth: 15, halign: 'center' },
             1: { cellWidth: 40 },
-            2: { cellWidth: 80 },
+            2: { cellWidth: 80 }, // Email lebih lebar
             3: { cellWidth: 'auto' }
         }
     });
