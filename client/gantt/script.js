@@ -1392,7 +1392,7 @@ document.addEventListener('DOMContentLoaded', () => {
             "Nama_Toko": currentProject.store,
             "Proyek": currentProject.projectType,
             "Alamat": currentProject.alamat || "-",
-            "Cabang": "HEAD OFFICE",
+            "Cabang": loggedInUserCabang || "-",
             "Nama_Kontraktor": "PT KONTRAKTOR",
         };
 
