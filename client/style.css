@@ -194,6 +194,129 @@ body {
     transform: scale(1.1);
 }
 
+/* ================= MODAL STYLES (BARU) ================= */
+
+/* Utility Class untuk menyembunyikan elemen */
+.hidden {
+    display: none !important;
+    opacity: 0;
+}
+
+/* Overlay Background Gelap */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6); /* Latar belakang semi-transparan */
+    z-index: 9999; /* Pastikan selalu di atas */
+    display: flex;
+    align-items: center; /* Vertikal tengah */
+    justify-content: center; /* Horizontal tengah */
+    backdrop-filter: blur(3px); /* Efek blur pada background (opsional) */
+    animation: fadeInOverlay 0.3s ease-out;
+}
+
+/* Kotak Modal Utama */
+.modal-box {
+    background: #ffffff;
+    padding: 2.5rem;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 450px; /* Lebar maksimal agar tidak terlalu lebar di desktop */
+    text-align: center;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    animation: slideUpModal 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Header Icon & Warna */
+.modal-box.warning-type .modal-icon {
+    color: #dc2626; /* Warna merah icon */
+    background-color: #fee2e2; /* Latar belakang merah muda icon */
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem auto;
+}
+
+.modal-icon svg {
+    width: 40px;
+    height: 40px;
+}
+
+/* Tipografi Modal */
+.modal-box h3 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1a202c;
+    margin: 0 0 1rem 0;
+}
+
+.modal-box p {
+    color: var(--subtle-text-color);
+    font-size: 1.1rem;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+}
+
+/* Box Info Jam Kerja */
+.operational-hours {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 2rem;
+    color: var(--text-color);
+    font-size: 1rem;
+}
+
+.operational-hours span {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--subtle-text-color);
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+/* Tombol Tutup */
+.modal-close-btn {
+    background-color: #dc2626;
+    color: white;
+    border: none;
+    padding: 0.75rem 2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    width: 100%; /* Tombol selebar modal */
+}
+
+.modal-close-btn:hover {
+    background-color: #b91c1c;
+}
+
+/* Animasi Muncul */
+@keyframes fadeInOverlay {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUpModal {
+    from { 
+        opacity: 0;
+        transform: translateY(30px) scale(0.95);
+    }
+    to { 
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
 /* Responsive Mobile Header Adjustment */
 @media (max-width: 600px) {
     .main-header {
