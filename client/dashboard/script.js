@@ -44,7 +44,6 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log("User HEAD OFFICE (Internal) terdeteksi. Menambahkan menu khusus.");
         
         allowedMenus.push('menu-userlog');
-        allowedMenus.push('menu-sp');
     } 
 
     // Debugging
