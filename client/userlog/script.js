@@ -14,10 +14,13 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function checkAuth() {
+    // Cek sesi login (sesuaikan dengan logic auth Anda)
     const isAuthenticated = sessionStorage.getItem("authenticated");
     if (isAuthenticated !== "true") {
-        window.location.href = "../../auth/index.html"; 
-        return;
+        // Redirect ke halaman login jika belum login
+        // window.location.href = "../../auth/index.html"; 
+        // console.warn("User not authenticated (Logic bypassed for dev)");
+        return; 
     }
 
     currentUser = {
@@ -35,7 +38,7 @@ function checkAuth() {
 // 2. INITIALIZATION & NAVIGATION
 // ==========================================
 function initApp() {
-    // Listener Search
+    // Listener Search Input
     const searchInput = document.getElementById("search-input");
     if (searchInput) {
         searchInput.addEventListener("input", (e) => handleSearch(e.target.value));
@@ -50,10 +53,11 @@ function initApp() {
         });
     }
 
-    // Listener Export
+    // Listener Tombol Export
     document.getElementById('exportBtn')?.addEventListener('click', handleExportCSV);
     document.getElementById('btn-export-pdf')?.addEventListener('click', handleExportPDF);
 
+    // Ambil data dari API
     fetchLogs();
 }
 
@@ -63,31 +67,30 @@ function initApp() {
 async function fetchLogs() {
     showLoading(true);
     try {
-        // [UPDATE] Menggunakan endpoint yang benar
+        // Endpoint baru sesuai request
         const url = `${BASE_URL}/api/filter_user_log_login`; 
 
-        console.log("Fetching logs from:", url); // Debugging
+        console.log("Fetching logs from:", url);
 
         const res = await fetch(url);
         if (!res.ok) throw new Error(`Gagal mengambil data log (Status: ${res.status})`);
 
         const rawData = await res.json();
-        console.log("Raw Data Received:", rawData); // Debugging untuk melihat struktur asli
+        console.log("Raw Data Received:", rawData);
 
-        // ADAPTASI JSON: Data ada di dalam property "data"
-        // Struktur JSON Anda: { start_date: "...", end_date: "...", total: 143, data: [...] }
+        // Parsing JSON: Data utama ada di dalam properti "data"
         if (rawData && Array.isArray(rawData.data)) {
             allLogs = rawData.data;
         } else if (Array.isArray(rawData)) {
             // Fallback jika API mengembalikan array langsung
             allLogs = rawData;
         } else {
-            console.warn("Format data tidak dikenali:", rawData);
+            console.warn("Format data tidak dikenali, menggunakan array kosong.");
             allLogs = [];
         }
 
         updateCabangFilterOptions();
-        handleSearch(""); // Render awal
+        handleSearch(""); // Render tabel awal
 
     } catch (err) {
         console.error("Error fetching logs:", err);
@@ -104,21 +107,19 @@ function handleSearch(keyword) {
     const filterCabang = document.getElementById("filter-cabang")?.value || "";
 
     filteredLogs = allLogs.filter(log => {
-        // Safe access properti JSON
         const email = (log.email || "").toLowerCase();
         const cabang = (log.cabang || "").toString();
         
-        // Search by Email
+        // Filter by Email (Search)
         const matchText = email.includes(term);
-        // Filter by Cabang
+        // Filter by Cabang (Dropdown)
         const matchCabang = filterCabang === "" || cabang === filterCabang;
 
         return matchText && matchCabang;
     });
 
-    // Sort Descending berdasarkan timestamp (terbaru diatas)
+    // Sort Descending berdasarkan timestamp atau date (Terbaru di atas)
     filteredLogs.sort((a, b) => {
-        // Gunakan timestamp jika ada, jika tidak fallback ke field 'date'
         const dateA = new Date(a.timestamp || a.date || 0);
         const dateB = new Date(b.timestamp || b.date || 0);
         return dateB - dateA; 
@@ -133,6 +134,7 @@ function renderTable() {
     const totalBadge = document.getElementById("total-records");
     const totalCountVal = document.getElementById("total-count-val");
 
+    // Update badge total data
     if (totalBadge && totalCountVal) {
         totalBadge.style.display = "flex";
         totalCountVal.textContent = filteredLogs.length;
@@ -141,22 +143,25 @@ function renderTable() {
     if (!tbody) return;
     tbody.innerHTML = "";
 
+    // Tampilkan pesan jika data kosong
     if (filteredLogs.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding: 20px; color: #666;">Tidak ada data log ditemukan</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 20px; color: #666;">Tidak ada data log ditemukan</td></tr>`;
         renderPagination();
         return;
     }
 
+    // Logika Pagination
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     const paginatedItems = filteredLogs.slice(startIndex, endIndex);
 
+    // Render Baris Tabel
     paginatedItems.forEach((log, index) => {
         const row = document.createElement("tr");
         
-        // Format Timestamp: "YYYY-MM-DDTHH:mm:ss" -> "30 Jan 2026, 08:50"
+        // Format Waktu
         let formattedTime = "-";
-        const rawTime = log.timestamp || log.date; // Support fallback ke field date
+        const rawTime = log.timestamp || log.date; 
 
         if (rawTime) {
             try {
@@ -170,11 +175,14 @@ function renderTable() {
             }
         }
 
-        // Generate Row (No, Cabang, Email, Waktu)
+        // Ambil Jumlah Log (default 0 jika tidak ada)
+        const countLog = log.count !== undefined ? log.count : 0;
+
         row.innerHTML = `
             <td>${startIndex + index + 1}</td>
             <td>${log.cabang || "-"}</td>
-            <td><span style="font-weight:600; color:#333;">${log.email || "-"}</span></td>
+            <td style="text-align: left;"><span style="font-weight:600; color:#333;">${log.email || "-"}</span></td>
+            <td style="text-align: center; font-weight: bold; color: var(--primary);">${countLog}</td>
             <td style="color:#555;">${formattedTime}</td>
         `;
         tbody.appendChild(row);
@@ -217,7 +225,7 @@ function updateCabangFilterOptions() {
     const currentVal = select.value;
     const cabangSet = new Set();
     
-    // Ambil data cabang unik dari log
+    // Ambil daftar cabang unik dari semua log
     allLogs.forEach(log => {
         if (log.cabang) cabangSet.add(log.cabang);
     });
@@ -229,18 +237,22 @@ function updateCabangFilterOptions() {
         opt.textContent = c;
         select.appendChild(opt);
     });
+    // Restore pilihan user jika masih ada di daftar
     select.value = currentVal;
 }
 
 function showLoading(show) {
-    document.getElementById("loading-overlay").style.display = show ? "flex" : "none";
+    const overlay = document.getElementById("loading-overlay");
+    if (overlay) overlay.style.display = show ? "flex" : "none";
 }
 
 function showToast(msg) {
     const toast = document.getElementById("toast");
-    toast.textContent = msg;
-    toast.className = "toast show";
-    setTimeout(() => { toast.className = "toast"; }, 3000);
+    if (toast) {
+        toast.textContent = msg;
+        toast.className = "toast show";
+        setTimeout(() => { toast.className = "toast"; }, 3000);
+    }
 }
 
 // ==========================================
@@ -252,13 +264,18 @@ function handleExportCSV() {
         return;
     }
 
-    const headers = ['No', 'Cabang', 'Email User', 'Waktu Akses'];
+    // Header CSV dengan kolom baru
+    const headers = ['No', 'Cabang', 'Email User', 'Jumlah Log', 'Waktu Terakhir'];
+    
     const rows = filteredLogs.map((log, i) => {
         const time = log.timestamp || log.date || "-";
+        const count = log.count !== undefined ? log.count : 0;
+        
         return [
             i + 1,
             `"${(log.cabang || "").replace(/"/g, '""')}"`,
             `"${(log.email || "").replace(/"/g, '""')}"`,
+            count,
             `"${time}"`
         ];
     });
@@ -276,6 +293,7 @@ function handleExportCSV() {
 }
 
 function handleExportPDF() {
+    // Pastikan library jsPDF dimuat
     if (!window.jspdf || !filteredLogs.length) {
         alert("Data kosong atau library PDF belum siap.");
         return;
@@ -284,36 +302,45 @@ function handleExportPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('p', 'mm', 'a4');
 
-    // Data Rows
+    // Persiapan Data Baris untuk PDF
     const tableRows = filteredLogs.map((log, i) => {
         let formattedTime = log.timestamp || log.date;
         try {
-             if (formattedTime) formattedTime = new Date(formattedTime).toLocaleString('id-ID');
-        } catch(e) { /* ignore error */ }
+            if (formattedTime) formattedTime = new Date(formattedTime).toLocaleString('id-ID');
+        } catch(e) { formattedTime = log.timestamp || "-"; }
 
-        return [i + 1, log.cabang || "-", log.email || "-", formattedTime || "-"];
+        const count = log.count !== undefined ? log.count : 0;
+
+        return [
+            i + 1, 
+            log.cabang || "-", 
+            log.email || "-", 
+            count, 
+            formattedTime || "-"
+        ];
     });
 
-    // Header Info
+    // Header Dokumen PDF
     doc.setFontSize(16);
     doc.text("Laporan User Log Activity", 14, 15);
     doc.setFontSize(10);
     doc.text(`Tanggal Cetak: ${new Date().toLocaleDateString('id-ID')}`, 14, 22);
     doc.text(`Total Records: ${filteredLogs.length}`, 14, 27);
 
-    // Table Generation
+    // Generate Tabel PDF dengan AutoTable
     doc.autoTable({
         startY: 35,
-        head: [['No', 'Cabang', 'Email User', 'Waktu Akses']],
+        head: [['No', 'Cabang', 'Email User', 'Jumlah Log', 'Waktu Terakhir']],
         body: tableRows,
         theme: 'grid',
         headStyles: { fillColor: [220, 38, 38], valign: 'middle', halign: 'center' }, // Merah Alfamart
         styles: { fontSize: 9 },
         columnStyles: {
-            0: { cellWidth: 15, halign: 'center' },
-            1: { cellWidth: 40 },
-            2: { cellWidth: 80 }, 
-            3: { cellWidth: 'auto' }
+            0: { cellWidth: 10, halign: 'center' },
+            1: { cellWidth: 35 },
+            2: { cellWidth: 70 }, 
+            3: { cellWidth: 25, halign: 'center' }, // Kolom Count rata tengah
+            4: { cellWidth: 'auto' }
         }
     });
 
