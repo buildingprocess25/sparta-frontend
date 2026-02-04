@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Senin (1) s/d Jumat (5)
         const isWeekday = day >= 1 && day <= 5;
         // Jam 06:00 s/d 17:59 (Tutup tepat jam 18:00)
-        const isWorkingHours = hour >= 6 && hour < 9;
+        const isWorkingHours = hour >= 6 && hour < 18;
         // --- Validasi ---
         if (isWeekday && isWorkingHours) {
             // Jika valid, lanjutkan navigasi secara manual
