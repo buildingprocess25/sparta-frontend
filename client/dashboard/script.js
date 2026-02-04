@@ -10,22 +10,19 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // 3. Konfigurasi Role (HANYA MENU STANDAR CABANG)
-    // PERHATIAN: Hapus 'menu-userlog' dan 'menu-sp' dari sini agar cabang tidak bisa lihat.
+    // 3. Konfigurasi Role (HANYA MENU STANDAR/UMUM)
+    // Jangan masukkan menu khusus HO (userlog/sp) di sini.
     const roleConfig = {
         'BRANCH BUILDING & MAINTENANCE MANAGER': [
             'menu-spk', 'menu-pengawasan', 'menu-opname', 
             'menu-tambahspk', 'menu-gantt', 'menu-dokumentasi', 
-            'menu-svdokumen' 
-            // 'menu-userlog' & 'menu-sp' DIHAPUS dari sini
+            'menu-svdokumen'
         ],
         'BRANCH BUILDING COORDINATOR': [
             'menu-dokumentasi', 'menu-svdokumen','menu-gantt', 'menu-opname'
-            // 'menu-userlog' DIHAPUS dari sini
         ],
         'BRANCH BUILDING SUPPORT': [
             'menu-dokumentasi', 'menu-opname', 'menu-gantt', 'menu-svdokumen'
-            // 'menu-userlog' DIHAPUS dari sini
         ],
         'KONTRAKTOR': [
             'menu-rab', 'menu-materai', 'menu-opname', 'menu-gantt'
@@ -35,38 +32,39 @@ document.addEventListener('DOMContentLoaded', () => {
     // 4. Logika Filter Menu
     const currentRole = userRole.toUpperCase(); 
     
-    // Default: Ambil menu dasar (yang sudah aman/dibatasi)
-    let allowedMenus = roleConfig[currentRole] || [];
+    // Langkah A: Ambil menu dasar sesuai Role pengguna
+    // Kita gunakan [...array] untuk menyalin data agar roleConfig asli tidak berubah
+    let allowedMenus = roleConfig[currentRole] ? [...roleConfig[currentRole]] : [];
 
-    // --- [LOGIKA HEAD OFFICE] ---
-    // Cek apakah userCabang = HEAD OFFICE
+    // Langkah B: Cek apakah user dari HEAD OFFICE
     const isHeadOffice = userCabang && userCabang.toUpperCase() === 'HEAD OFFICE';
 
     if (isHeadOffice) {
-        console.log("Akses HEAD OFFICE: Membuka semua fitur.");
+        console.log("User HEAD OFFICE terdeteksi. Menambahkan menu khusus.");
         
-        // LIST LENGKAP KHUSUS HEAD OFFICE
-        // Masukkan menu-userlog, menu-sp, dll hanya di sini
-        allowedMenus = [
-            'menu-rab', 'menu-materai', 'menu-spk', 'menu-pengawasan',
-            'menu-opname', 'menu-dokumentasi', 'menu-tambahspk',
-            'menu-svdokumen', 'menu-gantt', 
-            'menu-sp',       // <--- Menu Khusus HO
-            'menu-userlog'   // <--- Menu Khusus HO
-        ];
+        // Langkah C: TAMBAHKAN menu khusus HO ke dalam daftar menu Role yang sudah ada.
+        // Dengan cara ini, batasan Role tetap berlaku, tapi mereka dapat fitur tambahan.
+        allowedMenus.push('menu-userlog');
+        allowedMenus.push('menu-sp');
+        
+        // Catatan: Jika Anda ingin menu tertentu (misal SPK) bisa dilihat 
+        // oleh SEMUA orang Head Office (meskipun role aslinya gak punya), 
+        // Anda bisa menambahkannya manual di sini:
+        // allowedMenus.push('menu-spk'); 
     } 
-    // ----------------------------
 
-    // Debugging (Opsional)
-    console.log(`Role: ${currentRole}, Cabang: ${userCabang}, Menus:`, allowedMenus);
+    // Debugging
+    console.log(`Role: ${currentRole}, Cabang: ${userCabang}`);
+    console.log(`Menu yang ditampilkan:`, allowedMenus);
 
     if (allowedMenus.length === 0) {
-        console.warn(`User Role "${currentRole}" atau Cabang "${userCabang}" tidak memiliki akses menu.`);
+        console.warn(`User Role "${currentRole}" tidak dikenali atau tidak memiliki akses menu.`);
     }
 
-    // Loop semua item menu untuk Show/Hide
+    // 5. Render Tampilan Menu
     const allMenuItems = document.querySelectorAll('.menu-item');
     allMenuItems.forEach(item => {
+        // Cek apakah ID menu ada di dalam daftar allowedMenus
         if (allowedMenus.includes(item.id)) {
             item.style.display = 'block'; 
         } else {
@@ -74,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 5. Fitur Logout
+    // 6. Fitur Logout
     const logoutBtn = document.getElementById('logout-button-form');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', (e) => {
