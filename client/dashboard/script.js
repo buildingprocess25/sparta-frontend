@@ -11,7 +11,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 3. Konfigurasi Role (HANYA MENU STANDAR/UMUM)
-    // Jangan masukkan menu khusus HO (userlog/sp) di sini.
     const roleConfig = {
         'BRANCH BUILDING & MAINTENANCE MANAGER': [
             'menu-spk', 'menu-pengawasan', 'menu-opname', 
@@ -33,23 +32,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentRole = userRole.toUpperCase(); 
     
     // Langkah A: Ambil menu dasar sesuai Role pengguna
-    // Kita gunakan [...array] untuk menyalin data agar roleConfig asli tidak berubah
     let allowedMenus = roleConfig[currentRole] ? [...roleConfig[currentRole]] : [];
 
-    // Langkah B: Cek apakah user dari HEAD OFFICE
+    // Langkah B: Logika Khusus HEAD OFFICE (Dengan Pengecualian Kontraktor)
     const isHeadOffice = userCabang && userCabang.toUpperCase() === 'HEAD OFFICE';
+    const isContractor = currentRole === 'KONTRAKTOR';
 
-    if (isHeadOffice) {
-        console.log("User HEAD OFFICE terdeteksi. Menambahkan menu khusus.");
+    // ATURAN: Hanya Staff Internal HO yang dapat menu tambahan. 
+    // Kontraktor (meskipun HO) TIDAK boleh melihat User Log / SP.
+    if (isHeadOffice && !isContractor) {
+        console.log("User HEAD OFFICE (Internal) terdeteksi. Menambahkan menu khusus.");
         
-        // Langkah C: TAMBAHKAN menu khusus HO ke dalam daftar menu Role yang sudah ada.
-        // Dengan cara ini, batasan Role tetap berlaku, tapi mereka dapat fitur tambahan.
         allowedMenus.push('menu-userlog');
-        
-        // Catatan: Jika Anda ingin menu tertentu (misal SPK) bisa dilihat 
-        // oleh SEMUA orang Head Office (meskipun role aslinya gak punya), 
-        // Anda bisa menambahkannya manual di sini:
-        // allowedMenus.push('menu-spk'); 
+        allowedMenus.push('menu-sp');
     } 
 
     // Debugging
@@ -63,7 +58,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // 5. Render Tampilan Menu
     const allMenuItems = document.querySelectorAll('.menu-item');
     allMenuItems.forEach(item => {
-        // Cek apakah ID menu ada di dalam daftar allowedMenus
         if (allowedMenus.includes(item.id)) {
             item.style.display = 'block'; 
         } else {
