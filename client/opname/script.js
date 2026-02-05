@@ -1180,7 +1180,7 @@ const Render = {
                         <div style="margin-top: 20px; margin-bottom: 0px;">
                             <a href="${ilLink}" class="btn" 
                             style="width: 100%; background-color: #FFC107; font-weight: bold; color: #000; text-decoration: none; display: block; text-align: center; padding: 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                📋 INSTRUKSI LAPANGAN
+                                Instruksi Lapangan
                             </a>
                         </div>
                         ` : ''}
