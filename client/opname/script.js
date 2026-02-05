@@ -352,31 +352,33 @@ const PDFGenerator = {
         doc.text(`NAMA KONTRAKTOR : ${picKontraktorData.kontraktor_username || "N/A"}`, margin, startY); startY += 15;
 
         // ==========================================
-        // BAGIAN 1: RAB FINAL (DATA AWAL + IL)
+        // PERSIAPAN DATA (PISAH RAB & IL)
+        // ==========================================
+        const rabPure = rabData.filter(item => !item.is_il);
+        const rabIL = rabData.filter(item => item.is_il);
+        
+        let grandTotalInitialScope = 0; // Menampung total RAB + IL
+        let lastY = startY;
+
+        // ==========================================
+        // BAGIAN 1: RAB FINAL (Murni RAB)
         // ==========================================
         doc.setFontSize(12).setFont("helvetica", "bold");
-        doc.text("RAB FINAL (TERMASUK IL)", margin, startY);
+        doc.text("RAB FINAL", margin, startY);
         doc.setDrawColor(120, 120, 120); doc.setLineWidth(0.3);
         doc.line(margin, startY + 2, pageWidth - margin, startY + 2);
-        startY += 10;
+        lastY += 10;
 
-        // [MODIFIKASI] Hapus filter IL agar Instruksi Lapangan masuk ke sini
-        // Code lama: const rabDataFiltered = rabData.filter((item) => !item.is_il);
-        const rabDataFiltered = rabData; // Gunakan semua data termasuk IL
-
-        const rabCategories = groupDataByCategory(rabDataFiltered);
-        
-        let lastY = startY;
+        const rabCategories = groupDataByCategory(rabPure);
         let categoryNumber = 1;
-        let grandTotalRAB = 0;
 
-        if (rabDataFiltered.length === 0) {
+        if (rabPure.length === 0) {
             doc.setFontSize(10).setFont("helvetica", "italic");
             doc.text("Tidak ada data RAB awal.", margin, lastY);
             lastY += 10;
         } else {
             for (const categoryName of Object.keys(rabCategories)) {
-                if (lastY + 50 > pageHeight - 20) { addFooter(doc.getNumberOfPages()); doc.addPage(); lastY = margin + 10; }
+                if (lastY + 40 > pageHeight - 20) { addFooter(doc.getNumberOfPages()); doc.addPage(); lastY = margin + 10; }
                 
                 doc.setFontSize(11).setFont("helvetica", "bold");
                 doc.text(`${categoryNumber}. ${categoryName}`, margin, lastY);
@@ -396,20 +398,16 @@ const PDFGenerator = {
 
                     catMaterialTotal += totalMaterial;
                     catUpahTotal += totalUpah;
-                    grandTotalRAB += totalHarga;
-
-                    // [MODIFIKASI] Tambahkan label (IL) pada nama pekerjaan
-                    const namaPekerjaan = item.jenis_pekerjaan + (item.is_il ? " (IL)" : "");
+                    grandTotalInitialScope += totalHarga;
 
                     return [
-                        idx + 1, namaPekerjaan, item.satuan, volume.toFixed(2),
+                        idx + 1, item.jenis_pekerjaan, item.satuan, volume.toFixed(2),
                         formatRupiah(hargaMaterial), formatRupiah(hargaUpah),
                         formatRupiah(totalMaterial), formatRupiah(totalUpah),
                         formatRupiah(totalHarga)
                     ];
                 });
 
-                // Subtotal row
                 categoryTableBody.push(["", "", "", "", "", "SUB TOTAL", formatRupiah(catMaterialTotal), formatRupiah(catUpahTotal), formatRupiah(catMaterialTotal + catUpahTotal)]);
 
                 doc.autoTable({
@@ -430,19 +428,6 @@ const PDFGenerator = {
                     },
                     didParseCell: (data) => {
                         if(data.section === 'body') {
-                            const currentDataItems = rabCategories[categoryName];
-                            
-                            // [MODIFIKASI] Cek apakah item ini adalah IL (berdasarkan index data asli)
-                            // Index tabel data berjalan dari 0 s/d (length-1). Row terakhir adalah Subtotal.
-                            if (data.row.index < currentDataItems.length) {
-                                const originalItem = currentDataItems[data.row.index];
-                                if (originalItem && originalItem.is_il) {
-                                    // Beri warna kuning jika item IL
-                                    data.cell.styles.fillColor = [255, 249, 196]; 
-                                }
-                            }
-
-                            // Highlight baris Subtotal (Baris terakhir di tabel ini)
                             if (data.row.index === data.table.body.length - 1) {
                                 data.cell.styles.fillColor = [242, 242, 242];
                                 if(data.column.index >= 5) data.cell.styles.fontStyle = 'bold';
@@ -455,8 +440,89 @@ const PDFGenerator = {
             }
         }
 
-        // Summary RAB
-        const totalRealRAB = grandTotalRAB;
+        // ==========================================
+        // BAGIAN 2: INSTRUKSI LAPANGAN (IL) - Jika Ada
+        // ==========================================
+        if (rabIL.length > 0) {
+            if (lastY + 40 > pageHeight - 20) { addFooter(doc.getNumberOfPages()); doc.addPage(); lastY = margin + 10; }
+            
+            doc.setFontSize(12).setFont("helvetica", "bold");
+            doc.text("INSTRUKSI LAPANGAN (IL)", margin, lastY);
+            doc.setDrawColor(120, 120, 120); doc.setLineWidth(0.3);
+            doc.line(margin, lastY + 2, pageWidth - margin, startY + 2); // Garis bawah judul
+            lastY += 10;
+
+            const ilCategories = groupDataByCategory(rabIL);
+            let ilCatNumber = 1;
+
+            for (const categoryName of Object.keys(ilCategories)) {
+                if (lastY + 40 > pageHeight - 20) { addFooter(doc.getNumberOfPages()); doc.addPage(); lastY = margin + 10; }
+                
+                doc.setFontSize(11).setFont("helvetica", "bold");
+                doc.text(`${ilCatNumber}. ${categoryName}`, margin, lastY);
+                lastY += 10;
+                ilCatNumber++;
+
+                let catMaterialTotal = 0;
+                let catUpahTotal = 0;
+
+                const categoryTableBody = ilCategories[categoryName].map((item, idx) => {
+                    const volume = toNumberVol_PDF(item.volume);
+                    const hargaMaterial = toNumberID_PDF(item.harga_material);
+                    const hargaUpah = toNumberID_PDF(item.harga_upah);
+                    const totalMaterial = volume * hargaMaterial;
+                    const totalUpah = volume * hargaUpah;
+                    const totalHarga = totalMaterial + totalUpah;
+
+                    catMaterialTotal += totalMaterial;
+                    catUpahTotal += totalUpah;
+                    grandTotalInitialScope += totalHarga; // Tambahkan ke Grand Total Scope
+
+                    return [
+                        idx + 1, item.jenis_pekerjaan, item.satuan, volume.toFixed(2),
+                        formatRupiah(hargaMaterial), formatRupiah(hargaUpah),
+                        formatRupiah(totalMaterial), formatRupiah(totalUpah),
+                        formatRupiah(totalHarga)
+                    ];
+                });
+
+                // Subtotal IL Row
+                categoryTableBody.push(["", "", "", "", "", "SUB TOTAL IL", formatRupiah(catMaterialTotal), formatRupiah(catUpahTotal), formatRupiah(catMaterialTotal + catUpahTotal)]);
+
+                doc.autoTable({
+                    head: [
+                        ["NO.", "JENIS PEKERJAAN", "SATUAN", "VOLUME", { content: "HARGA SATUAN (Rp)", colSpan: 2, styles: { halign: "center" } }, { content: "TOTAL HARGA (Rp)", colSpan: 3, styles: { halign: "center" } }],
+                        ["", "", "", "", "Material", "Upah", "Material", "Upah", "TOTAL HARGA (Rp)"]
+                    ],
+                    body: categoryTableBody,
+                    startY: lastY,
+                    margin: { left: margin, right: margin },
+                    theme: "grid",
+                    styles: { fontSize: 8, cellPadding: 2, lineWidth: 0.1 },
+                    headStyles: { fillColor: [255, 245, 157], textColor: [0, 0, 0], fontSize: 8, fontStyle: "bold", halign: "center" }, // Header Kuning Pucat untuk IL
+                    columnStyles: { 
+                        0: { cellWidth: 8, halign: "center" }, 
+                        1: { cellWidth: 40 },
+                        8: { fontStyle: "bold", halign: "right" }
+                    },
+                    didParseCell: (data) => {
+                        if(data.section === 'body') {
+                            if (data.row.index === data.table.body.length - 1) {
+                                data.cell.styles.fillColor = [255, 249, 196]; // Subtotal IL agak kuning
+                                if(data.column.index >= 5) data.cell.styles.fontStyle = 'bold';
+                            }
+                        }
+                        if(data.column.index > 2) data.cell.styles.halign = 'right';
+                    }
+                });
+                lastY = doc.lastAutoTable.finalY + 10;
+            }
+        }
+
+        // ==========================================
+        // SUMMARY BOX (Total RAB + Total IL)
+        // ==========================================
+        const totalRealRAB = grandTotalInitialScope;
         const totalPembulatanRAB = Math.floor(totalRealRAB / 10000) * 10000;
         const ppnRAB = totalPembulatanRAB * 0.11;
         const totalSetelahPPNRAB = totalPembulatanRAB + ppnRAB;
@@ -465,10 +531,10 @@ const PDFGenerator = {
         
         doc.autoTable({
             body: [
-                ["TOTAL", formatRupiah(totalRealRAB)],
+                ["TOTAL (RAB + IL)", formatRupiah(totalRealRAB)],
                 ["PEMBULATAN", formatRupiah(totalPembulatanRAB)],
                 ["PPN 11%", formatRupiah(ppnRAB)],
-                ["GRAND TOTAL", formatRupiah(totalSetelahPPNRAB)]
+                ["GRAND TOTAL AWAL", formatRupiah(totalSetelahPPNRAB)]
             ],
             startY: lastY,
             margin: { left: pageWidth - 95, right: margin },
@@ -486,7 +552,7 @@ const PDFGenerator = {
         lastY = doc.lastAutoTable.finalY + 15;
 
         // ==========================================
-        // BAGIAN 2: LAPORAN OPNAME FINAL (TAMBAH / KURANG)
+        // BAGIAN 3: LAPORAN OPNAME FINAL (TAMBAH / KURANG)
         // ==========================================
         if (submissions && submissions.length > 0) {
             addFooter(doc.getNumberOfPages()); doc.addPage(); lastY = margin + 10;
@@ -532,7 +598,7 @@ const PDFGenerator = {
                         const hUpah = toNumberID_PDF(item.harga_upah);
                         const deltaNominal = sel * (hMat + hUpah);
                         
-                        // Menambahkan marker (IL) pada nama pekerjaan
+                        // Marker IL di bagian tambah/kurang tetap ada sebagai info tambahan
                         const namaPekerjaan = item.jenis_pekerjaan + (item.is_il ? " (IL)" : "");
 
                         return [
@@ -551,14 +617,11 @@ const PDFGenerator = {
                         headStyles: { fillColor: [205, 234, 242], textColor: [0,0,0], fontSize: 8.5, fontStyle: "bold", halign: "center" },
                         columnStyles: { 6: { halign: "right", fontStyle: "bold" }, 2: { halign: "right" }, 4: { halign: "right" }, 5: { halign: "right" } },
                         
-                        // --- LOGIKA PEWARNAAN BARIS ---
                         didParseCell: (data) => {
                             if(data.section === 'body') {
-                                // Cek data asli berdasarkan index baris
                                 const originalItem = kItems[data.row.index];
                                 if (originalItem && originalItem.is_il) {
-                                    // WARNA KUNING untuk Instruksi Lapangan
-                                    data.cell.styles.fillColor = [255, 249, 196]; 
+                                    data.cell.styles.fillColor = [255, 249, 196]; // Kuning untuk IL di tabel tambah/kurang
                                 }
                             }
                         }
@@ -566,12 +629,10 @@ const PDFGenerator = {
                     lastY = doc.lastAutoTable.finalY + 10;
                 }
 
-                // Hitung total per section (Tambah/Kurang)
                 const totalRealBlock = itemsArr.reduce((sum, item) => {
                     return sum + (toNumberVol_PDF(item.selisih) * (toNumberID_PDF(item.harga_material) + toNumberID_PDF(item.harga_upah)));
                 }, 0);
                 
-                // Pembulatan logic
                 const totalPembulatanBlock = totalRealBlock >= 0 
                     ? Math.floor(totalRealBlock / 10000) * 10000 
                     : Math.ceil(totalRealBlock / 10000) * 10000;
@@ -596,7 +657,7 @@ const PDFGenerator = {
                     columnStyles: { 0: { fontStyle: "bold", halign: "left" } },
                     didParseCell: (data) => {
                         if (data.row.index === 3) {
-                            data.cell.styles.fillColor = [144, 238, 144]; // Hijau untuk Grand Total
+                            data.cell.styles.fillColor = [144, 238, 144];
                             data.cell.styles.fontStyle = "bold";
                         }
                     }
@@ -606,7 +667,7 @@ const PDFGenerator = {
         }
 
         // ==========================================
-        // BAGIAN 3: REKAPITULASI STATUS PEKERJAAN
+        // BAGIAN 4: REKAPITULASI STATUS PEKERJAAN
         // ==========================================
         addFooter(doc.getNumberOfPages()); doc.addPage(); lastY = margin + 10;
 
@@ -626,6 +687,8 @@ const PDFGenerator = {
         const totalTambahPPN = totalTambahBulat + ppnTambah;
         const totalKurangPPN = totalKurangBulat + ppnKurang;
         const deltaPPN = totalTambahPPN + totalKurangPPN;
+        
+        // Total Akhir = Total Awal (RAB+IL) + Selisih Tambah/Kurang
         const totalSetelahPPNOpname = totalSetelahPPNRAB + deltaPPN;
 
         doc.setFontSize(12).setFont("helvetica", "bold");
@@ -634,13 +697,13 @@ const PDFGenerator = {
         lastY += 10;
 
         const deltaNominal = totalSetelahPPNOpname - totalSetelahPPNRAB;
-        let statusText = "Sesuai RAB";
+        let statusText = "Sesuai Target";
         if (deltaNominal > 0) statusText = "Pekerjaan Tambah";
         if (deltaNominal < 0) statusText = "Pekerjaan Kurang";
 
         const statusTableBody = [
             [{ content: `STATUS: ${statusText}`, colSpan: 2, styles: { fillColor: [245, 245, 245], fontStyle: "bold", fontSize: 12 } }],
-            ["RAB Final (incl. PPN)", formatRupiah(totalSetelahPPNRAB)],
+            ["Total Awal (RAB + IL) incl. PPN", formatRupiah(totalSetelahPPNRAB)],
             ["Pekerjaan Tambah (incl. PPN)", formatRupiah(totalTambahPPN)],
             ["Pekerjaan Kurang (incl. PPN)", formatRupiah(totalKurangPPN)],
             ["Selisih Pekerjaan Tambah dan Kurang", `${deltaNominal >= 0 ? "+" : ""}${formatRupiah(deltaNominal)}`],
@@ -664,7 +727,7 @@ const PDFGenerator = {
         lastY = doc.lastAutoTable.finalY + 15;
 
         // ==========================================
-        // BAGIAN 4: LAMPIRAN FOTO
+        // BAGIAN 5: LAMPIRAN FOTO
         // ==========================================
         const itemsWithPhotos = (submissions || []).filter(item => item.foto_url);
         if (itemsWithPhotos.length > 0) {
