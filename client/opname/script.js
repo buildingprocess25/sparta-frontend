@@ -132,7 +132,7 @@ const Auth = {
 /* ======================== PDF HELPER FUNCTIONS ======================== */
 const COMPANY_NAME = "PT. SUMBER ALFARIA TRIJAYA, Tbk";
 const REPORT_TITLE = "BERITA ACARA OPNAME PEKERJAAN";
-const LOGO_URL_FALLBACK = "../assets/Alfamart-Emblem.png";
+const LOGO_URL_FALLBACK = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAADwAAAAhwBAMAAABikNZBAAAAGFBMVEVHcEzqHC0DXab";
 
 const toNumberID_PDF = (v) => {
     if (v === null || v === undefined) return 0;
@@ -210,9 +210,32 @@ const fetchPicKontraktorOpnameData = async (noUlok) => {
 const toBase64 = async (url) => {
     try {
         if (!url) return null;
-        const proxyUrl = `${API_BASE_URL}/api/image-proxy?url=${encodeURIComponent(url)}`;
-        const response = await fetch(proxyUrl).catch(() => fetch(url)); 
+
+        if (url.startsWith("data:image")) {
+            return url;
+        }
+
+        if (url.startsWith('http') || url.startsWith('https')) {
+            const proxyUrl = `${API_BASE_URL}/api/image-proxy?url=${encodeURIComponent(url)}`;
+            try {
+                const response = await fetch(proxyUrl);
+                if (!response.ok) throw new Error('Proxy failed');
+                const blob = await response.blob();
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                });
+            } catch (e) {
+                console.warn("Proxy gagal, mencoba fetch langsung...", e);
+                // Fallback fetch biasa di bawah
+            }
+        }
+
+        const response = await fetch(url);
         if (!response.ok) throw new Error(`Status: ${response.status}`);
+        
         const blob = await response.blob();
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -220,6 +243,7 @@ const toBase64 = async (url) => {
             reader.onerror = reject;
             reader.readAsDataURL(blob);
         });
+
     } catch (error) {
         console.error(`Gagal load gambar: ${url}`, error);
         return null;
