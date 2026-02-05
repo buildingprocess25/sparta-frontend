@@ -130,10 +130,9 @@ const Auth = {
 };
 
 /* ======================== PDF HELPER FUNCTIONS ======================== */
-// (Bagian PDF Helper tetap sama, tidak perlu diubah)
 const COMPANY_NAME = "PT. SUMBER ALFARIA TRIJAYA, Tbk";
 const REPORT_TITLE = "BERITA ACARA OPNAME PEKERJAAN";
-const LOGO_URL_FALLBACK = "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Alfamart_logo.svg/1280px-Alfamart_logo.svg.png";
+const LOGO_URL_FALLBACK = "../../assets/logo.png";
 
 const toNumberID_PDF = (v) => {
     if (v === null || v === undefined) return 0;
@@ -1089,13 +1088,19 @@ const Render = {
                 const email = sessionStorage.getItem("loggedInUserEmail") || "";
                 const cabang = sessionStorage.getItem("loggedInUserCabang") || "";
                 
-                let ilLink = "../il/index.html";
+                // [MODIFIKASI] Logic Link IL dengan Parameter Auto-Fill
+                const currentUlok = encodeURIComponent(AppState.selectedUlok || "");
+                const currentToko = encodeURIComponent(AppState.selectedStore?.nama_toko || "");
+                let ilParams = [`ulok=${currentUlok}`, `toko=${currentToko}`];
+
                 if(email && cabang) {
-                   try {
-                     const token = btoa(JSON.stringify({ email, cabang }));
-                     ilLink = `../il/index.html?user=${token}`;
-                   } catch(e) { console.error("Gagal encode user IL", e); }
+                    try {
+                        const token = btoa(JSON.stringify({ email, cabang }));
+                        ilParams.push(`user=${token}`);
+                } catch(e) { console.error("Gagal encode user IL", e); }
                 }
+
+                let ilLink = `../il/index.html?${ilParams.join('&')}`;
 
                 let html = `
                 <div class="container" style="padding-top:20px; padding-left:10px; padding-right:10px; max-width:100%;">
@@ -1253,8 +1258,6 @@ const Render = {
                             elSumGrand.innerText = formatRupiah(newGrandTotal);
                             elSumGrand.style.color = newGrandTotal < 0 ? 'red' : 'black';
                         }
-
-                        // HAPUS: renderTable(); -> Ini yang bikin glitch
                     }
                 });
 
@@ -1273,8 +1276,6 @@ const Render = {
                     }
                 });
 
-                // ... (Sisa kode event listener tombol Simpan, Perbaiki, dan Final sama seperti sebelumnya) ...
-                
                 container.querySelectorAll('.save-btn').forEach(btn => {
                     btn.onclick = async () => {
                         const id = parseInt(btn.dataset.id);
