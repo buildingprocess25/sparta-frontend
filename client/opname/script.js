@@ -1306,15 +1306,31 @@ const Render = {
                             </a>
                         </div>
                         ` : ''}
-
-                        <div style="margin-top:20px; padding:15px; background:#f8f9fa;">
-                            <div class="d-flex justify-between"><span>Total :</span> <b id="summary-total" style="color:${totalVal<0?'red':'black'}">${formatRupiah(totalVal)}</b></div>
-                            <div class="d-flex justify-between"><span>PPN 11%:</span> <b id="summary-ppn" style="color:${ppn<0?'red':'black'}">${formatRupiah(ppn)}</b></div>
-                            <div class="d-flex justify-between" style="font-size:1.2rem; margin-top:10px;"><span>Grand Total:</span> <b id="summary-grand" style="color:${grandTotal<0?'red':'black'}">${formatRupiah(grandTotal)}</b></div>
+                        
+                        <div class="summary-box">
+                            <div class="summary-row">
+                                <span class="summary-label">Total Estimasi</span> 
+                                <span class="summary-value" id="summary-total" style="color:${totalVal<0?'#dc2626':'inherit'}">
+                                    ${formatRupiah(totalVal)}
+                                </span>
+                            </div>
+                            <div class="summary-row">
+                                <span class="summary-label">PPN (11%)</span> 
+                                <span class="summary-value" id="summary-ppn" style="color:${ppn<0?'#dc2626':'inherit'}">
+                                    ${formatRupiah(ppn)}
+                                </span>
+                            </div>
+                            <div class="summary-divider"></div>
+                            <div class="summary-row grand-total">
+                                <span class="grand-total-label">Grand Total</span> 
+                                <span class="grand-total-value" id="summary-grand" style="color:${grandTotal<0?'#dc2626':'var(--primary)'}">
+                                    ${formatRupiah(grandTotal)}
+                                </span>
+                            </div>
                         </div>
 
                         <div style="margin-top: 20px;">
-                             <button id="btn-final" class="btn" style="width:100%; padding:14px; font-size:1.1rem; font-weight:bold; 
+                            <button id="btn-final" class="btn" style="width:100%; padding:14px; font-size:1.1rem; font-weight:bold; 
                                 background-color: ${btnColor}; color: white; cursor: ${(!canFinalize || isFinalized) ? 'not-allowed' : 'pointer'};" 
                                 ${(!canFinalize || isFinalized) ? 'disabled' : ''}>
                                 ${statusMessage}
