@@ -809,6 +809,7 @@ async function initializePage() {
     const paramToko = urlParams.get('toko');
 
     if (paramUlok) {
+        // 1. Auto-fill Nama Toko
         if (paramToko) {
             const namaTokoEl = document.getElementById("nama_toko");
             if (namaTokoEl) {
@@ -818,29 +819,73 @@ async function initializePage() {
             }
         }
 
-        if (paramUlok.length >= 12) {
-            const kodeCabang = paramUlok.substring(0, 4);
-            const tanggal = paramUlok.substring(4, 8);
-            const isRenov = paramUlok.endsWith("R");
-            const manual = isRenov ? paramUlok.substring(8, 12) : paramUlok.substring(8, 12);
+        // 2. LOGIC BARU: Parsing ULOK dengan pemisah Strip (-)
+        let kodeCabang = "";
+        let tanggal = "";
+        let manual = "";
+        let isRenov = false;
 
+        // Cek apakah format menggunakan Strip (-) contoh: Z001-2512-4444
+        if (paramUlok.includes("-")) {
+            const parts = paramUlok.split("-"); // Menjadi array: ["Z001", "2512", "4444"]
+            
+            if (parts.length >= 3) {
+                kodeCabang = parts[0].trim(); // Ambil Depan: Z001
+                
+                // Ambil Tengah: 2512 (Hapus non-angka)
+                tanggal = parts[1].replace(/[^0-9]/g, ''); 
+                
+                // Ambil Belakang: 4444 (Cek Renovasi & Hapus non-angka)
+                let rawManual = parts[2].trim(); 
+                if (rawManual.toUpperCase().endsWith("R")) {
+                    isRenov = true;
+                    // Hapus huruf R, lalu bersihkan selain angka
+                    manual = rawManual.slice(0, -1).replace(/[^0-9]/g, ''); 
+                } else {
+                    manual = rawManual.replace(/[^0-9]/g, '');
+                }
+            }
+        } 
+        // Fallback: Jika format lama tanpa strip (Z00125124444)
+        else if (paramUlok.length >= 12) {
+            kodeCabang = paramUlok.substring(0, 4);
+            tanggal = paramUlok.substring(4, 8);
+            
+            if (paramUlok.toUpperCase().endsWith("R")) {
+                isRenov = true;
+                manual = paramUlok.substring(8, 12); 
+            } else {
+                manual = paramUlok.substring(8, 12);
+            }
+        }
+
+        // 3. Masukkan Data ke Input Form
+        if (kodeCabang) {
             if (DOM.lokasiCabang.querySelector(`option[value="${kodeCabang}"]`)) {
                 DOM.lokasiCabang.value = kodeCabang;
-                DOM.lokasiCabang.disabled = true; 
+                $(DOM.lokasiCabang).val(kodeCabang).trigger('change'); // Penting untuk Select2
+            } else {
+                const newOption = new Option(kodeCabang, kodeCabang, true, true);
+                DOM.lokasiCabang.add(newOption).trigger('change');
             }
-            
-            DOM.lokasiTanggal.value = tanggal;
-            DOM.lokasiTanggal.readOnly = true;
+            DOM.lokasiCabang.disabled = true; // Kunci input
 
+            if(tanggal) {
+                DOM.lokasiTanggal.value = tanggal;
+                DOM.lokasiTanggal.readOnly = true;
+            }
             if (isRenov) {
                 DOM.toggleRenovasi.checked = true;
                 DOM.toggleRenovasi.dispatchEvent(new Event('change'));
+            } else {
+                DOM.toggleRenovasi.checked = false;
+                DOM.toggleRenovasi.dispatchEvent(new Event('change'));
             }
-            
-            DOM.lokasiManual.value = manual;
-            DOM.lokasiManual.readOnly = true;
+            if(manual) {
+                DOM.lokasiManual.value = manual;
+                DOM.lokasiManual.readOnly = true;
+            }
             DOM.toggleRenovasi.disabled = true;
-
             updateNomorUlok();
         }
     }
