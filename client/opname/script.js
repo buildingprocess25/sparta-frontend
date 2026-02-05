@@ -746,7 +746,7 @@ const Render = {
         if (AppState.loading) {
             app.innerHTML = `
                 <div class="loading-screen">
-                    <div style="font-size: 48px; margin-bottom: 16px;">🏪</div>
+                    <div class="spinner"></div>
                     <h2 style="color: var(--primary);">Memuat Data...</h2>
                 </div>`;
             return;
