@@ -262,21 +262,65 @@ const PDFGenerator = {
         console.log("Memulai pembuatan PDF Full Version...");
         const doc = new jsPDF();
         const currentDate = new Date().toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" });
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const margin = 14;
 
-        // --- HELPER: Footer ---
+        // --- PRELOAD LOGO ---
+        let logoData = null;
+        try { logoData = await toBase64(LOGO_URL_FALLBACK); } catch(e) {}
+
+        // --- HELPER: Print Header (HANYA HALAMAN 1) ---
+        const printHeader = () => {
+            let currentY = 12;
+            const logoW = 48; const logoH = 20;
+
+            // 1. Logo Tengah
+            if (logoData) {
+                doc.addImage(logoData, "PNG", (pageWidth - logoW) / 2, currentY, logoW, logoH);
+            }
+            currentY += logoH + 6;
+
+            // 2. Identitas Perusahaan
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(9).setFont("helvetica", "bold");
+            doc.text(COMPANY_NAME, margin, currentY); 
+            
+            // Info Departemen
+            currentY += 5;
+            doc.setFont("helvetica", "normal");
+            doc.text("BUILDING & MAINTENANCE DEPT", margin, currentY); 
+
+            // Info Cabang
+            const cabangTxt = selectedStore.cabang || selectedStore.nama_cabang || selectedStore.kota || "";
+            if (cabangTxt) {
+                currentY += 5;
+                doc.text(`CABANG: ${cabangTxt}`, margin, currentY);
+            }
+
+            // Garis Pembatas Header
+            currentY += 6;
+            doc.setDrawColor(0); 
+            doc.setLineWidth(0.5);
+            doc.line(margin, currentY, pageWidth - margin, currentY);
+            
+            return currentY + 8; // Kembalikan posisi Y terakhir
+        };
+
+        // --- HELPER: Footer (Nomor Halaman) ---
         const addFooter = (pageNum) => {
             doc.setFontSize(8);
             doc.setTextColor(128, 128, 128);
             doc.text(
                 `Halaman ${pageNum} - Dicetak pada: ${new Date().toLocaleString("id-ID")}`,
-                doc.internal.pageSize.getWidth() / 2,
-                doc.internal.pageSize.getHeight() - 10,
+                pageWidth / 2,
+                pageHeight - 10,
                 { align: "center" }
             );
             doc.setTextColor(0, 0, 0);
         };
 
-        // --- HELPER: Print Summary Box (Total, PPN, Grand Total per Section) ---
+        // --- HELPER: Print Summary Box ---
         const printSummaryBox = (label, totalReal, startY) => {
             const totalPembulatan = Math.floor(totalReal / 10000) * 10000;
             const ppn = totalPembulatan * 0.11;
@@ -290,7 +334,7 @@ const PDFGenerator = {
                     [`GRAND TOTAL ${label.replace("TOTAL ", "")}`, formatRupiah(grandTotal)]
                 ],
                 startY: startY,
-                margin: { left: doc.internal.pageSize.getWidth() - 95, right: 14 },
+                margin: { left: pageWidth - 95, right: 14 },
                 tableWidth: 85,
                 theme: "grid",
                 styles: { fontSize: 9, halign: "right", cellPadding: 3 },
@@ -324,63 +368,43 @@ const PDFGenerator = {
 
         const picList = await fetchPicList({ noUlok: selectedUlok, lingkup: lingkupFix, kodeToko: selectedStore.kode_toko });
 
-        // --- SETUP HALAMAN ---
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const pageHeight = doc.internal.pageSize.getHeight();
-        const margin = 14;
-        let startY = 12;
+        // ==========================================
+        // HALAMAN 1: HEADER & INFO
+        // ==========================================
+        
+        // 1. Cetak Header (Hanya di Halaman 1)
+        let lastY = printHeader();
 
-        // --- HEADER (Halaman 1) ---
-        let logoData = null;
-        try { logoData = await toBase64(LOGO_URL_FALLBACK); } catch(e) {}
-
-        const logoW = 48; const logoH = 20;
-        if (logoData) { doc.addImage(logoData, "PNG", (pageWidth - logoW) / 2, startY, logoW, logoH); }
-        startY += logoH + 6 + 6;
-
-        doc.setTextColor(0, 0, 0);
-        doc.setFontSize(9).setFont("helvetica", "bold");
-        doc.text(COMPANY_NAME, margin, startY); startY += 5;
-        doc.setFont("helvetica", "normal");
-        doc.text("BUILDING & MAINTENANCE DEPT", margin, startY); startY += 5;
-
-        const cabangTxt = selectedStore.cabang || selectedStore.nama_cabang || selectedStore.kota || "";
-        if (cabangTxt) { doc.text(`CABANG: ${cabangTxt}`, margin, startY); startY += 6; }
-        startY += 6;
-
+        // 2. Judul Laporan
         doc.setFont("helvetica", "bold").setFontSize(14);
-        doc.text(REPORT_TITLE, pageWidth / 2, startY, { align: "center" });
-        startY += 12;
-        doc.setFont("helvetica", "normal"); startY += 8;
+        doc.text(REPORT_TITLE, pageWidth / 2, lastY + 5, { align: "center" });
+        lastY += 15;
 
-        // --- INFO PROYEK ---
-        doc.setFontSize(10);
+        // 3. Info Proyek
+        doc.setFont("helvetica", "normal").setFontSize(10);
         const dataOpname = submissions && submissions.length > 0 ? submissions[0] : {};
         const finalNamaToko = dataOpname.nama_toko || selectedStore.nama_toko || "-";
         const finalAlamat = dataOpname.alamat || selectedStore.alamat || "-";
         const picLine = picList && picList.length > 0 ? picList.join(", ") : (picKontraktorData.name || picKontraktorData.pic_username || "N/A");
 
-        doc.text(`NOMOR ULOK : ${selectedUlok || "-"}`, margin, startY); startY += 7;
-        doc.text(`LINGKUP PEKERJAAN : ${lingkupFix}`, margin, startY); startY += 7;
-        doc.text(`NAMA TOKO : ${finalNamaToko}`, margin, startY); startY += 7;
-        doc.text(`ALAMAT : ${finalAlamat}`, margin, startY); startY += 7;
-        doc.text(`TANGGAL OPNAME : ${currentDate}`, margin, startY); startY += 7;
-        doc.text(`NAMA PIC : ${picLine}`, margin, startY); startY += 7;
-        doc.text(`NAMA KONTRAKTOR : ${picKontraktorData.kontraktor_username || "N/A"}`, margin, startY); startY += 15;
+        doc.text(`NOMOR ULOK : ${selectedUlok || "-"}`, margin, lastY); lastY += 6;
+        doc.text(`LINGKUP PEKERJAAN : ${lingkupFix}`, margin, lastY); lastY += 6;
+        doc.text(`NAMA TOKO : ${finalNamaToko}`, margin, lastY); lastY += 6;
+        doc.text(`ALAMAT : ${finalAlamat}`, margin, lastY); lastY += 6;
+        doc.text(`TANGGAL OPNAME : ${currentDate}`, margin, lastY); lastY += 6;
+        doc.text(`NAMA PIC : ${picLine}`, margin, lastY); lastY += 6;
+        doc.text(`NAMA KONTRAKTOR : ${picKontraktorData.kontraktor_username || "N/A"}`, margin, lastY); 
+        lastY += 12;
 
-        // ==========================================
-        // PEMISAHAN DATA
-        // ==========================================
+        // --- DATA PREPARATION ---
         const rabPure = rabData.filter(item => !item.is_il);
         const rabIL = rabData.filter(item => item.is_il);
         
         let totalRealRAB = 0;
-        let grandTotalRAB = 0; // Setelah PPN
+        let grandTotalRAB = 0;
         
         let totalRealIL = 0;
-        let grandTotalIL = 0; // Setelah PPN
-
-        let lastY = startY;
+        let grandTotalIL = 0;
 
         // ==========================================
         // SECTION 1: RAB FINAL (Murni)
@@ -400,7 +424,12 @@ const PDFGenerator = {
             lastY += 10;
         } else {
             for (const categoryName of Object.keys(rabCategories)) {
-                if (lastY + 40 > pageHeight - 20) { addFooter(doc.getNumberOfPages()); doc.addPage(); lastY = margin + 10; }
+                // Cek Page Break
+                if (lastY + 40 > pageHeight - 20) { 
+                    addFooter(doc.getNumberOfPages()); 
+                    doc.addPage(); 
+                    lastY = margin + 10; // Halaman baru tanpa Header Logo
+                }
                 
                 doc.setFontSize(11).setFont("helvetica", "bold");
                 doc.text(`${categoryNumber}. ${categoryName}`, margin, lastY);
@@ -418,7 +447,7 @@ const PDFGenerator = {
 
                     catMaterialTotal += (volume * hargaMaterial);
                     catUpahTotal += (volume * hargaUpah);
-                    totalRealRAB += totalHarga; // Akumulasi RAB Pure
+                    totalRealRAB += totalHarga;
 
                     return [
                         idx + 1, item.jenis_pekerjaan, item.satuan, volume.toFixed(2),
@@ -456,8 +485,12 @@ const PDFGenerator = {
             }
         }
 
-        // Summary RAB (Independen)
-        if (lastY + 40 > pageHeight - 20) { addFooter(doc.getNumberOfPages()); doc.addPage(); lastY = margin + 10; }
+        // Summary RAB
+        if (lastY + 40 > pageHeight - 20) { 
+            addFooter(doc.getNumberOfPages()); 
+            doc.addPage(); 
+            lastY = margin + 10; 
+        }
         const summaryRAB = printSummaryBox("TOTAL RAB", totalRealRAB, lastY);
         lastY = summaryRAB.finalY;
         grandTotalRAB = summaryRAB.grandTotal;
@@ -466,10 +499,9 @@ const PDFGenerator = {
         // SECTION 2: INSTRUKSI LAPANGAN (IL)
         // ==========================================
         if (rabIL.length > 0) {
-            // -- MULAI HALAMAN BARU --
             addFooter(doc.getNumberOfPages()); 
             doc.addPage(); 
-            lastY = margin + 10;
+            lastY = margin + 10; // Halaman Baru, tanpa Logo
             
             doc.setFontSize(12).setFont("helvetica", "bold");
             doc.text("INSTRUKSI LAPANGAN (IL)", margin, lastY);
@@ -481,7 +513,11 @@ const PDFGenerator = {
             let ilCatNumber = 1;
 
             for (const categoryName of Object.keys(ilCategories)) {
-                if (lastY + 40 > pageHeight - 20) { addFooter(doc.getNumberOfPages()); doc.addPage(); lastY = margin + 10; }
+                if (lastY + 40 > pageHeight - 20) { 
+                    addFooter(doc.getNumberOfPages()); 
+                    doc.addPage(); 
+                    lastY = margin + 10;
+                }
                 
                 doc.setFontSize(11).setFont("helvetica", "bold");
                 doc.text(`${ilCatNumber}. ${categoryName}`, margin, lastY);
@@ -499,7 +535,7 @@ const PDFGenerator = {
 
                     catMaterialTotal += (volume * hargaMaterial);
                     catUpahTotal += (volume * hargaUpah);
-                    totalRealIL += totalHarga; // Akumulasi IL Pure
+                    totalRealIL += totalHarga;
 
                     return [
                         idx + 1, item.jenis_pekerjaan, item.satuan, volume.toFixed(2),
@@ -536,19 +572,20 @@ const PDFGenerator = {
                 lastY = doc.lastAutoTable.finalY + 10;
             }
 
-            // Summary IL (Independen)
-            if (lastY + 40 > pageHeight - 20) { addFooter(doc.getNumberOfPages()); doc.addPage(); lastY = margin + 10; }
+            if (lastY + 40 > pageHeight - 20) { 
+                addFooter(doc.getNumberOfPages()); 
+                doc.addPage(); 
+                lastY = margin + 10;
+            }
             const summaryIL = printSummaryBox("TOTAL IL", totalRealIL, lastY);
             lastY = summaryIL.finalY;
             grandTotalIL = summaryIL.grandTotal;
         }
 
         // ==========================================
-        // SECTION 3: LAPORAN OPNAME FINAL (TAMBAH / KURANG)
+        // SECTION 3: TAMBAH / KURANG
         // ==========================================
         if (submissions && submissions.length > 0) {
-            
-            // GROUPING: Tambah vs Kurang
             const groupsByType = { "PEKERJAAN TAMBAH": [], "PEKERJAAN KURANG": [] };
             submissions.forEach(it => {
                 const sel = toNumberVol_PDF(it.selisih);
@@ -561,10 +598,9 @@ const PDFGenerator = {
             for (const [sectionName, itemsArr] of Object.entries(groupsByType)) {
                 if (itemsArr.length === 0) continue;
 
-                // -- MULAI HALAMAN BARU UNTUK TIAP SECTION TAMBAH/KURANG --
                 addFooter(doc.getNumberOfPages()); 
                 doc.addPage(); 
-                lastY = margin + 10;
+                lastY = margin + 10; // Halaman Baru, tanpa Logo
 
                 doc.setFontSize(12).setFont("helvetica", "bold");
                 doc.text(sectionName, margin, lastY);
@@ -575,7 +611,11 @@ const PDFGenerator = {
                 let kIdx = 1;
 
                 for (const [kategori, kItems] of Object.entries(catGroups)) {
-                    if (lastY + 20 > pageHeight - 20) { addFooter(doc.getNumberOfPages()); doc.addPage(); lastY = margin + 10; }
+                    if (lastY + 20 > pageHeight - 20) { 
+                        addFooter(doc.getNumberOfPages()); 
+                        doc.addPage(); 
+                        lastY = margin + 10;
+                    }
                     
                     doc.setFontSize(11).setFont("helvetica", "bold");
                     doc.text(`${kIdx}. ${kategori}`, margin, lastY);
@@ -586,7 +626,6 @@ const PDFGenerator = {
                         const hMat = toNumberID_PDF(item.harga_material);
                         const hUpah = toNumberID_PDF(item.harga_upah);
                         const deltaNominal = sel * (hMat + hUpah);
-                        
                         const namaPekerjaan = item.jenis_pekerjaan + (item.is_il ? " (IL)" : "");
 
                         return [
@@ -620,21 +659,23 @@ const PDFGenerator = {
                     return sum + (toNumberVol_PDF(item.selisih) * (toNumberID_PDF(item.harga_material) + toNumberID_PDF(item.harga_upah)));
                 }, 0);
                 
-                // Summary per Tambah/Kurang (Independen)
-                if (lastY + 40 > pageHeight - 20) { addFooter(doc.getNumberOfPages()); doc.addPage(); lastY = margin + 10; }
+                if (lastY + 40 > pageHeight - 20) { 
+                    addFooter(doc.getNumberOfPages()); 
+                    doc.addPage(); 
+                    lastY = margin + 10;
+                }
                 const summaryBlock = printSummaryBox("TOTAL " + sectionName, totalRealBlock, lastY);
                 lastY = summaryBlock.finalY;
             }
         }
 
         // ==========================================
-        // BAGIAN 4: REKAPITULASI STATUS PEKERJAAN
+        // SECTION 4: STATUS PEKERJAAN
         // ==========================================
         addFooter(doc.getNumberOfPages()); 
         doc.addPage(); 
-        lastY = margin + 10;
+        lastY = margin + 10; // Halaman Baru, tanpa Logo
 
-        // Hitung ulang total tambah/kurang untuk ringkasan akhir
         let totalTambah = 0; let totalKurang = 0;
         submissions.forEach(item => {
             const sel = toNumberVol_PDF(item.selisih);
@@ -651,10 +692,7 @@ const PDFGenerator = {
         const totalTambahPPN = totalTambahBulat + ppnTambah;
         const totalKurangPPN = totalKurangBulat + ppnKurang;
         
-        // --- LOGIC UTAMA STATUS PEKERJAAN ---
-        // Total Awal (RAB+IL) diambil dari penjumlahan Grand Total masing-masing section sebelumnya
         const totalSetelahPPNRAB = grandTotalRAB + grandTotalIL;
-        
         const deltaPPN = totalTambahPPN + totalKurangPPN;
         const totalSetelahPPNOpname = totalSetelahPPNRAB + deltaPPN;
 
@@ -694,18 +732,22 @@ const PDFGenerator = {
         lastY = doc.lastAutoTable.finalY + 15;
 
         // ==========================================
-        // BAGIAN 5: LAMPIRAN FOTO
+        // SECTION 5: LAMPIRAN FOTO
         // ==========================================
         const itemsWithPhotos = (submissions || []).filter(item => item.foto_url);
         if (itemsWithPhotos.length > 0) {
-            addFooter(doc.getNumberOfPages()); doc.addPage();
+            addFooter(doc.getNumberOfPages()); 
+            doc.addPage(); 
             let pageNum = doc.getNumberOfPages();
+            
+            // Header Foto (Tanpa Logo, hanya Judul)
+            let photoY = margin + 10;
 
             doc.setFontSize(12).setFont("helvetica", "bold");
-            doc.text("LAMPIRAN FOTO BUKTI", pageWidth / 2, 20, { align: "center" });
-            doc.line(margin, 25, pageWidth - margin, 25);
-
-            let photoY = 35;
+            doc.text("LAMPIRAN FOTO BUKTI", pageWidth / 2, photoY + 5, { align: "center" });
+            doc.line(margin, photoY + 8, pageWidth - margin, photoY + 8);
+            
+            photoY += 15; 
             let columnIndex = 0;
             const columnWidth = (pageWidth - margin * 3) / 2;
             const leftColumnX = margin;
@@ -727,8 +769,11 @@ const PDFGenerator = {
                     }
 
                     if (photoY + imgHeight + 35 > pageHeight - 20) {
-                        addFooter(pageNum); doc.addPage(); pageNum++;
-                        photoY = 35; columnIndex = 0;
+                        addFooter(pageNum); 
+                        doc.addPage(); 
+                        pageNum++;
+                        photoY = margin + 10 + 5; // Reset Y ke atas halaman baru
+                        columnIndex = 0;
                     }
 
                     const currentX = columnIndex === 0 ? leftColumnX : rightColumnX;
@@ -759,7 +804,6 @@ const PDFGenerator = {
         const totalPages = doc.getNumberOfPages();
         for (let i = 1; i < totalPages; i++) {
             doc.setPage(i);
-            addFooter(i);
         }
 
         doc.save(`BA_Opname_${selectedStore.kode_toko}_${selectedUlok}.pdf`);
