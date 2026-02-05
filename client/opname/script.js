@@ -132,7 +132,7 @@ const Auth = {
 /* ======================== PDF HELPER FUNCTIONS ======================== */
 const COMPANY_NAME = "PT. SUMBER ALFARIA TRIJAYA, Tbk";
 const REPORT_TITLE = "BERITA ACARA OPNAME PEKERJAAN";
-const LOGO_URL_FALLBACK = "../../assets/logo.png";
+const LOGO_URL_FALLBACK = "../../assets/Alfamart-Emblem.png";
 
 const toNumberID_PDF = (v) => {
     if (v === null || v === undefined) return 0;
