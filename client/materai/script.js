@@ -349,7 +349,7 @@ function renderViewResults(container) {
 
         <div class="actions">
             <button id="btnApply" class="primary">Terapkan Filter</button>
-            <button id="btnReset" class="ghost">Reset</button>
+            <button id="btnReset" class="btn-warning">Reset Filter</button>
         </div>
 
         <div id="resultsWrapper" style="display:none; position: relative; min-height: 100px;">
@@ -371,7 +371,7 @@ function renderViewResults(container) {
     const loader = document.getElementById("loadingTable");
     const content = document.getElementById("tableContent");
 
-    // Init
+    // Init Logic
     (async () => {
         try {
             const ops = await Api.getOptions('cabang');
@@ -411,7 +411,7 @@ function renderViewResults(container) {
     btnApply.addEventListener("click", async () => {
         wrapper.style.display = "block";
         loader.style.display = "flex";
-        content.innerHTML = ""; // clear old
+        content.innerHTML = ""; 
         
         try {
             const data = await Api.listDocuments({
@@ -426,30 +426,33 @@ function renderViewResults(container) {
         }
     });
 
-    // --- BAGIAN INI YANG DIPERBARUI ---
+    // --- FUNGSI RENDER TABEL YANG DIPERBARUI ---
     function renderTable(items) {
         if (!items.length) {
             content.innerHTML = '<div style="padding:20px; text-align:center; color:#666;">Tidak ada data.</div>';
             return;
         }
 
-        // Helper untuk link (Preview & Download)
-        // Menggunakan driveViewUrl/driveDownloadUrl (dari Sheets) atau previewUrl/downloadUrl (dari LocalStorage)
+        // Helper Button Style
         const getLinks = (it) => {
             const viewUrl = it.driveViewUrl || it.previewUrl;
-            // Gunakan driveDownloadUrl jika ada, jika tidak, gunakan viewUrl sebagai fallback
             const downloadUrl = it.driveDownloadUrl || it.downloadUrl || viewUrl;
 
             if (!viewUrl) return '-';
 
+            // Menggunakan class btn-action yang baru dibuat di CSS
             return `
-                <a href="${viewUrl}" target="_blank" style="font-weight:600;">Lihat</a>
-                <span style="color:#ccc; margin:0 4px;">|</span>
-                <a href="${downloadUrl}" target="_blank" style="font-weight:600;">Unduh</a>
+                <div class="action-buttons-wrapper">
+                    <a href="${viewUrl}" target="_blank" class="btn-action view" title="Lihat Dokumen">
+                       Lihat
+                    </a>
+                    <a href="${downloadUrl}" target="_blank" class="btn-action download" title="Unduh Dokumen">
+                       Unduh
+                    </a>
+                </div>
             `;
         };
 
-        // Desktop Table: Hanya Ulok, Lingkup, Aksi
         let html = `
         <table class="table desktop-table">
             <thead>
@@ -470,12 +473,13 @@ function renderViewResults(container) {
             </tbody>
         </table>`;
 
+        // Mobile Cards (juga disesuaikan tombolnya)
         html += `<div class="mobile-cards">
             ${items.map(it => `
                 <div class="m-card">
                     <div class="m-row"><span class="m-label">Ulok</span><span class="m-value">${it.ulok}</span></div>
                     <div class="m-row"><span class="m-label">Lingkup</span><span class="m-value">${it.lingkup}</span></div>
-                    <div class="m-actions" style="margin-top:12px; border-top:1px dashed #eee; padding-top:8px;">
+                    <div class="m-actions" style="margin-top:12px; border-top:1px dashed #eee; padding-top:12px;">
                         ${getLinks(it)}
                     </div>
                 </div>

@@ -282,6 +282,85 @@ td {
 tr:last-child td { border-bottom: none; }
 tr:hover td { background-color: #fef2f2; }
 
+.actions {
+    display: flex;
+    flex-direction: row; /* Pastikan berjejer ke samping */
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.actions button {
+    min-width: 120px; /* Lebar minimal agar rapi */
+    height: 42px;     /* Tinggi disamakan */
+}
+
+/* Warna khusus tombol Reset (Kuning) */
+button.btn-warning {
+    background: var(--alfa-yellow);
+    color: #7A4A00;
+    border: none;
+}
+button.btn-warning:hover {
+    background: #eab308; /* Kuning lebih gelap */
+}
+
+/* 2. Style Baru untuk Tombol Aksi di Tabel (Kecil) */
+.btn-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none !important;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    border: 1px solid transparent;
+}
+.btn-action:hover {
+    opacity: 0.8;
+    text-decoration: none;
+}
+
+/* Warna Tombol Lihat (Biru Muda) */
+.btn-action.view {
+    background-color: #e0f2fe;
+    color: #0284c7;
+    border-color: #bae6fd;
+}
+
+/* Warna Tombol Unduh (Hijau Muda) */
+.btn-action.download {
+    background-color: #dcfce7;
+    color: #16a34a;
+    border-color: #bbf7d0;
+}
+
+/* Container untuk tombol aksi biar rapi di tengah */
+.action-buttons-wrapper {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+/* 3. Membuat Isi Tabel Rata Tengah (Center Align) */
+.table th, .table td {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+    text-align: center !important; /* Paksa rata tengah */
+    vertical-align: middle !important;
+}
+
+/* Khusus Header tetap bold */
+.table thead th {
+    font-weight: 700;
+    background: #f8fafc;
+    color: var(--text-strong);
+}
+
 /* =========================================
    MOBILE RESPONSIVE
    ========================================= */
