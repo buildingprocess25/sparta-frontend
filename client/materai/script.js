@@ -329,10 +329,10 @@ function renderCreateDocument(container) {
 function renderViewResults(container) {
     container.innerHTML = `
     <div class="card">
-        <h1 class="page-title">Hasil Dokumen Termaterai</h1>
-        <button class="btn-secondary" onclick="navigate('/dashboard')">Kembali</button>
-        <p class="page-subtitle">Gunakan filter di bawah untuk mencari dokumen.</p>
-
+        <div class="page-header">
+            <h2 class="page-title">Hasil Dokumen Termaterai</h2>
+            <button class="btn-secondary" onclick="navigate('/dashboard')">Kembali</button>
+        </div>
         <div class="filters-grid">
             <div class="field">
                 <label>Pilih Cabang</label>
