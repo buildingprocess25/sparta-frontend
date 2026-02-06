@@ -23,48 +23,48 @@ const STATE = {
 
 const PHOTO_POINTS = {
     1: [
-        { id: 1, x: 67.8, y: 92.8, label: "KANAN 50 M" },
-        { id: 2, x: 63.7, y: 97.5, label: "DEPAN KANAN" },
-        { id: 3, x: 50.5, y: 97.5, label: "DEPAN" },
-        { id: 4, x: 36.7, y: 97.5, label: "DEPAN KIRI" },
-        { id: 5, x: 32.9, y: 93.3, label: "KIRI 50 M" },
-        { id: 6, x: 32.8, y: 85.8, label: "KIRI BAHU JALAN" },
-        { id: 7, x: 67.8, y: 85.8, label: "KANAN BAHU JALAN" },
-        { id: 8, x: 66, y: 82.5, label: "TAMPAK KANAN DEPAN KEBELAKANG" },
-        { id: 9, x: 33.5, y: 81.8, label: "TAMPAK KIRI DEPAN KEBELAKANG" },
-        { id: 10, x: 65.1, y: 11.3, label: "KANAN BELAKANG BANGUNAN MENGHADAP DEPAN" },
-        { id: 11, x: 63.7, y: 7.8, label: "KANAN BELAKANG BANGUNAN MENGHADAP SAMPING" },
-        { id: 12, x: 37.5, y: 7.5, label: "KIRI BELAKANG BANGUNAN MENGHADAP SAMPING" },
-        { id: 13, x: 35, y: 11, label: "KIRI BELAKANG BANGUNAN MENGHADAP DEPAN" },
-        { id: 14, x: 58.2, y: 81.7, label: "INSTALASI LISTRIK POLE SIGN" },
-        { id: 15, x: 56.8, y: 73.3, label: "GUTTER" },
-        { id: 16, x: 57.6, y: 63.8, label: "KOLOM IWF DUDUKAN LISTPLANK" },
-        { id: 17, x: 59, y: 60, label: "KANAN TERAS LUAR" },
-        { id: 18, x: 41.4, y: 60.2, label: "KIRI TERAS LUAR" },
-        { id: 19, x: 61.5, y: 56.5, label: "KANAN TERAS DALAM" },
-        { id: 20, x: 39, y: 56.5, label: "KIRI TERAS DALAM" },
-        { id: 21, x: 48.7, y: 49.4, label: "PINTU KACA ALLUMUNIUM" },
-        { id: 22, x: 38.8, y: 52.5, label: "SUDUT KIRI DEPAN AREA SALES" },
-        { id: 23, x: 42.4, y: 45.5, label: "INSTALASI LISTRIK FREEZER" },
-        { id: 24, x: 58.8, y: 37.5, label: "SUDUT KANAN DEPAN AREA SALES" },
-        { id: 25, x: 61.1, y: 51, label: "INSTALASI LISTRIK MEJA KASIR" },
-        { id: 26, x: 61.5, y: 27.5, label: "SUDUT KANAN BELAKANG AREA SALES" },
-        { id: 27, x: 39, y: 28.2, label: "SUDUT KIRI BELAKANG AREA SALES" },
-        { id: 28, x: 61.7, y: 22.2, label: "SELASAR + JANITOR" },
-        { id: 29, x: 59.5, y: 12.5, label: "KAMAR MANDI" },
-        { id: 30, x: 53.1, y: 16.2, label: "GUDANG SEBELAH KANAN" },
-        { id: 31, x: 38.6, y: 13, label: "GUDANG SEBELAH KIRI" },
-        { id: 32, x: 48.5, y: 23.5, label: "INSTALASI LISTRIK & DRAINASE CHILLER" },
-        { id: 37, x: 59.7, y: 68.8, label: "SEPTICTANK EXISTING" },
-        { id: 38, x: 41, y: 68.8, label: "SUMUR EXISTING" },
+        { id: 1, x: 54, y: 93, label: "KANAN 50 M" },
+        { id: 2, x: 73, y: 90, label: "DEPAN KANAN" },
+        { id: 3, x: 54, y: 97, label: "DEPAN" },
+        { id: 4, x: 36, y: 93, label: "DEPAN KIRI" },
+        { id: 5, x: 17, y: 89, label: "KIRI 50 M" },
+        { id: 6, x: 27, y: 83, label: "KIRI BAHU JALAN" },
+        { id: 7, x: 68, y: 83, label: "KANAN BAHU JALAN" },
+        { id: 8, x: 83, y: 87, label: "TAMPAK KANAN DEPAN KEBELAKANG" },
+        { id: 9, x: 23, y: 86, label: "TAMPAK KIRI DEPAN KEBELAKANG" },
+        { id: 10, x: 63, y: 13, label: "KANAN BELAKANG BANGUNAN MENGHADAP DEPAN" },
+        { id: 11, x: 71, y: 8, label: "KANAN BELAKANG BANGUNAN MENGHADAP SAMPING" },
+        { id: 12, x: 27, y: 9, label: "KIRI BELAKANG BANGUNAN MENGHADAP SAMPING" },
+        { id: 13, x: 32, y: 14, label: "KIRI BELAKANG BANGUNAN MENGHADAP DEPAN" },
+        { id: 14, x: 54, y: 78, label: "INSTALASI LISTRIK POLE SIGN" },
+        { id: 15, x: 52, y: 71, label: "GUTTER" },
+        { id: 16, x: 52, y: 65, label: "KOLOM IWF DUDUKAN LISTPLANK" },
+        { id: 17, x: 61, y: 64, label: "KANAN TERAS LUAR" },
+        { id: 18, x: 44, y: 64, label: "KIRI TERAS LUAR" },
+        { id: 19, x: 61, y: 58, label: "KANAN TERAS DALAM" },
+        { id: 20, x: 44, y: 58, label: "KIRI TERAS DALAM" },
+        { id: 21, x: 52, y: 53, label: "PINTU KACA ALLUMUNIUM" },
+        { id: 22, x: 38, y: 54, label: "SUDUT KIRI DEPAN AREA SALES" },
+        { id: 23, x: 46, y: 47, label: "INSTALASI LISTRIK FREEZER" },
+        { id: 24, x: 61, y: 42, label: "SUDUT KANAN DEPAN AREA SALES" },
+        { id: 25, x: 60, y: 51, label: "INSTALASI LISTRIK MEJA KASIR" },
+        { id: 26, x: 64, y: 31, label: "SUDUT KANAN BELAKANG AREA SALES" },
+        { id: 27, x: 39, y: 32, label: "SUDUT KIRI BELAKANG AREA SALES" },
+        { id: 28, x: 56, y: 25, label: "SELASAR + JANITOR" },
+        { id: 29, x: 63, y: 17, label: "KAMAR MANDI" },
+        { id: 30, x: 55, y: 19, label: "GUDANG SEBELAH KANAN" },
+        { id: 31, x: 35, y: 18, label: "GUDANG SEBELAH KIRI" },
+        { id: 32, x: 48, y: 27, label: "INSTALASI LISTRIK & DRAINASE CHILLER" },
+        { id: 37, x: 57, y: 69, label: "SEPTICTANK EXISTING" },
+        { id: 38, x: 44, y: 69, label: "SUMUR EXISTING" },
     ],
     2: [
-        { id: 34, x: 50, y: 51.8, label: "INSTALASI LISTRIK DAN LISTPLANK" },
-        { id: 33, x: 61.3, y: 24, label: "AREA DAG TORN" },
+        { id: 34, x: 50, y: 52, label: "INSTALASI LISTRIK DAN LISTPLANK" },
+        { id: 33, x: 60, y: 26, label: "AREA DAG TORN" },
     ],
     3: [
-        { id: 35, x: 61.1, y: 57.2, label: "CREMONA DIATAS FOLDING GATE" },
-        { id: 36, x: 61, y: 53.5, label: "INSTALASI LISTRIK DIATAS PLAFOND" },
+        { id: 35, x: 70, y: 66, label: "CREMONA DIATAS FOLDING GATE" },
+        { id: 36, x: 64, y: 60, label: "INSTALASI LISTRIK DIATAS PLAFOND" },
     ]
 };
 
@@ -88,8 +88,8 @@ const showToast = (text, type = "success", duration = 3000) => {
     setTimeout(() => {
         toast.textContent = text;
         toast.style.background = type === "success" ? "#16a34a" :
-                                 type === "error" ? "#dc2626" :
-                                 type === "warning" ? "#d97706" : "#333";
+            type === "error" ? "#dc2626" :
+                type === "warning" ? "#d97706" : "#333";
         toast.classList.add("show");
 
         setTimeout(() => toast.classList.remove("show"), duration);
@@ -144,7 +144,7 @@ function checkSession() {
         alert("Sesi Anda telah habis atau Anda belum login.");
         // Ganti URL di bawah sesuai dengan URL login utama app Anda
         // Misalnya root '/' atau '/auth/index.html'
-        window.location.href = '/'; 
+        window.location.href = '/';
         return;
     }
 
@@ -164,7 +164,7 @@ function proceedToApp() {
     if (headerCabang) headerCabang.textContent = STATE.user.cabang || "";
 
     show(getEl("main-header"));
-    
+
     // Tampilkan pesan sukses jika baru saja redirect setelah simpan
     if (localStorage.getItem("saved_ok") === "1") {
         showToast("Berhasil disimpan! ✅", "success");
@@ -193,7 +193,7 @@ function checkTimeLimit() {
     // Hanya cek jika user sudah di dalam aplikasi
     if (hour < 6 || hour >= 18) {
         const timeStr = `${hour.toString().padStart(2, "0")}:${wib.getMinutes().toString().padStart(2, "0")}`;
-        
+
         if (STATE.user) {
             if (getEl("warning-modal") && getEl("warning-modal").classList.contains("hidden")) {
                 showWarningModal(`Sesi Anda telah berakhir.\nAplikasi hanya dapat diakses pada jam operasional 06.00–18.00 WIB.\nSekarang pukul ${timeStr} WIB.`, () => doLogout());
