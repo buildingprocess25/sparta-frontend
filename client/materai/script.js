@@ -329,38 +329,36 @@ function renderCreateDocument(container) {
 function renderViewResults(container) {
     container.innerHTML = `
     <div class="card">
-        <div class="page-header">
-            <h2 class="page-title">Hasil Dokumen</h2>
-            <button class="btn-secondary" onclick="navigate('/dashboard')">Kembali</button>
-        </div>
+        <h1 class="page-title">Hasil Dokumen Termaterai</h1>
+        <p class="page-subtitle">Gunakan filter di bawah untuk mencari dokumen.</p>
 
         <div class="filters-grid">
-            <div>
-                <label>Cabang</label>
+            <div class="field">
+                <label>Pilih Cabang</label>
                 <select id="filterCabang" disabled><option>Loading...</option></select>
             </div>
-            <div>
-                <label>Nomor Ulok</label>
+            <div class="field">
+                <label>Pilih Nomor Ulok</label>
                 <select id="filterUlok" disabled><option value="">Semua</option></select>
             </div>
-            <div>
-                <label>Lingkup Kerja</label>
+            <div class="field">
+                <label>Pilih Lingkup Kerja</label>
                 <select id="filterLingkup" disabled><option value="">Semua</option></select>
             </div>
         </div>
 
-        <div style="margin-bottom: 20px; display: flex; gap: 10px;">
-            <button id="btnApply" class="primary" style="width: auto;">Terapkan Filter</button>
-            <button id="btnReset" class="btn-secondary" style="width: auto;">Reset</button>
+        <div class="actions">
+            <button id="btnApply" class="primary">Terapkan Filter</button>
+            <button id="btnReset" class="ghost">Reset</button>
         </div>
 
-        <div id="resultsWrapper" style="position: relative; min-height: 100px;">
+        <div id="resultsWrapper" style="display:none; position: relative; min-height: 100px;">
              <div id="loadingTable" class="loading-overlay" style="display:none; position: absolute; background: rgba(255,255,255,0.9);">
-                <div class="spinner"></div>
+                <div class="spinner" style="width: 40px; height: 40px; border-width: 4px;"></div>
+                <div style="margin-top: 10px; font-weight: 500;">Memuat data…</div>
             </div>
-            <div id="tableContent">
-                <div style="text-align:center; color:#888; padding: 40px;">Silakan terapkan filter untuk melihat data.</div>
-            </div>
+            
+            <div id="tableContent"></div>
         </div>
     </div>`;
 
@@ -369,75 +367,121 @@ function renderViewResults(container) {
     const fLingkup = document.getElementById("filterLingkup");
     const btnApply = document.getElementById("btnApply");
     const btnReset = document.getElementById("btnReset");
+    const wrapper = document.getElementById("resultsWrapper");
     const loader = document.getElementById("loadingTable");
     const content = document.getElementById("tableContent");
 
+    // Init
     (async () => {
         try {
             const ops = await Api.getOptions('cabang');
             fCabang.innerHTML = ops.map(v => `<option value="${v}">${v}</option>`).join('');
-            loadUlokFilter();
+            if (ops.length) loadUlokFilter();
         } catch (e) { alert(e.message); }
     })();
 
     async function loadUlokFilter() {
         fUlok.innerHTML = '<option>Loading...</option>';
+        fUlok.disabled = true;
         const ops = await Api.getOptions('ulok');
         fUlok.innerHTML = '<option value="">Semua</option>' + ops.map(v => `<option value="${v}">${v}</option>`).join('');
         fUlok.disabled = false;
     }
 
     fUlok.addEventListener("change", async () => {
-        fLingkup.innerHTML = '<option>Loading...</option>'; fLingkup.disabled = true;
-        if (!fUlok.value) { fLingkup.innerHTML = '<option value="">Semua</option>'; return; }
+        if (!fUlok.value) {
+            fLingkup.innerHTML = '<option value="">Semua</option>';
+            fLingkup.disabled = true;
+            return;
+        }
+        fLingkup.disabled = true;
         const ops = await Api.getOptions('lingkup', { ulok: fUlok.value });
         fLingkup.innerHTML = '<option value="">Semua</option>' + ops.map(v => `<option value="${v}">${v}</option>`).join('');
         fLingkup.disabled = false;
     });
 
-    btnApply.addEventListener("click", async () => {
-        loader.style.display = "flex";
-        try {
-            const data = await Api.listDocuments({ ulok: fUlok.value, lingkup: fLingkup.value });
-            renderTable(data);
-        } catch (e) { content.innerHTML = `<div class="error-box" style="display:block">${e.message}</div>`; }
-        finally { loader.style.display = "none"; }
-    });
-
     btnReset.addEventListener("click", () => {
-        fUlok.value = ""; fLingkup.innerHTML = '<option value="">Semua</option>'; fLingkup.disabled = true;
-        content.innerHTML = '<div style="text-align:center; color:#888; padding: 40px;">Data di-reset.</div>';
+        fUlok.value = "";
+        fLingkup.innerHTML = '<option value="">Semua</option>';
+        fLingkup.disabled = true;
+        wrapper.style.display = "none";
+        content.innerHTML = "";
     });
 
-    function renderTable(items) {
-        if (!items.length) { content.innerHTML = '<div style="padding:20px; text-align:center;">Tidak ada data.</div>'; return; }
+    btnApply.addEventListener("click", async () => {
+        wrapper.style.display = "block";
+        loader.style.display = "flex";
+        content.innerHTML = ""; // clear old
         
+        try {
+            const data = await Api.listDocuments({
+                ulok: fUlok.value,
+                lingkup: fLingkup.value
+            });
+            renderTable(data);
+        } catch (e) {
+            content.innerHTML = `<div style="padding:20px; text-align:center; color:red;">${e.message}</div>`;
+        } finally {
+            loader.style.display = "none";
+        }
+    });
+
+    // --- BAGIAN INI YANG DIPERBARUI ---
+    function renderTable(items) {
+        if (!items.length) {
+            content.innerHTML = '<div style="padding:20px; text-align:center; color:#666;">Tidak ada data.</div>';
+            return;
+        }
+
+        // Helper untuk link (Preview & Download)
+        // Menggunakan driveViewUrl/driveDownloadUrl (dari Sheets) atau previewUrl/downloadUrl (dari LocalStorage)
+        const getLinks = (it) => {
+            const viewUrl = it.driveViewUrl || it.previewUrl;
+            // Gunakan driveDownloadUrl jika ada, jika tidak, gunakan viewUrl sebagai fallback
+            const downloadUrl = it.driveDownloadUrl || it.downloadUrl || viewUrl;
+
+            if (!viewUrl) return '-';
+
+            return `
+                <a href="${viewUrl}" target="_blank" style="font-weight:600;">Preview</a>
+                <span style="color:#ccc; margin:0 4px;">|</span>
+                <a href="${downloadUrl}" target="_blank" style="font-weight:600;">Download</a>
+            `;
+        };
+
+        // Desktop Table: Hanya Ulok, Lingkup, Aksi
         let html = `
-        <div class="table-responsive">
         <table class="table desktop-table">
-            <thead><tr><th>Waktu</th><th>Cabang</th><th>Ulok</th><th>Lingkup</th><th>Aksi</th></tr></thead>
+            <thead>
+                <tr>
+                    <th style="width: 40%;">Nomor Ulok</th>
+                    <th style="width: 40%;">Lingkup Kerja</th>
+                    <th style="width: 20%;">Aksi</th>
+                </tr>
+            </thead>
             <tbody>
                 ${items.map(it => `
                     <tr>
-                        <td>${new Date(it.createdAt).toLocaleString()}</td>
-                        <td>${it.cabang}</td>
-                        <td>${it.ulok}</td>
+                        <td class="break">${it.ulok}</td>
                         <td>${it.lingkup}</td>
-                        <td>${it.previewUrl ? `<a href="${it.previewUrl}" target="_blank">Lihat</a>` : '-'}</td>
+                        <td>${getLinks(it)}</td>
                     </tr>
                 `).join('')}
             </tbody>
-        </table>
-        </div>
-        <div class="mobile-cards">
+        </table>`;
+
+        html += `<div class="mobile-cards">
             ${items.map(it => `
                 <div class="m-card">
-                    <div class="m-row"><span class="m-label">Ulok</span><span>${it.ulok}</span></div>
-                    <div class="m-row"><span class="m-label">Lingkup</span><span>${it.lingkup}</span></div>
-                    <div class="m-row" style="margin-top:8px;">${it.previewUrl ? `<a href="${it.previewUrl}" target="_blank">Buka Dokumen</a>` : ''}</div>
+                    <div class="m-row"><span class="m-label">Ulok</span><span class="m-value">${it.ulok}</span></div>
+                    <div class="m-row"><span class="m-label">Lingkup</span><span class="m-value">${it.lingkup}</span></div>
+                    <div class="m-actions" style="margin-top:12px; border-top:1px dashed #eee; padding-top:8px;">
+                        ${getLinks(it)}
+                    </div>
                 </div>
             `).join('')}
         </div>`;
+
         content.innerHTML = html;
     }
 }
