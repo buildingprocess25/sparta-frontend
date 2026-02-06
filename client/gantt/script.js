@@ -728,12 +728,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // ============================================================
-        // LOGIKA PENGECEKAN PARAMETER URL (REQ: STRICT MODE)
-        // ============================================================
-        const urlParams = new URLSearchParams(window.location.search);
-        const hasUrlParam = urlParams.get('ulok');
-
         if (APP_MODE === 'kontraktor') {
             if (isProjectLocked) {
                 container.innerHTML = `
@@ -741,32 +735,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         <h3 style="color: #2f855a; margin:0;">Jadwal Terkunci</h3>
                         <p style="margin-top:5px;">Jadwal sudah diterbitkan dan tidak dapat diubah.</p>
                     </div>`;
-                return;
+            } else {
+                renderContractorInputForm(container);
             }
-            if (!hasUrlParam) {
-                container.innerHTML = `
-                    <div class="api-card error" style="text-align: center; padding: 40px; border-left: 5px solid #c53030;">
-                        <div style="font-size: 48px; margin-bottom: 20px;">🚫</div>
-                        <h3 style="color: #c53030; margin-bottom: 10px;">Akses Input Dibatasi</h3>
-                        <p style="color: #4a5568; margin-bottom: 20px; line-height: 1.6;">
-                            Anda mengakses halaman ini tanpa melalui proses input RAB.<br>
-                            Sesuai prosedur, <strong>Jadwal (Gantt Chart)</strong> harus diisi segera setelah RAB disubmit.
-                        </p>
-                        <div style="background: #fff5f5; padding: 15px; border-radius: 8px; display: inline-block; text-align: left;">
-                            <strong>Solusi:</strong>
-                            <ol style="margin: 10px 0 0 20px; color: #2d3748;">
-                                <li>Buka menu <strong>Input RAB</strong>.</li>
-                                <li>Pilih Proyek & Submit RAB (atau Edit & Submit ulang).</li>
-                                <li>Anda akan diarahkan kembali ke sini secara otomatis.</li>
-                            </ol>
-                        </div>
-                    </div>`;
-                const bottomContainer = document.getElementById('bottom-action-container');
-                if(bottomContainer) bottomContainer.innerHTML = '';
-                
-                return;
-            }
-            renderContractorInputForm(container);
         }
         else if (APP_MODE === 'pic') {
             if (!isProjectLocked) {
