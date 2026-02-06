@@ -1,1 +1,225 @@
-z
+<!DOCTYPE html>
+<html lang="id">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Dokumentasi Toko Baru</title>
+        <strong></strong>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        <link rel="stylesheet" href="style.css">
+        <link rel="icon" href="../../assets/favicon.ico" type="image/x-icon">
+    </head>
+    <body>
+        <header class="app-header">
+        <a href="/">
+            <img src="../../assets/Alfamart-Emblem.png" alt="Alfamart Logo" class="header-logo" />
+        </a>
+        <h1>Foto Dokumentasi Toko</h1>
+        <a href="../../dashboard/index.html" class="btn-back-header">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            <span>Dashboard</span>
+        </a>
+    </header>
+
+        <main class="container">
+            
+            <div id="view-form" class="view-section hidden">
+                <h2 class="section-title">
+                    <i class="fa-solid fa-file-lines"></i> Data Dokumentasi
+                </h2>
+                <form id="data-input-form">
+                    <div class="form-grid">
+                        
+                        <div class="form-group">
+                            <label>Cabang</label>
+                            <input type="text" id="inp-cabang" readonly style="background-color: #f5f5f5; cursor: not-allowed;">
+                        </div>
+
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label>Nomor Ulok</label>
+                            <div style="display: flex; gap: 1rem; align-items: flex-start;">
+                                <div style="flex: 1;">
+                                    <select id="sel-ulok" style="padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; width: 100%; font-size: 1rem;">
+                                        <option value="">-- Pilih nomor ulok --</option>
+                                    </select>
+                                    <input type="text" id="inp-ulok-manual" class="hidden" placeholder="Contoh: Z001-2510-0001" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px;">
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 8px; padding: 0.75rem 0;">
+                                    <label style="font-size: 0.85rem; color: #666; margin: 0;">Input Manual?</label>
+                                    <input type="checkbox" id="chk-manual-ulok" style="cursor: pointer;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Kontraktor Sipil</label>
+                            <input type="text" id="inp-sipil" placeholder="Nama Kontraktor Sipil" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Kontraktor ME</label>
+                            <input type="text" id="inp-me" placeholder="Nama Kontraktor ME" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>SPK Awal</label>
+                            <input type="date" id="inp-spk-awal" required>
+                        </div>
+                        <div class="form-group">
+                            <label>SPK Akhir</label>
+                            <input type="date" id="inp-spk-akhir" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Kode Toko</label>
+                            <input type="text" id="inp-kode-toko" maxlength="4" placeholder="T123" required style="text-transform: uppercase;">
+                        </div>
+                        <div class="form-group">
+                            <label>Nama Toko</label>
+                            <input type="text" id="inp-nama-toko" placeholder="ALFAMART CONTOH" required style="text-transform: uppercase;">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Tanggal GO</label>
+                            <input type="date" id="inp-tgl-go" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Tanggal ST</label>
+                            <input type="date" id="inp-tgl-st" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Tanggal Ambil Foto</label>
+                            <input type="date" id="inp-tgl-foto" required>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">
+                            <i class="fa-solid fa-arrow-right"></i> Lanjut ke Denah & Foto
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div id="view-floorplan" class="view-section hidden">
+                <div class="floor-plan-header">
+                    <button id="btn-back-form" class="btn-text">
+                        <i class="fa-solid fa-arrow-left"></i> Kembali ke Data
+                    </button>
+                    <div style="text-align: right;">
+                        <div id="fp-store-name" style="font-weight: bold; color: var(--primary); font-size: 1.1rem;">NAMA TOKO</div>
+                        <div id="fp-date" style="font-size: 0.85rem; color: #666;">-</div>
+                    </div>
+                </div>
+
+                <div class="progress-bar-container">
+                    <div style="background: #eee; height: 8px; border-radius: 4px; margin-bottom: 0.5rem; overflow: hidden;">
+                        <div id="progress-fill" style="background: var(--color-success); height: 100%; width: 0%; transition: width 0.3s;"></div>
+                    </div>
+                    <div style="text-align: right; font-size: 0.8rem; color: #666;" id="progress-text">Progress: 0/38</div>
+                </div>
+
+                <div class="floor-plan-content">
+                    <div class="floor-plan-wrapper">
+                        <div class="pagination-controls">
+                            <button class="pagination-btn active" data-page="1">1. Area Luar</button>
+                            <button class="pagination-btn" data-page="2">2. Area Dalam 1</button>
+                            <button class="pagination-btn" data-page="3">3. Area Dalam 2</button>
+                        </div>
+
+                        <div class="floor-plan-image-container" id="map-container">
+                            <img id="floor-img" src="../../assets/floor.png" alt="Denah" class="floor-plan-bg">
+                            <div id="points-container" style="position: absolute; inset: 0;"></div> 
+                        </div>
+                    </div>
+
+                    <div class="photo-list-container">
+                        <h3 style="margin: 0 0 1rem 0; color: var(--primary);">
+                            <i class="fa-solid fa-images"></i> Daftar Foto (<span id="photo-count">0</span>/38)
+                        </h3>
+                        <div id="photo-list-grid" class="photo-list-scroll"></div>
+                        
+                        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e5e5e5;">
+                            <button id="btn-save-pdf" class="btn-primary full-width">
+                                <i class="fa-solid fa-file-pdf"></i> Simpan & Kirim PDF
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="completion-section" class="hidden alert alert-success" style="margin-top: 2rem; text-align: center;">
+                    <h3 style="margin: 0 0 0.5rem 0;">
+                        <i class="fa-solid fa-circle-check"></i> Semua Foto Lengkap! 🎉
+                    </h3>
+                    <p style="margin: 0; font-size: 0.95rem;">Silakan tekan tombol "Simpan & Kirim PDF" di atas.</p>
+                </div>
+            </div>
+
+        </main>
+
+        <div id="camera-modal" class="modal-overlay hidden" style="z-index: 2000;">
+            <div class="camera-container">
+                <div id="cam-preview-container" style="position: relative; width: 100%; height: 100%;">
+                    <video id="cam-video" autoplay playsinline style="width:100%; height:100%; object-fit: cover;"></video>
+                    <div class="camera-grid-overlay"></div>
+                </div>
+
+                <div id="photo-result-container" class="hidden" style="width: 100%; height: 100%; background: black; display: flex; align-items: center; justify-content: center;">
+                    <img id="captured-img" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
+                </div>
+                
+                <canvas id="cam-canvas" style="display:none;"></canvas>
+
+                <div class="camera-ui">
+                    <div class="camera-header">
+                        <span id="cam-title" style="color:white; font-weight:bold; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">Titik Foto</span>
+                        <button id="btn-close-cam" class="btn-close-camera">&times;</button>
+                    </div>
+
+                    <div id="actions-pre-capture" class="camera-controls">
+                        <label class="btn-file-upload" title="Upload Foto">
+                            <i class="fa-solid fa-upload"></i>
+                            <input type="file" id="inp-file-upload" accept="image/*" style="display:none;">
+                        </label>
+
+                        <button id="btn-snap" class="btn-capture" title="Ambil Foto"></button>
+
+                        <button id="btn-cant-snap" class="btn-cant-take-photo" title="Tidak Bisa Difoto">
+                            <i class="fa-solid fa-ban"></i>
+                        </button>
+                    </div>
+
+                    <div id="actions-post-capture" class="capture-actions hidden">
+                        <button id="btn-retake" class="btn-secondary">
+                            <i class="fa-solid fa-rotate-left"></i> Ulangi
+                        </button>
+                        <button id="btn-confirm-snap" class="btn-primary">
+                            <i class="fa-solid fa-check"></i> Gunakan
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="warning-modal" class="modal-overlay hidden" style="z-index: 3000;">
+            <div class="warning-box">
+                <div class="warning-icon">!</div>
+                <h3 style="color: #92400e; margin-bottom: 0.5rem;">Peringatan</h3>
+                <p id="warning-msg" style="color: #555; margin-bottom: 1.5rem; white-space: pre-line;">-</p>
+                <button id="btn-warning-ok" class="btn-primary">OK</button>
+            </div>
+        </div>
+
+        <div id="form-status-toast" class="toast">Notifikasi</div>
+
+        <div id="loading-overlay" class="loading-overlay hidden">
+            <div class="spinner"></div>
+            <div id="loading-text" style="margin-top: 1rem; font-weight: 600; color: #333;">Loading...</div>
+        </div>
+        <script src="script.js"></script>
+    </body>
+</html>
