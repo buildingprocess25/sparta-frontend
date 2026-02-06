@@ -268,7 +268,7 @@
       ================================================================= */
    async function fetchSpkData(cabang) {
        try {
-           const res = await fetch(`${API_BASE_URL}/spk-data`, {
+           const res = await fetch(`${API_BASE_URL}/doc/spk-data`, {
                method: "POST",
                headers: { "Content-Type": "application/json" },
                body: JSON.stringify({ cabang }),
@@ -424,7 +424,7 @@
                res.data.photos.forEach((fileId, idx) => {
                    if(fileId) {
                        const pointId = idx + 1;
-                       const url = `${API_BASE_URL}/view-photo/${fileId}`;
+                       const url = `${API_BASE_URL}/doc/view-photo/${fileId}`;
                        // Simple preload
                        const img = new Image(); img.src = url; 
                        
@@ -701,7 +701,7 @@
       API CALLS & SAVING
       ================================================================= */
    async function getTempByUlok(ulok) {
-       const res = await fetch(`${API_BASE_URL}/get-temp`, {
+       const res = await fetch(`${API_BASE_URL}/doc/get-temp`, {
            method: "POST",
            headers: { "Content-Type": "application/json" },
            body: JSON.stringify({ nomorUlok: ulok }),
@@ -713,7 +713,7 @@
        // Merge current formData with new payload to ensure backend gets full context if needed
        // (Backend likely handles partial updates, but safe side)
        const fullPayload = { ...state.formData, ...payload };
-       const res = await fetch(`${API_BASE_URL}/save-temp`, {
+       const res = await fetch(`${API_BASE_URL}/doc/save-temp`, {
            method: "POST",
            headers: { "Content-Type": "application/json" },
            body: JSON.stringify(fullPayload),
@@ -727,7 +727,7 @@
            
            try {
                // 1. Cek Status
-               const statusRes = await fetch(`${API_BASE_URL}/cek-status`, {
+               const statusRes = await fetch(`${API_BASE_URL}/doc/cek-status`, {
                    method: "POST",
                    headers: { "Content-Type": "application/json" },
                    body: JSON.stringify({ nomorUlok: state.formData.nomorUlok })
@@ -758,7 +758,7 @@
                
                // Kita coba panggil save-toko. Jika backend butuh PDFBase64 wajib, ini akan gagal.
                // Namun ini best effort migrasi tanpa file worker.
-               const saveRes = await fetch(`${API_BASE_URL}/save-toko`, {
+               const saveRes = await fetch(`${API_BASE_URL}/doc/save-toko`, {
                    method: "POST",
                    headers: { "Content-Type": "application/json" },
                    body: JSON.stringify(payload),
@@ -767,7 +767,7 @@
                if (!saveRes.ok) throw new Error(saveRes.error || "Gagal simpan toko");
                
                // Kirim Email Trigger
-               await fetch(`${API_BASE_URL}/send-pdf-email`, {
+               await fetch(`${API_BASE_URL}/doc/send-pdf-email`, {
                    method: "POST",
                    headers: { "Content-Type": "application/json" },
                    body: JSON.stringify({
