@@ -660,7 +660,7 @@ const PDFGenerator = {
             );
             // Baris Akhir: Total Dibayarkan
             statusTableBody.push(
-                ["Total Dibayarkan (Net)", formatRupiah(finalPayment)]
+                ["Grand Total", formatRupiah(finalPayment)]
             );
         }
 
