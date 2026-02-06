@@ -88,7 +88,7 @@ header.app-header h1 {
 .user-greeting-wrapper {
     text-align: center;
     margin-top: 20px;
-    margin-bottom: -10px;
+    margin-bottom: -30px;
     position: relative;
     z-index: 10;
 }
