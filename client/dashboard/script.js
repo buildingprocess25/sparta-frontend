@@ -15,13 +15,13 @@ document.addEventListener('DOMContentLoaded', () => {
         'BRANCH BUILDING & MAINTENANCE MANAGER': [
             'menu-spk', 'menu-pengawasan', 'menu-opname', 
             'menu-tambahspk', 'menu-gantt', 'menu-dokumentasi', 
-            'menu-svdokumen'
+            'menu-svdokumen', 'menu-sp'
         ],
         'BRANCH BUILDING COORDINATOR': [
-            'menu-dokumentasi', 'menu-svdokumen','menu-gantt', 'menu-opname'
+            'menu-dokumentasi', 'menu-svdokumen','menu-gantt', 'menu-opname', 'menu-sp'
         ],
         'BRANCH BUILDING SUPPORT': [
-            'menu-dokumentasi', 'menu-opname', 'menu-gantt', 'menu-svdokumen'
+            'menu-dokumentasi', 'menu-opname', 'menu-gantt', 'menu-svdokumen', 'menu-sp'
         ],
         'KONTRAKTOR': [
             'menu-rab', 'menu-materai', 'menu-opname', 'menu-gantt'
