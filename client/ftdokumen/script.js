@@ -181,7 +181,7 @@
        btn.textContent = "Memproses...";
    
        try {
-           const res = await fetch(`${API_BASE_URL}/auth/login`, {
+           const res = await fetch(`${API_BASE_URL}/doc/auth/login`, {
                method: "POST",
                headers: { "Content-Type": "application/json" },
                body: JSON.stringify({ username: u, password: p }),
