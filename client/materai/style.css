@@ -327,6 +327,56 @@ button.btn-warning:hover {
     background-color: #eab308; /* Kuning lebih gelap */
 }
 
+.action-buttons-wrapper {
+    display: flex;
+    gap: 8px;
+    justify-content: center; /* Posisi di tengah */
+    align-items: center;
+}
+
+/* Style Dasar Tombol Aksi (Kecil) */
+.btn-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none !important;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    min-width: 70px; /* Lebar minimal agar seragam */
+    cursor: pointer;
+}
+
+.btn-action:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* 1. Tombol Lihat (Warna Biru Langit) */
+.btn-action.view {
+    background-color: #e0f2fe; /* Background Biru Muda */
+    color: #0284c7;        /* Teks Biru Tua */
+    border-color: #bae6fd; /* Border Biru */
+}
+.btn-action.view:hover {
+    background-color: #bae6fd;
+    color: #0369a1;
+}
+
+/* 2. Tombol Unduh (Warna Hijau Segar) */
+.btn-action.download {
+    background-color: #dcfce7; /* Background Hijau Muda */
+    color: #16a34a;        /* Teks Hijau Tua */
+    border-color: #bbf7d0; /* Border Hijau */
+}
+.btn-action.download:hover {
+    background-color: #bbf7d0;
+    color: #15803d;
+}
+
 /* =========================================
    MOBILE RESPONSIVE
    ========================================= */
