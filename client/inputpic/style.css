@@ -1,0 +1,249 @@
+/* Menggunakan Font Inter */
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 0;
+    color: #333;
+}
+
+/* Header style menyesuaikan index.html */
+header {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); /* Gradasi Merah */
+    color: white;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    height: auto;
+    min-height: 60px;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: white;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+/* Style Logo Header */
+.header-logo {
+    width: 100px;
+    height: auto;
+    position: absolute;
+    left: 25px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* Style Tombol Logout di Header */
+.btn-header-logout {
+    position: absolute;
+    right: 25px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    text-decoration: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    backdrop-filter: blur(4px);
+    transition: all 0.2s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-header-logout:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-50%) scale(1.05);
+}
+
+/* Container Form */
+.container {
+    max-width: 800px;
+    margin: 2.5rem auto;
+    background-color: white;
+    padding: 2rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+    border-radius: 15px;
+}
+
+.form-container {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-container label {
+    font-weight: 600;
+    margin-bottom: 8px;
+    margin-top: 15px;
+    color: #444;
+    font-size: 0.95rem;
+}
+
+.form-container input,
+.form-container select {
+    padding: 12px;
+    margin-bottom: 5px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    transition: border-color 0.2s;
+}
+
+.form-container input:focus,
+.form-container select:focus {
+    outline: none;
+    border-color: #dc2626;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.input-readonly {
+    background-color: #f8fafc;
+    color: #64748b;
+    border-color: #cbd5e1;
+    cursor: not-allowed;
+}
+
+/* Tombol Simpan */
+.button-group {
+    margin-top: 2rem;
+}
+
+#submit-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    color: white;
+    padding: 14px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+#submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+}
+
+/* Pesan Status & Popup (Tidak banyak berubah, hanya penyesuaian font) */
+.loading {
+    display: none;
+    text-align: center;
+    margin: 20px 0;
+    color: #dc2626;
+    font-weight: 600;
+}
+
+.loading.show {
+    display: block;
+}
+
+.error-message {
+    color: #d32f2f;
+    background-color: #ffebee;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    display: none;
+    font-size: 14px;
+}
+
+.success-message {
+    color: #1b5e20;
+    background-color: #e8f5e9;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    display: none;
+    font-size: 14px;
+}
+
+.status-indicator {
+    font-size: 12px;
+    margin-bottom: 15px;
+    font-style: italic;
+}
+
+.popup {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+}
+
+.popup-content {
+    background-color: white;
+    margin: 15% auto;
+    padding: 30px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    border-radius: 15px;
+    color: #333;
+    text-align: center;
+    max-width: 400px;
+    width: 90%;
+    font-family: 'Inter', sans-serif;
+}
+
+.popup-content button {
+    background: #dc2626;
+    color: white;
+    padding: 10px 24px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    font-weight: 600;
+    margin-top: 15px;
+}
+
+.popup.show {
+    display: block;
+}
+
+/* Responsive (Mobile) */
+@media (max-width: 768px) {
+    .container {
+        margin: 1rem;
+        padding: 1.5rem;
+        width: auto;
+    }
+    header {
+        flex-direction: column;
+        padding: 1.5rem;
+        gap: 1rem;
+    }
+    header h1 {
+        margin-top: 0.5rem;
+    }
+    .header-logo {
+        position: static;
+        transform: none;
+        margin: 0 auto;
+        width: 120px;
+    }
+    .btn-header-logout {
+        position: static;
+        transform: none;
+        width: 100%;
+        justify-content: center;
+        box-sizing: border-box;
+    }
+}

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="id">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Input PIC Pengawasan</title>
+        <link rel="icon" href="../../assets/favicon.ico" type="image/x-icon" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+        <header>
+            <img src="../../assets/Alfamart-Emblem.png" alt="Alfamart Logo" class="header-logo" />
+            <h1>Input PIC Pengawasan</h1>
+            <a href="https://sparta-alfamart.vercel.app/dashboard/" id="logout-link" class="btn-header-logout">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+                <span>Dashboard</span>
+            </a>
+        </header>
+
+        <div class="container">
+        <div class="error-message" id="error-message"></div>
+        <div class="success-message" id="success-message"></div>
+        
+        <form id="pic-form" class="form-container">
+            <label for="cabang">Cabang:</label>
+            <select id="cabang" name="cabang" required>
+            <option value="">-- Pilih Cabang --</option>
+            </select>
+
+            <label for="kode_ulok">Kode Ulok:</label>
+            <select id="kode_ulok" name="kode_ulok" required>
+            <option value="">-- Pilih Kode Ulok --</option>
+            </select>
+
+            <label for="nama_toko">Nama Toko:</label>
+            <input type="text" id="nama_toko" name="nama_toko" placeholder="Akan terisi otomatis berdasarkan kode ulok..." readonly class="input-readonly" required/>
+
+            <label for="kategori_lokasi">Kategori Lokasi:</label>
+            <input type="text" id="kategori_lokasi" name="kategori_lokasi" placeholder="Kategori Lokasi..." readonly class="input-readonly"/>
+
+            <label for="tanggal_spk">Tanggal SPK:</label>
+            <input type="date" id="tanggal_spk" name="tanggal_spk" readonly class="input-readonly" required />
+
+            <label for="spk_url">Link SPK:</label>
+            <input type="text" id="spk_url" name="spk_url" placeholder="Link SPK akan terisi otomatis berdasarkan kode ulok..." readonly class="input-readonly"/>
+            <div class="status-indicator" id="spk-status"></div>
+
+            <label for="rab_url">Link File (RAB, Penawaran & Gambar Sipil & Me):</label>
+            <input type="text" id="rab_url" name="rab_url" placeholder="Link RAB akan terisi otomatis berdasarkan kode ulok..." readonly class="input-readonly"/>
+            <div class="status-indicator" id="rab-status"></div>
+
+            <label for="pic_building_support">PIC Building Support:</label>
+            <select name="pic_building_support" id="pic_building_support" required>
+            <option value="">-- Pilih PIC Building Support --</option>
+            </select>
+
+            <div class="loading" id="loading">
+            Sedang memproses data dan mengirim email...
+            </div>
+
+            <div class="button-group">
+            <button type="submit" id="submit-btn">Simpan</button>
+            </div>
+        </form>
+        
+        </div>
+
+        <div class="popup" id="popup">
+        <div class="popup-content">
+            <p id="popup-message"></p>
+            <button onclick="document.getElementById('popup').classList.remove('show')">OK</button>
+        </div>
+        </div>
+
+        <script src="script.js"></script>
+    </body>
+</html>
