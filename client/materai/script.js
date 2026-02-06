@@ -5,8 +5,6 @@
 const SHEETS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyUpg_II5NKNw1YFSyWiTiVBLKuNdnawunFRJJCJeCs4sWwjX3fB7sKi-tefj8-lSn8mQ/exec"; 
 
 const LOCAL_KEY_DOCS = "materai_docs";
-const SESSION_KEY = "MATERAI_USER";
-const AUTH_KEY_LEGACY = "materai_auth";
 
 /* =========================================
    UTILS
@@ -30,12 +28,21 @@ function fileToBase64(file) {
 }
 
 function getSession() {
-    try {
-        const raw = localStorage.getItem(SESSION_KEY) || localStorage.getItem(AUTH_KEY_LEGACY);
-        return raw ? JSON.parse(raw) : null;
-    } catch {
-        return null;
+    // INTEGRASI: Cek Session dari Auth Utama (/auth/script.js)
+    // Auth module menggunakan sessionStorage
+    const isAuth = sessionStorage.getItem("authenticated");
+    
+    if (isAuth === "true") {
+        return {
+            email: sessionStorage.getItem("loggedInUserEmail"),
+            // Mapping: Auth module menyimpan 'password' sebagai 'loggedInUserCabang'
+            cabang: sessionStorage.getItem("loggedInUserCabang"), 
+            role: sessionStorage.getItem("userRole"),
+            name: sessionStorage.getItem("loggedInUserEmail") // Fallback name
+        };
     }
+    
+    return null;
 }
 
 function getSessionCabang() {
@@ -47,52 +54,7 @@ function getSessionCabang() {
    API SERVICES
    ========================================= */
 const Api = {
-    async login(email, password) {
-        try {
-            const url = new URL(SHEETS_WEB_APP_URL);
-            url.searchParams.set("action", "login");
-            url.searchParams.set("email", email);
-            url.searchParams.set("cabang", password);
-            url.searchParams.set("ts", Date.now().toString());
-
-            const res = await fetch(url.toString(), {
-                method: "GET",
-                mode: "cors",
-                cache: "no-store",
-                redirect: "follow",
-                referrerPolicy: "no-referrer",
-            });
-
-            if (!res.ok) {
-                const text = await res.text();
-                return { ok: false, message: `HTTP ${res.status}: ${text}` };
-            }
-
-            let json;
-            try {
-                json = await res.json();
-            } catch {
-                const text = await res.text();
-                return { ok: false, message: `Respon bukan JSON: ${text}` };
-            }
-
-            if (json?.ok && json?.data?.email && json?.data?.cabang) {
-                const profile = {
-                    email: String(json.data.email),
-                    cabang: String(json.data.cabang).toUpperCase(),
-                    name: json.data.name || json.data.email, // Fallback name
-                    loggedInAt: Date.now(),
-                };
-                localStorage.setItem(SESSION_KEY, JSON.stringify(profile));
-                localStorage.setItem(AUTH_KEY_LEGACY, JSON.stringify(profile));
-                return { ok: true, data: profile };
-            }
-
-            return { ok: false, message: json?.message || "Email atau password salah" };
-        } catch (err) {
-            return { ok: false, message: err.message || "Gagal login" };
-        }
-    },
+    // INTEGRASI: Fungsi login dihapus karena menggunakan Auth eksternal
 
     async createDocument(payload) {
         // Fallback local jika URL kosong
@@ -185,25 +147,20 @@ function render() {
     const hash = window.location.hash.slice(1) || "/";
     const user = getSession();
 
-    // Guard: Jika tidak login dan bukan di login page, lempar ke login
-    if (!user && hash !== "/login") {
-        return navigate("/login", true);
+    // Guard: Jika tidak login, LEMPAR ke halaman login UTAMA (keluar dari folder materai)
+    if (!user) {
+        // Asumsi struktur folder: client/materai/index.html sejajar dengan client/auth/index.html
+        window.location.href = "../auth/index.html"; 
+        return;
     }
-    // Guard: Jika login dan akses login page, lempar ke dashboard
-    if (user && hash === "/login") {
-        return navigate("/dashboard", true);
-    }
+
     // Redirect root to dashboard
-    if (hash === "/" && user) {
+    if (hash === "/") {
         return navigate("/dashboard", true);
     }
 
     // Render Layout + Page
-    if (!user) {
-        renderLoginPage();
-    } else {
-        renderLayout(user, hash);
-    }
+    renderLayout(user, hash);
 }
 
 /* =========================================
@@ -236,9 +193,14 @@ function renderLayout(user, path) {
 
     // Attach Logout Event
     document.getElementById("btnLogout").addEventListener("click", () => {
-        localStorage.removeItem(SESSION_KEY);
-        localStorage.removeItem(AUTH_KEY_LEGACY);
-        navigate("/login", true);
+        // Hapus session storage (logout global)
+        sessionStorage.removeItem("authenticated");
+        sessionStorage.removeItem("loggedInUserEmail");
+        sessionStorage.removeItem("userRole");
+        sessionStorage.removeItem("loggedInUserCabang");
+        
+        // Redirect ke login utama
+        window.location.href = "../auth/index.html";
     });
 
     // Render Inner Page
@@ -249,60 +211,7 @@ function renderLayout(user, path) {
     else navigate("/dashboard", true); // 404 fallback
 }
 
-// 3. Login Page
-function renderLoginPage() {
-    app.innerHTML = `
-    <div class="alfamart-login">
-        <div id="loadingOverlay" class="loading-overlay" style="display: none;">
-            <div class="spinner"></div>
-            <div style="margin-top: 12px; font-weight: 600; color: #333;">Memproses…</div>
-        </div>
-        <div class="login-card">
-            <img class="login-logo" src="https://upload.wikimedia.org/wikipedia/commons/8/86/Alfamart_logo.svg" alt="Alfamart" draggable="false" />
-            <h1 class="login-title">Materai</h1>
-            <p class="login-subtitle">Silakan login untuk melanjutkan</p>
-            
-            <form id="loginForm" class="login-form">
-                <div>
-                    <label for="email">Email</label>
-                    <input id="email" type="email" placeholder="Masukkan email" required autocomplete="username">
-                </div>
-                <div>
-                    <label for="password">Password</label>
-                    <input id="password" type="password" placeholder="Masukkan password" required autocomplete="current-password">
-                </div>
-                <div id="loginError" class="error-box" style="display:none;"></div>
-                <button type="submit" id="btnLogin">Login</button>
-            </form>
-        </div>
-    </div>`;
-
-    const form = document.getElementById("loginForm");
-    const emailInput = document.getElementById("email");
-    const passInput = document.getElementById("password");
-    const errorBox = document.getElementById("loginError");
-    const loader = document.getElementById("loadingOverlay");
-    const btn = document.getElementById("btnLogin");
-
-    form.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        errorBox.style.display = "none";
-        loader.style.display = "flex";
-        btn.disabled = true;
-
-        const res = await Api.login(emailInput.value, passInput.value);
-        
-        loader.style.display = "none";
-        btn.disabled = false;
-
-        if (res.ok) {
-            navigate("/dashboard", true);
-        } else {
-            errorBox.textContent = res.message;
-            errorBox.style.display = "block";
-        }
-    });
-}
+// 3. Login Page INTERNAL (DIHAPUS - Digantikan oleh Redirect di fungsi render)
 
 // 4. Dashboard Page
 function renderDashboard(container) {
@@ -650,8 +559,8 @@ function renderViewResults(container) {
 }
 
 /* =========================================
-   BOOTSTRAP
+    BOOTSTRAP
    ========================================= */
 window.addEventListener("DOMContentLoaded", render);
 window.addEventListener("hashchange", render);
-window.navigate = navigate; // Global access for inline onclick
+window.navigate = navigate; // Global
