@@ -970,12 +970,17 @@ header.app-header h1 {
 
 @media (max-width: 480px) {
     .container {
-        padding: 0.75rem;
+        padding: 0.25rem;
     }
 
     .view-section {
-        padding: 1rem;
+        padding: 0.5rem;
         border-radius: 6px;
+    }
+
+    /* Kurangi padding wrapper denah */
+    .floor-plan-wrapper {
+        padding: 0.25rem;
     }
 
     .login-card {
@@ -986,7 +991,6 @@ header.app-header h1 {
         font-size: 1.1rem;
     }
 
-    /* Form actions di mobile */
     .form-actions {
         flex-direction: column;
     }
@@ -995,7 +999,7 @@ header.app-header h1 {
     .btn-secondary {
         width: 100%;
     }
-    
+
     .camera-controls {
         padding: 1rem;
         gap: 0.8rem;
@@ -1015,9 +1019,14 @@ header.app-header h1 {
     }
 
     .photo-point {
-        width: 24px;
-        height: 24px;
-        font-size: 0.6rem;
+        width: 14px;      /* Desktop 16px, Mobile diperkecil jadi 14px */
+        height: 14px;
+        font-size: 7px;   /* Font diperkecil */
+        border-width: 1px;
+    }
+
+    .photo-point:hover:not(:disabled) {
+        transform: translate(-50%, -50%);
     }
 
     .toast {

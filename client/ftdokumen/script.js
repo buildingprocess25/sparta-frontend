@@ -739,10 +739,10 @@ window.viewLargePhoto = (url) => {
     hide(getEl("cam-preview-container"));
     show(getEl("photo-result-container"));
 
-    // Sembunyikan tombol kamera, tampilkan tombol tutup view
+    // Sembunyikan tombol kamera
     hide(getEl("actions-pre-capture"));
     hide(getEl("actions-post-capture"));
-    show(getEl("actions-view-only")); // Menampilkan tombol Tutup baru
+    // HAPUS: show(getEl("actions-view-only"));
 
     getEl("cam-title").textContent = "Lihat Foto";
     show(getEl("camera-modal"));
@@ -753,14 +753,19 @@ window.viewLargePhoto = (url) => {
     btnClose.parentNode.replaceChild(newBtn, btnClose);
     newBtn.addEventListener("click", closeCamera);
 
-    // Handle tombol Tutup di bawah (YANG BARU DITAMBAHKAN)
-    const btnCloseView = getEl("btn-close-view");
-    if (btnCloseView) {
-        const newBtnView = btnCloseView.cloneNode(true);
-        btnCloseView.parentNode.replaceChild(newBtnView, btnCloseView);
-        newBtnView.addEventListener("click", closeCamera);
-    }
+    // HAPUS: Logika btnCloseView
 };
+
+// GANTI fungsi resetCameraUI dengan yang ini
+function resetCameraUI() {
+    STATE.capturedBlob = null;
+    STATE.currentPhotoNote = null;
+    show(getEl("cam-preview-container"));
+    hide(getEl("photo-result-container"));
+    
+    show(getEl("actions-pre-capture"));
+    hide(getEl("actions-post-capture"));
+}
 
 async function openCamera(point) {
     if (STATE.isLoadingData) {
