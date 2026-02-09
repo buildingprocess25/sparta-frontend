@@ -564,20 +564,19 @@ function formatDateInput(dateString) {
 
 async function loadTempData(ulok, isManualOverride = false) {
     if (!ulok) return;
+    
     STATE.isLoadingData = true;
     showLoading("Sinkronisasi data..."); 
     
     try {
-        // Update: Ambil data temp DAN status dokumen secara bersamaan
         const [res, statusRes] = await Promise.all([
-            getTempByUlok(ulok),
-            cekStatus(ulok).catch(() => null) // Ignore error cek status jika offline
+            getTempByUlok(ulok).catch(err => ({ ok: false, error: err })), // Aman jika fetch gagal
+            cekStatus(ulok).catch(() => null)
         ]);
 
-        // Simpan status dokumen ke STATE global agar bisa dipakai di renderFloorPlan
         STATE.documentStatus = statusRes ? statusRes.status : null;
 
-        if (res.ok && res.data) {
+        if (res && res.ok && res.data) {
             if (isManualOverride) {
                 const { isManualUlok: _ignored, ...rest } = res.data;
                 populateForm(rest);
@@ -590,18 +589,34 @@ async function loadTempData(ulok, isManualOverride = false) {
                 STATE.photos = {};
                 const preloadPromises = [];
                 console.log("Preloading images...");
+
                 res.data.photos.forEach((pid, idx) => {
                     if (!pid) return;
                     const id = idx + 1;
                     const url = `${API_BASE_URL}/doc/view-photo/${pid}`;
-                    preloadPromises.push(preloadImage(url));
+                    
+                    // PERBAIKAN: Tambahkan .catch() agar satu error tidak membatalkan semua
+                    const p = preloadImage(url)
+                        .then(() => true)
+                        .catch((err) => {
+                            console.warn(`Gagal load gambar ${id}:`, err);
+                            return false; 
+                        });
+                        
+                    preloadPromises.push(p);
+
+                    // Simpan URL ke state (meski belum tentu berhasil load)
                     STATE.photos[id] = {
                         url: url,
-                        point: ALL_POINTS.find(p => p.id === id),
+                        point: ALL_POINTS.find(p => p.id === id) || { id, label: "Unknown" },
                         timestamp: new Date().toISOString(),
                     };
                 });
-                if (preloadPromises.length > 0) await Promise.all(preloadPromises);
+
+                // Tunggu semua selesai (sukses atau gagal)
+                if (preloadPromises.length > 0) {
+                    await Promise.all(preloadPromises);
+                }
 
                 const taken = Object.keys(STATE.photos).map(Number);
                 const next = taken.length > 0 ? Math.max(...taken) + 1 : 1;
@@ -609,8 +624,8 @@ async function loadTempData(ulok, isManualOverride = false) {
             }
         }
     } catch (e) {
-        console.error(e);
-        showToast("Gagal memuat data: " + e.message, "error");
+        console.error("Error loadTempData:", e);
+        showToast("Gagal memuat sebagian data", "error");
     } finally {
         STATE.isLoadingData = false;
         hideLoading();
@@ -964,9 +979,16 @@ function showWarningModal(msg, onOk) {
 
 async function generateAndSendPDF() {
     console.log("Memulai proses PDF...");
+    
+    // 1. Validasi Data
+    if (!ALL_POINTS || ALL_POINTS.length === 0) {
+        showToast("Error Sistem: Data titik foto tidak ditemukan (ALL_POINTS).", "error");
+        return;
+    }
+
     const ulok = STATE.formData.nomorUlok;
 
-    // --- Validasi Status Dokumen ---
+    // 2. Cek Status
     if (ulok) {
         showLoading("Mengecek status...");
         try {
@@ -983,32 +1005,30 @@ async function generateAndSendPDF() {
 
     showLoading("Membuat PDF...");
 
-    // --- Init Worker ---
+    // 3. Init Worker dengan Try-Catch
     let worker;
     try {
         worker = new Worker("pdf.worker.js");
     } catch (e) {
         hideLoading();
-        showToast("Gagal memuat sistem PDF (pdf.worker.js tidak ditemukan)", "error");
+        showToast("Gagal memuat sistem PDF (pdf.worker.js hilang).", "error");
         console.error("Worker Init Error:", e);
         return;
     }
 
-    // --- Kirim Data ke Worker ---
-    // Pastikan ALL_POINTS dikirim!
+    // 4. Kirim Data (Pastikan ALL_POINTS dikirim)
     worker.postMessage({
         formData: STATE.formData,
         capturedPhotos: STATE.photos,
-        allPhotoPoints: ALL_POINTS // <--- PENTING: Variabel ini harus ada
+        allPhotoPoints: ALL_POINTS // Wajib ada!
     });
 
-    // --- Handle Response dari Worker ---
     worker.onmessage = async (e) => {
         const { ok, pdfBase64, pdfBlob, error } = e.data;
 
         if (!ok) {
             console.error("PDF Worker Error:", error);
-            showToast("Gagal generate PDF: " + error, "error");
+            showToast("Gagal generate PDF: " + (error || "Unknown Error"), "error");
             hideLoading();
             worker.terminate();
             return;
@@ -1022,12 +1042,11 @@ async function generateAndSendPDF() {
 
             const payload = {
                 ...STATE.formData,
-                pdfBase64, // Base64 string dari worker
+                pdfBase64,
                 emailPengirim: user.email || ""
             };
 
-            // 1. Simpan ke Backend (Spreadsheet/Drive)
-            // (Disini kita pakai endpoint 'save-toko' yang mengembalikan pdfUrl)
+            // Simpan ke Backend
             const resSave = await fetch(`${API_BASE_URL}/doc/save-toko`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -1037,7 +1056,7 @@ async function generateAndSendPDF() {
             const jsonSave = await resSave.json();
             if (!jsonSave.ok) throw new Error(jsonSave.error || "Gagal simpan data");
 
-            // 2. Kirim Email (dengan lampiran PDF)
+            // Kirim Email
             await fetch(`${API_BASE_URL}/doc/send-pdf-email`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -1045,13 +1064,13 @@ async function generateAndSendPDF() {
                     email: user.email,
                     pdfBase64: pdfBase64,
                     filename: filename,
-                    pdfUrl: jsonSave.pdfUrl, // Link drive dari response sebelumnya
+                    pdfUrl: jsonSave.pdfUrl,
                     namaToko: STATE.formData.namaToko,
                     kodeToko: STATE.formData.kodeToko
                 })
             });
 
-            // 3. Download Lokal untuk User
+            // Download
             const url = URL.createObjectURL(pdfBlob);
             const a = document.createElement("a");
             a.href = url;
@@ -1060,7 +1079,6 @@ async function generateAndSendPDF() {
             a.click();
             a.remove();
 
-            // 4. Sukses
             localStorage.setItem("saved_ok", "1");
             location.reload();
 
@@ -1075,7 +1093,7 @@ async function generateAndSendPDF() {
 
     worker.onerror = (e) => {
         console.error("Worker Crash:", e);
-        showToast("Terjadi kesalahan pada sistem PDF", "error");
+        showToast("Terjadi kesalahan fatal pada Worker PDF", "error");
         hideLoading();
         worker.terminate();
     };
