@@ -907,17 +907,16 @@ function resetCameraUI() {
 }
 
 async function saveCapturedPhotoOptimistic() {
-    let base64 = null;
-    if (STATE.capturedBlob) {
-        base64 = await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.readAsDataURL(STATE.capturedBlob);
-        });
+    const base64 = STATE.capturedBlob; 
+
+    if (!base64) {
+        showToast("Gagal menyimpan foto: Data kosong", "error");
+        return;
     }
 
     const pointId = STATE.currentPoint.id;
 
+    // Simpan ke state lokal
     STATE.photos[pointId] = {
         url: base64,
         point: STATE.currentPoint,
@@ -925,6 +924,7 @@ async function saveCapturedPhotoOptimistic() {
         note: null
     };
 
+    // Auto-advance ke nomor berikutnya
     if (pointId === STATE.currentPhotoNumber) {
         let next = pointId + 1;
         if (next > 38) next = 38;
@@ -934,7 +934,6 @@ async function saveCapturedPhotoOptimistic() {
     closeCamera();
     renderFloorPlan();
     showToast(`Foto #${pointId} disimpan!`);
-
     savePhotoToBackend(base64, null, pointId);
 }
 
