@@ -866,7 +866,7 @@ function closeCamera() {
 function capturePhoto() {
     if (!STATE.stream) return;
 
-    // 1. Ambil elemen (Gunakan ID yang sesuai dengan index.html baru)
+    // 1. Ambil elemen
     const video = getEl("cam-video");
     const canvas = getEl("cam-canvas");
     const imgResult = getEl("captured-img");
@@ -879,7 +879,7 @@ function capturePhoto() {
     canvas.width = w;
     canvas.height = h;
     
-    // 3. Draw ke Canvas (Mirroring jika kamera depan)
+    // 3. Draw ke Canvas
     const ctx = canvas.getContext("2d");
     ctx.drawImage(video, 0, 0, w, h);
 
@@ -893,11 +893,6 @@ function capturePhoto() {
     show(getEl("photo-result-container"));
     hide(getEl("actions-pre-capture"));
     show(getEl("actions-post-capture"));
-    
-    const btnConfirm = getEl("btn-confirm-snap");
-    const btnRetake = getEl("btn-retake");
-    if (btnConfirm) btnConfirm.onclick = saveCapturedPhoto;
-    if (btnRetake) btnRetake.onclick = resetCameraUI;
 }
 
 function resetCameraUI() {
@@ -995,7 +990,16 @@ async function generateAndSendPDF() {
 
     showLoading("Membuat PDF...");
 
-    const worker = new Worker("pdf.worker.js");
+    // --- PERBAIKAN: Pengecekan Worker ---
+    let worker;
+    try {
+        worker = new Worker("pdf.worker.js");
+    } catch (e) {
+        hideLoading();
+        showToast("Gagal memuat sistem PDF (pdf.worker.js hilang).", "error");
+        console.error("Worker Init Error:", e);
+        return;
+    }
 
     worker.postMessage({
         formData: STATE.formData,
@@ -1016,7 +1020,7 @@ async function generateAndSendPDF() {
 
         try {
             showLoading("Mengirim PDF & Email...");
-            const user = STATE.user;
+            const user = STATE.user || { email: "unknown" }; // Safety check
             const safeDate = formatDateInput(STATE.formData.tanggalAmbilFoto) || "unknown";
             const filename = `Dokumentasi_${STATE.formData.kodeToko || "TOKO"}_${safeDate}.pdf`;
 
@@ -1076,7 +1080,8 @@ async function generateAndSendPDF() {
 
     worker.onerror = (e) => {
         console.error("Worker Error Event", e);
-        showToast("Error Worker PDF", "error");
+        // Error detail biasanya ada di e.message
+        showToast("Error pada Worker PDF: " + (e.message || "Unknown"), "error");
         hideLoading();
         worker.terminate();
     };
