@@ -706,7 +706,10 @@ function renderPhotoList() {
     if (!list) return;
     list.innerHTML = "";
 
-    ALL_POINTS.forEach(p => {
+    // PERUBAHAN: Gunakan PHOTO_POINTS berdasarkan halaman aktif, bukan ALL_POINTS
+    const currentPoints = PHOTO_POINTS[STATE.currentPage] || [];
+
+    currentPoints.forEach(p => {
         const item = document.createElement("div");
         let status = STATE.photos[p.id] ? "completed" : "pending";
         item.className = `photo-item ${status}`;
@@ -736,19 +739,27 @@ window.viewLargePhoto = (url) => {
     hide(getEl("cam-preview-container"));
     show(getEl("photo-result-container"));
 
+    // Sembunyikan tombol kamera, tampilkan tombol tutup view
     hide(getEl("actions-pre-capture"));
     hide(getEl("actions-post-capture"));
+    show(getEl("actions-view-only")); // Menampilkan tombol Tutup baru
 
     getEl("cam-title").textContent = "Lihat Foto";
     show(getEl("camera-modal"));
 
+    // Handle tombol X di pojok kanan atas
     const btnClose = getEl("btn-close-cam");
     const newBtn = btnClose.cloneNode(true);
     btnClose.parentNode.replaceChild(newBtn, btnClose);
+    newBtn.addEventListener("click", closeCamera);
 
-    newBtn.addEventListener("click", () => {
-        closeCamera();
-    });
+    // Handle tombol Tutup di bawah (YANG BARU DITAMBAHKAN)
+    const btnCloseView = getEl("btn-close-view");
+    if (btnCloseView) {
+        const newBtnView = btnCloseView.cloneNode(true);
+        btnCloseView.parentNode.replaceChild(newBtnView, btnCloseView);
+        newBtnView.addEventListener("click", closeCamera);
+    }
 };
 
 async function openCamera(point) {
@@ -829,8 +840,10 @@ function resetCameraUI() {
     STATE.currentPhotoNote = null;
     show(getEl("cam-preview-container"));
     hide(getEl("photo-result-container"));
+    
     show(getEl("actions-pre-capture"));
     hide(getEl("actions-post-capture"));
+    hide(getEl("actions-view-only"));
 }
 
 async function saveCapturedPhotoOptimistic() {
