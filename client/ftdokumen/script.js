@@ -105,12 +105,15 @@ const showLoading = (text = "Loading...") => {
 
 const hideLoading = () => hide(getEl("loading-overlay"));
 
-function preloadImage(src) {
+function preloadImage(url) {
     return new Promise((resolve) => {
         const img = new Image();
-        img.onload = () => resolve(src);
-        img.onerror = () => resolve(src);
-        img.src = src;
+        img.src = url;
+        img.onload = () => resolve(true);
+        img.onerror = () => {
+            console.warn("Gagal memuat gambar (404/Error):", url);
+            resolve(false); // Tetap resolve false
+        };
     });
 }
 
@@ -257,33 +260,42 @@ async function getTempByUlok(nomorUlok) {
 }
 
 async function saveTemp(payload) {
-    const res = await fetch(`${API_BASE_URL}/doc/save-temp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-    });
-
-    // Cek jika server error (500, 404, dll)
-    if (!res.ok) {
-        // Ambil pesan error text (bukan json) agar tidak syntax error
-        const errorText = await res.text();
-        throw new Error(`Server Error ${res.status}: ${errorText.substring(0, 50)}...`);
-    }
-
-    return res.json();
-}
-
-async function cekStatus(nomorUlok) {
-    if (!nomorUlok) return null;
     try {
-        const res = await fetch(`${API_BASE_URL}/doc/cek-status`, {
+        const res = await fetch(`${API_BASE_URL}/doc/save-temp`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ nomorUlok })
+            body: JSON.stringify(payload),
         });
+
+        // TANGANI ERROR HTML DARI SERVER
+        if (!res.ok) {
+            // Kita ambil text-nya saja (jangan json) untuk debugging
+            const errText = await res.text(); 
+            // Potong pesan error agar tidak terlalu panjang
+            throw new Error(`Gagal Simpan Temp (${res.status}): ${errText.substring(0, 50)}...`);
+        }
+
         return await res.json();
     } catch (e) {
-        console.error("Gagal cek status:", e);
+        console.error("Save Temp Error:", e);
+        throw e; // Lempar ke pemanggil untuk ditangani
+    }
+}
+
+async function cekStatus(ulok) {
+    if (!ulok) return null;
+    try {
+        const res = await fetch(`${API_BASE_URL}/doc/cek-status?ulok=${ulok}`);
+        
+        // JIKA SERVER ERROR (500/404), JANGAN PARSE JSON
+        if (!res.ok) {
+            console.warn(`Gagal cek status (Server ${res.status}). Mengabaikan validasi status.`);
+            return null; // Return null agar proses tetap bisa lanjut
+        }
+        
+        return await res.json();
+    } catch (e) {
+        console.warn("Koneksi bermasalah saat cek status:", e);
         return null;
     }
 }
@@ -998,48 +1010,43 @@ function showWarningModal(msg, onOk) {
 
 async function generateAndSendPDF() {
     console.log("Memulai proses PDF...");
-    
+
     // 1. Validasi Data
-    if (!ALL_POINTS || ALL_POINTS.length === 0) {
-        showToast("Error Sistem: Data titik foto tidak ditemukan (ALL_POINTS).", "error");
+    if (typeof ALL_POINTS === 'undefined' || !ALL_POINTS || ALL_POINTS.length === 0) {
+        showToast("Error Sistem: Data ALL_POINTS tidak ditemukan.", "error");
         return;
     }
 
     const ulok = STATE.formData.nomorUlok;
 
-    // 2. Cek Status
+    // 2. Cek Status (Dengan fungsi cekStatus yang sudah diperbaiki di atas)
     if (ulok) {
         showLoading("Mengecek status...");
-        try {
-            const statusRes = await cekStatus(ulok);
-            if (statusRes && (statusRes.status === "DISETUJUI" || statusRes.status === "MENUNGGU VALIDASI")) {
-                hideLoading();
-                showWarningModal(`Gagal Simpan!\nDokumen status: ${statusRes.status}.`);
-                return;
-            }
-        } catch (e) {
-            console.warn("Skip cek status (offline/error):", e);
+        const statusRes = await cekStatus(ulok); // Aman walau error 500
+        
+        if (statusRes && (statusRes.status === "DISETUJUI" || statusRes.status === "MENUNGGU VALIDASI")) {
+            hideLoading();
+            showWarningModal(`Gagal Simpan!\nDokumen status: ${statusRes.status}.`);
+            return;
         }
     }
 
     showLoading("Membuat PDF...");
 
-    // 3. Init Worker dengan Try-Catch
+    // 3. Init Worker
     let worker;
     try {
         worker = new Worker("pdf.worker.js");
     } catch (e) {
         hideLoading();
-        showToast("Gagal memuat sistem PDF (pdf.worker.js hilang).", "error");
-        console.error("Worker Init Error:", e);
+        showToast("Gagal memuat sistem PDF.", "error");
         return;
     }
 
-    // 4. Kirim Data (Pastikan ALL_POINTS dikirim)
     worker.postMessage({
         formData: STATE.formData,
         capturedPhotos: STATE.photos,
-        allPhotoPoints: ALL_POINTS // Wajib ada!
+        allPhotoPoints: ALL_POINTS
     });
 
     worker.onmessage = async (e) => {
@@ -1047,14 +1054,14 @@ async function generateAndSendPDF() {
 
         if (!ok) {
             console.error("PDF Worker Error:", error);
-            showToast("Gagal generate PDF: " + (error || "Unknown Error"), "error");
+            showToast("Gagal generate PDF.", "error");
             hideLoading();
             worker.terminate();
             return;
         }
 
         try {
-            showLoading("Mengirim PDF & Email...");
+            showLoading("Mengirim Data...");
             const user = STATE.user || { email: "unknown" };
             const safeDate = formatDateInput(STATE.formData.tanggalAmbilFoto) || "unknown";
             const filename = `Dokumentasi_${STATE.formData.kodeToko || "TOKO"}_${safeDate}.pdf`;
@@ -1065,15 +1072,20 @@ async function generateAndSendPDF() {
                 emailPengirim: user.email || ""
             };
 
-            // Simpan ke Backend
+            // --- PERBAIKAN FETCH UTAMA (SAVE-TOKO) ---
             const resSave = await fetch(`${API_BASE_URL}/doc/save-toko`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
             });
             
-            const jsonSave = await resSave.json();
-            if (!jsonSave.ok) throw new Error(jsonSave.error || "Gagal simpan data");
+            // Cek Status HTTP Dulu!
+            if (!resSave.ok) {
+                const errText = await resSave.text(); // Baca text, bukan json
+                throw new Error(`Server Error (${resSave.status}): ${errText.substring(0, 100)}`);
+            }
+            
+            const jsonSave = await resSave.json(); // Baru parse json jika ok
 
             // Kirim Email
             await fetch(`${API_BASE_URL}/doc/send-pdf-email`, {
@@ -1089,7 +1101,7 @@ async function generateAndSendPDF() {
                 })
             });
 
-            // Download
+            // Download Lokal
             const url = URL.createObjectURL(pdfBlob);
             const a = document.createElement("a");
             a.href = url;
@@ -1102,17 +1114,18 @@ async function generateAndSendPDF() {
             location.reload();
 
         } catch (err) {
-            console.error("Upload/Email Error:", err);
-            showToast("Gagal kirim data: " + err.message, "error");
+            console.error("Upload Error:", err);
+            // Tampilkan pesan error yang lebih manusiawi
+            showToast("Gagal Simpan: " + err.message, "error");
             hideLoading();
         } finally {
             worker.terminate();
         }
     };
-
+    
     worker.onerror = (e) => {
         console.error("Worker Crash:", e);
-        showToast("Terjadi kesalahan fatal pada Worker PDF", "error");
+        showToast("Error Worker PDF", "error");
         hideLoading();
         worker.terminate();
     };
