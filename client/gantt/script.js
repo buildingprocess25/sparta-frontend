@@ -447,8 +447,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     name: finalName, 
                     start: 0,
                     duration: 0,
-                    dependencies: [], // UBAH KE ARRAY
-                    // dependency: null, // HAPUS INI
+                    dependencies: [], // ARRAY
                     keterlambatan: 0,
                     inputData: { ranges: [] }
                 };
@@ -602,7 +601,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 start: minStart,
                 duration: totalDuration,
                 dependencies: dependencyTaskIds, // ARRAY
-                // dependency: dependencyTaskId, // HAPUS
                 keterlambatan: item.keterlambatan || 0,
                 inputData: { ranges: ranges }
             });
@@ -906,7 +904,7 @@ document.addEventListener('DOMContentLoaded', () => {
             t.inputData.ranges = [];
             t.start = 0;
             t.duration = 0;
-            t.dependency = null;
+            t.dependencies = [];
         });
         hasUserInput = false;
         dependencyData = [];
@@ -1053,6 +1051,57 @@ document.addEventListener('DOMContentLoaded', () => {
         renderBottomActionBar(); 
     }
 
+    window.renderBottomActionBar = function () {
+        const container = document.getElementById('bottom-action-container');
+        if (!container) return;
+        container.innerHTML = '';
+        if (APP_MODE !== 'kontraktor') return;
+
+        // Jangan render tombol jika tasks kosong
+        if (!currentTasks || currentTasks.length === 0) return;
+
+        if (isProjectLocked) {
+            container.innerHTML = `
+                <div class="bottom-info-text">
+                    ✅ <strong>Status: Terkunci.</strong> Jadwal telah diterbitkan ke PIC.
+                </div>`;
+            return;
+        }
+
+        const isAllDatesFilled = currentTasks.length > 0 && currentTasks.every(t =>
+            t.inputData && t.inputData.ranges && t.inputData.ranges.length > 0
+        );
+
+        const sortedTasks = [...currentTasks].sort((a, b) => a.id - b.id);
+        const lastTaskId = sortedTasks.length > 0 ? sortedTasks[sortedTasks.length - 1].id : 0;
+
+        // [FIX] Validasi Koneksi menggunakan Array dependencies
+        const isAllConnected = sortedTasks.every(task => {
+            if (task.id === lastTaskId) return true; 
+            // Cek apakah ada task lain yang dependencies-nya mengandung task.id ini
+            return currentTasks.some(child => child.dependencies && child.dependencies.includes(task.id));
+        });
+
+        const isReadyToLock = isAllDatesFilled && isAllConnected;
+        let btnText = isReadyToLock ? "Kunci & Terbitkan Jadwal" : "Lengkapi Jadwal Dahulu";
+        let btnAttr = isReadyToLock ? "" : "disabled";
+        let infoText = isReadyToLock
+            ? "Pastikan grafik di atas sudah sesuai sebelum mengunci."
+            : "Harap lengkapi <strong>Durasi</strong> dan <strong>Keterikatan</strong> pada semua tahapan.";
+
+        container.innerHTML = `
+            <div class="bottom-info-text">
+                ℹ️ ${infoText}
+            </div>
+            <button class="btn-publish-bottom" onclick="confirmAndPublish()" ${btnAttr}>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                ${btnText}
+            </button>
+        `;
+    }
+
     window.confirmAndPublish = function () {
         if (isInitializing) return;
 
@@ -1067,9 +1116,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const sortedTasks = [...currentTasks].sort((a, b) => a.id - b.id);
         const lastTaskId = sortedTasks[sortedTasks.length - 1].id;
+        
+        // [FIX] Validasi Broken Chains dengan Array dependencies
         const brokenChains = sortedTasks.filter(task => {
             if (task.id === lastTaskId) return false;
-            const hasNextStep = currentTasks.some(child => child.dependency === task.id);
+            // Harus ada task lain yang dependencies-nya mengandung task.id ini
+            const hasNextStep = currentTasks.some(child => child.dependencies && child.dependencies.includes(task.id));
             return !hasNextStep;
         });
 
@@ -1079,7 +1131,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 `❌ GAGAL KUNCI JADWAL\n\n` +
                 `Agar alur pekerjaan tersambung, Anda wajib memilih "Tahapan Selanjutnya" pada setiap baris.\n` +
                 `(Kecuali tahapan paling akhir).\n\n` +
-                `Tahapan berikut belum memiliki kelanjutan:\n` +
+                `Tahapan berikut belum memiliki kelanjutan (belum dipilih sebagai parent oleh tahapan lain):\n` +
                 `${listNames}\n\n` +
                 `Solusi: Pilih tahapan selanjutnya pada dropdown baris tersebut.`
             );
@@ -1244,10 +1296,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             parentInputDelay = parseInt(pRanges[pRanges.length - 1].keterlambatan || 0);
                         }
                         
-                        // Shift = (End Parent + Shift Parent) - Start Task + 1
-                        // Namun kode asli hanya menambahkan shift akumulatif. 
-                        // Kita ikuti logic asli: Shift += Parent Shift + Delay Parent
-                        
                         const potentialShift = parentExistingShift + parentInputDelay;
                         if (potentialShift > maxShift) {
                             maxShift = potentialShift;
@@ -1399,148 +1447,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         html += `</div>`;
         chart.innerHTML = html;
-    }
-
-    // Update juga fungsi renderBottomActionBar karena logika cek 'isAllConnected' berubah
-    window.renderBottomActionBar = function () {
-        const container = document.getElementById('bottom-action-container');
-        if (!container) return;
-        container.innerHTML = '';
-        if (APP_MODE !== 'kontraktor') return;
-
-        if (!currentTasks || currentTasks.length === 0) return;
-
-        if (isProjectLocked) {
-            container.innerHTML = `
-                <div class="bottom-info-text">
-                    ✅ <strong>Status: Terkunci.</strong> Jadwal telah diterbitkan ke PIC.
-                </div>`;
-            return;
-        }
-
-        const isAllDatesFilled = currentTasks.length > 0 && currentTasks.every(t =>
-            t.inputData && t.inputData.ranges && t.inputData.ranges.length > 0
-        );
-
-        const sortedTasks = [...currentTasks].sort((a, b) => a.id - b.id);
-        const lastTaskId = sortedTasks.length > 0 ? sortedTasks[sortedTasks.length - 1].id : 0;
-
-        // [FIX] Cek apakah ada yang menunjuk task ini sebagai parent (Child depends on Parent)
-        // Task dianggap "tersambung" jika dia adalah Parent dari task lain, KECUALI dia adalah task terakhir.
-        const isAllConnected = sortedTasks.every(task => {
-            if (task.id === lastTaskId) return true; 
-            // Cek apakah ada task lain yg punya 'task.id' di dalam array dependencies-nya
-            return currentTasks.some(child => child.dependencies && child.dependencies.includes(task.id));
-        });
-
-        const isReadyToLock = isAllDatesFilled && isAllConnected;
-        let btnText = isReadyToLock ? "Kunci & Terbitkan Jadwal" : "Lengkapi Jadwal Dahulu";
-        let btnAttr = isReadyToLock ? "" : "disabled";
-        let infoText = isReadyToLock
-            ? "Pastikan grafik di atas sudah sesuai sebelum mengunci."
-            : "Harap lengkapi <strong>Durasi</strong> dan <strong>Keterikatan</strong> pada semua tahapan.";
-
-        container.innerHTML = `
-            <div class="bottom-info-text">
-                ℹ️ ${infoText}
-            </div>
-            <button class="btn-publish-bottom" onclick="confirmAndPublish()" ${btnAttr}>
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-                ${btnText}
-            </button>
-        `;
-    }
-
-    // Update juga confirmAndPublish agar validasinya benar
-    window.confirmAndPublish = function () {
-        if (isInitializing) return;
-
-        const isAllDatesFilled = currentTasks.every(t =>
-            t.inputData && t.inputData.ranges && t.inputData.ranges.length > 0
-        );
-
-        if (!isAllDatesFilled) {
-            alert("Gagal Kunci Jadwal:\nHarap lengkapi durasi/tanggal pada SEMUA tahapan pekerjaan terlebih dahulu.");
-            return;
-        }
-
-        const sortedTasks = [...currentTasks].sort((a, b) => a.id - b.id);
-        const lastTaskId = sortedTasks[sortedTasks.length - 1].id;
-        
-        // [FIX] Validasi Broken Chains dengan Array
-        const brokenChains = sortedTasks.filter(task => {
-            if (task.id === lastTaskId) return false;
-            // Harus ada task lain yang dependencies-nya mengandung task.id ini
-            const hasNextStep = currentTasks.some(child => child.dependencies && child.dependencies.includes(task.id));
-            return !hasNextStep;
-        });
-
-        if (brokenChains.length > 0) {
-            const listNames = brokenChains.map(t => `- ${t.name}`).join("\n");
-            alert(
-                `❌ GAGAL KUNCI JADWAL\n\n` +
-                `Agar alur pekerjaan tersambung, Anda wajib memilih "Tahapan Selanjutnya" pada setiap baris.\n` +
-                `(Kecuali tahapan paling akhir).\n\n` +
-                `Tahapan berikut belum memiliki kelanjutan (belum dipilih sebagai parent oleh tahapan lain):\n` +
-                `${listNames}\n\n` +
-                `Solusi: Pilih tahapan selanjutnya pada dropdown baris tersebut.`
-            );
-            return; 
-        }
-
-        if (!confirm("Yakin kunci jadwal? Data tidak bisa diubah lagi.")) return;
-        saveProjectSchedule("Terkunci");
-    }
-
-    window.renderBottomActionBar = function () {
-        const container = document.getElementById('bottom-action-container');
-        if (!container) return;
-        container.innerHTML = '';
-        if (APP_MODE !== 'kontraktor') return;
-
-        // Jangan render tombol jika tasks kosong
-        if (!currentTasks || currentTasks.length === 0) return;
-
-        if (isProjectLocked) {
-            container.innerHTML = `
-                <div class="bottom-info-text">
-                    ✅ <strong>Status: Terkunci.</strong> Jadwal telah diterbitkan ke PIC.
-                </div>`;
-            return;
-        }
-
-        const isAllDatesFilled = currentTasks.length > 0 && currentTasks.every(t =>
-            t.inputData && t.inputData.ranges && t.inputData.ranges.length > 0
-        );
-
-        const sortedTasks = [...currentTasks].sort((a, b) => a.id - b.id);
-        const lastTaskId = sortedTasks.length > 0 ? sortedTasks[sortedTasks.length - 1].id : 0;
-
-        const isAllConnected = sortedTasks.every(task => {
-            if (task.id === lastTaskId) return true; 
-            return currentTasks.some(child => child.dependency === task.id);
-        });
-
-        const isReadyToLock = isAllDatesFilled && isAllConnected;
-        let btnText = isReadyToLock ? "Kunci & Terbitkan Jadwal" : "Lengkapi Jadwal Dahulu";
-        let btnAttr = isReadyToLock ? "" : "disabled";
-        let infoText = isReadyToLock
-            ? "Pastikan grafik di atas sudah sesuai sebelum mengunci."
-            : "Harap lengkapi <strong>Durasi</strong> dan <strong>Keterikatan</strong> pada semua tahapan.";
-
-        container.innerHTML = `
-            <div class="bottom-info-text">
-                ℹ️ ${infoText}
-            </div>
-            <button class="btn-publish-bottom" onclick="confirmAndPublish()" ${btnAttr}>
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-                ${btnText}
-            </button>
-        `;
     }
 
     function updateProjectFromRab(rab) {
