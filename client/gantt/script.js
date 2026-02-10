@@ -701,17 +701,37 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        let html = `<div class="api-card"><div class="api-card-title">Input Jadwal & Keterikatan</div><div class="task-input-container">`;
+        // Header Container
+        let html = `
+        <div class="api-card">
+            <div class="api-card-header">
+                <div class="api-card-title">Input Jadwal & Keterikatan</div>
+                <div class="api-card-subtitle">Tentukan urutan kerja dan durasi hari untuk setiap tahapan.</div>
+            </div>
+            
+            <div class="table-responsive-wrapper">
+                <table class="schedule-input-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 5%;">No</th>
+                            <th style="width: 30%;">Tahapan Pekerjaan</th>
+                            <th style="width: 25%;">Keterikatan (Syarat Mulai)</th>
+                            <th style="width: 40%;">Durasi (Hari Ke-)</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
 
-        currentTasks.forEach((task) => {
+        currentTasks.forEach((task, index) => {
             const ranges = task.inputData.ranges || [];
             
-            // [FIX] Cari Task Mana yang menjadikan 'task' ini sebagai parent-nya (dependencies contains task.id)
+            // Logic Dependensi (Parent/Child)
             const childTask = currentTasks.find(t => t.dependencies && t.dependencies.includes(task.id));
             const selectedChildId = childTask ? childTask.id : "";
 
-            let dependencyOptions = `<option value="">- Tidak Ada -</option>`;
+            let dependencyOptions = `<option value="" class="text-gray-400">- Tidak Ada (Mulai Awal) -</option>`;
 
+            // Filter: Hanya tampilkan task yang ID-nya lebih besar (logic sederhana waterfall)
+            // Atau tampilkan semua kecuali diri sendiri untuk fleksibilitas
             currentTasks.forEach(candidate => {
                 if (candidate.id > task.id) {
                     const selected = (candidate.id == selectedChildId) ? 'selected' : '';
@@ -719,73 +739,94 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            const labelKeterikatan = "Tahapan Selanjutnya";
             html += `
-            <div class="task-input-row-multi" id="task-row-${task.id}">
-                <div style="font-weight:700; font-size:14px; color:#2d3748; margin-bottom:12px; border-bottom:1px solid #e2e8f0; padding-bottom:8px;">
-                    ${task.id}. ${escapeHtml(task.name)}
-                </div>
-                <div style="display:flex; align-items:flex-start; gap:25px;"> 
-                    <div style="width:30%; min-width: 150px;"> 
-                        <label style="font-size:11px; color:#718096; font-weight:600; display:block; margin-bottom:4px;">${labelKeterikatan}</label>
-                        <select class="form-control dep-select" data-task-id="${task.id}" style="font-size:12px; padding:6px; width:100%;">
-                            ${dependencyOptions}
-                        </select>
-                        <div style="font-size:10px; color:#a0aec0; margin-top:4px; line-height:1.2;">
-                            *Pilih tahapan yang akan dimulai setelah ini selesai.
-                        </div>
-                    </div>
-                    <div style="width:70%;">
-                        <label style="font-size:11px; color:#718096; font-weight:600; display:block; margin-bottom:4px;">Durasi (Hari Ke- sampai Hari Ke-)</label>
-                        <div class="task-ranges-container" id="ranges-${task.id}">`;
+            <tr>
+                <td class="text-center font-bold">${task.id}</td>
+                <td>
+                    <div class="task-name-cell">${escapeHtml(task.name)}</div>
+                </td>
+                <td>
+                    <select class="form-control dep-select-table" data-task-id="${task.id}">
+                        ${dependencyOptions}
+                    </select>
+                    <div class="input-hint">Pilih tahapan selanjutnya setelah ini selesai.</div>
+                </td>
+                <td>
+                    <div class="ranges-wrapper" id="ranges-${task.id}">`;
 
+            // Render Existing Ranges
             const rangesToRender = ranges.length > 0 ? ranges : [{ start: 0, end: 0 }];
             rangesToRender.forEach((r, idx) => {
                 const isSaved = ranges.length > 0;
                 html += createRangeHTML(task.id, idx, r.start, r.end, isSaved);
             });
 
-            html += `   </div>
-                        <button class="btn-add-range" onclick="addRange(${task.id})" style="margin-top:8px;">+ Periode Pekerjaan</button>
+            html += `
                     </div>
-                </div>
-            </div>`;
+                    <button class="btn-add-range-table" onclick="addRange(${task.id})">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Tambah Periode
+                    </button>
+                </td>
+            </tr>`;
         });
 
-        html += `</div>
+        html += `
+                    </tbody>
+                </table>
+            </div>
+
             <div class="task-input-actions">
-                <button class="btn-reset-schedule" onclick="resetTaskSchedule()">Reset</button>
-                <button class="btn-apply-schedule" onclick="applyTaskSchedule()">Hitung & Terapkan Jadwal</button>
+                <button class="btn-reset-schedule" onclick="resetTaskSchedule()">Reset Semua</button>
+                <button class="btn-apply-schedule" onclick="applyTaskSchedule()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px">
+                        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+                    </svg>
+                    Hitung & Terapkan Jadwal
+                </button>
             </div>
         </div>`;
+        
         container.innerHTML = html;
     }
 
     window.createRangeHTML = function (taskId, idx, start, end, isSaved = false) {
         const maxDuration = currentProject && currentProject.duration ? parseInt(currentProject.duration) : 999;
-        const btnColor = isSaved ? 'background: #fed7d7; color: #c53030;' : 'background: #e2e8f0; color: #4a5568;';
         const validationLogic = `if(parseInt(this.value) > ${maxDuration}) { alert('Maksimal durasi proyek ini adalah ${maxDuration} hari'); this.value = ${maxDuration}; } if(this.value < 0) this.value = 1;`;
 
+        // Style tombol hapus
+        const deleteBtn = isSaved 
+            ? `<button class="btn-icon-delete saved" onclick="removeRange(${taskId}, ${idx}, true)" title="Hapus Data Tersimpan">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>`
+            : `<button class="btn-icon-delete" onclick="removeRange(${taskId}, ${idx}, false)" title="Hapus Baris">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>`;
+
+        const readOnlyAttr = isSaved ? 'readonly' : '';
+        const savedClass = isSaved ? 'input-saved' : '';
+
         return `
-        <div class="range-input-group" id="range-group-${taskId}-${idx}" data-range-idx="${idx}">
-            <div class="input-group">
-                <label>H</label>
-                <input type="number" class="task-day-input" id="start-${taskId}-${idx}" 
+        <div class="range-row-table" id="range-group-${taskId}-${idx}" data-range-idx="${idx}">
+            <div class="input-pill">
+                <span class="pill-label">H</span>
+                <input type="number" class="pill-input ${savedClass}" id="start-${taskId}-${idx}" 
                     data-task-id="${taskId}" data-type="start" value="${start}" 
-                    min="1" max="${maxDuration}" 
-                    oninput="${validationLogic}"
-                    ${isSaved ? 'readonly style="background:#f7fafc"' : ''}>
+                    min="1" max="${maxDuration}" placeholder="Start"
+                    oninput="${validationLogic}" ${readOnlyAttr}>
             </div>
-            <span class="input-separator">-</span>
-            <div class="input-group">
-                <label>H</label>
-                <input type="number" class="task-day-input" id="end-${taskId}-${idx}" 
+            <span class="range-arrow">➜</span>
+            <div class="input-pill">
+                <span class="pill-label">H</span>
+                <input type="number" class="pill-input ${savedClass}" id="end-${taskId}-${idx}" 
                     data-task-id="${taskId}" data-type="end" value="${end}" 
-                    min="1" max="${maxDuration}" 
-                    oninput="${validationLogic}"
-                    ${isSaved ? 'readonly style="background:#f7fafc"' : ''}>
+                    min="1" max="${maxDuration}" placeholder="End"
+                    oninput="${validationLogic}" ${readOnlyAttr}>
             </div>
-            <button class="btn-remove-range" style="${btnColor}" onclick="removeRange(${taskId}, ${idx}, ${isSaved})">×</button>
+            ${deleteBtn}
         </div>`;
     }
 

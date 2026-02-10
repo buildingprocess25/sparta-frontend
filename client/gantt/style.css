@@ -353,6 +353,235 @@ select:focus {
     background: #90cdf4;
 }
 
+/* ================= TABLE STYLE INPUT FORM (NEW) ================= */
+
+/* Wrapper agar table bisa discroll horizontal di mobile */
+.table-responsive-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.schedule-input-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    min-width: 800px; /* Minimum width agar tidak gepeng di mobile */
+}
+
+/* Header Table */
+.schedule-input-table thead th {
+    background: #f8fafc;
+    color: #4a5568;
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 2px solid #e2e8f0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+/* Body Table */
+.schedule-input-table tbody tr {
+    border-bottom: 1px solid #edf2f7;
+    transition: background 0.15s;
+}
+
+.schedule-input-table tbody tr:hover {
+    background-color: #f7fafc;
+}
+
+.schedule-input-table td {
+    padding: 12px 16px;
+    vertical-align: top; /* Agar input sejajar atas jika multi-range */
+    color: #2d3748;
+    font-size: 14px;
+}
+
+/* Kolom Nama Task */
+.task-name-cell {
+    font-weight: 600;
+    line-height: 1.4;
+    color: #2d3748;
+}
+
+/* Kolom Dependensi */
+.dep-select-table {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #cbd5e0;
+    border-radius: 6px;
+    font-size: 13px;
+    background-color: #fff;
+    color: #2d3748;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.dep-select-table:focus {
+    border-color: #3182ce;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.15);
+}
+
+.input-hint {
+    font-size: 11px;
+    color: #a0aec0;
+    margin-top: 4px;
+}
+
+/* Kolom Durasi / Ranges */
+.ranges-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.range-row-table {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Pill Input Style (Mirip Badge tapi Input) */
+.input-pill {
+    display: flex;
+    align-items: center;
+    background: #fff;
+    border: 1px solid #cbd5e0;
+    border-radius: 6px;
+    overflow: hidden;
+    height: 34px;
+    transition: border 0.2s;
+}
+
+.input-pill:focus-within {
+    border-color: #3182ce;
+    box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.15);
+}
+
+.pill-label {
+    background: #edf2f7;
+    color: #718096;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 0 8px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    border-right: 1px solid #cbd5e0;
+}
+
+.pill-input {
+    width: 50px;
+    border: none;
+    padding: 0 5px;
+    font-size: 14px;
+    text-align: center;
+    outline: none;
+    font-weight: 500;
+    color: #2d3748;
+}
+
+/* Style saat data sudah tersimpan */
+.pill-input.input-saved {
+    background-color: #f0fff4; /* Hijau muda */
+    color: #22543d;
+}
+
+.input-pill:has(.input-saved) {
+    border-color: #9ae6b4;
+}
+
+.input-pill:has(.input-saved) .pill-label {
+    background-color: #c6f6d5;
+    color: #22543d;
+    border-right-color: #9ae6b4;
+}
+
+.range-arrow {
+    color: #cbd5e0;
+    font-size: 12px;
+}
+
+/* Tombol Delete Kecil */
+.btn-icon-delete {
+    background: transparent;
+    border: 1px solid #e2e8f0;
+    color: #a0aec0;
+    width: 34px;
+    height: 34px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-icon-delete:hover {
+    background: #fff5f5;
+    color: #e53e3e;
+    border-color: #feb2b2;
+}
+
+.btn-icon-delete.saved {
+    background: #fff5f5;
+    color: #c53030;
+    border-color: #feb2b2;
+}
+
+.btn-icon-delete.saved:hover {
+    background: #fed7d7;
+}
+
+/* Tombol Tambah Periode */
+.btn-add-range-table {
+    background: transparent;
+    border: 1px dashed #cbd5e0;
+    color: #3182ce;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+}
+
+.btn-add-range-table:hover {
+    background: #ebf8ff;
+    border-color: #bee3f8;
+    color: #2b6cb0;
+}
+
+/* Subtitle Card */
+.api-card-header {
+    margin-bottom: 20px;
+    border-bottom: 1px solid #f0f0f0;
+    padding-bottom: 15px;
+}
+
+.api-card-subtitle {
+    font-size: 13px;
+    color: #718096;
+    margin-top: 4px;
+}
+
 /* --- PIC DELAY INPUT STYLES --- */
 .delay-control-card {
     background: #fff;
