@@ -81,15 +81,13 @@ self.onmessage = async (e) => {
                     if (photoData.url.startsWith("data:image")) {
                         doc.addImage(photoData.url, "JPEG", margin, currentY + 5, photoWidth, photoHeight);
                     } else {
-                        // Jika URL biasa (http/https), jsPDF di worker SULIT merender karena CORS.
-                        // Kita tampilkan placeholder agar tidak error.
+                        // Fallback jika konversi di main thread gagal (sangat jarang terjadi jika script.js benar)
                         doc.setDrawColor(150);
                         doc.setFillColor(240);
                         doc.rect(margin, currentY + 5, photoWidth, photoHeight, "FD");
                         doc.setFontSize(9);
                         doc.setTextColor(100);
-                        doc.text("Gambar tersimpan di server", margin + 10, currentY + 45);
-                        doc.text("(Tidak tampil di PDF Preview)", margin + 10, currentY + 50);
+                        doc.text("Gagal memuat gambar", margin + 10, currentY + 45);
                         doc.setTextColor(0);
                     }
                 } catch (err) {

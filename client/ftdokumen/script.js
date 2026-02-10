@@ -2,6 +2,7 @@
 // 1. GLOBAL STATE & CONFIG
 // ==========================================
 const API_BASE_URL = "https://sparta-backend-5hdj.onrender.com";
+// URL Apps Script (Tetap, jika digunakan untuk backup/logging)
 const APPS_SCRIPT_POST_URL = "https://script.google.com/macros/s/AKfycbzPubDTa7E2gT5HeVLv9edAcn1xaTiT3J4BtAVYqaqiFAvFtp1qovTXpqpm-VuNOxQJ/exec";
 
 const STATE = {
@@ -18,7 +19,8 @@ const STATE = {
     currentPhotoNote: null,
     isLoadingData: false,
     isSavingBackground: false,
-    isProcessing: false
+    isProcessing: false,
+    documentStatus: null
 };
 
 const PHOTO_POINTS = {
@@ -105,6 +107,23 @@ const showLoading = (text = "Loading...") => {
 
 const hideLoading = () => hide(getEl("loading-overlay"));
 
+// [FIX] Helper baru untuk konversi URL ke Base64 (penting untuk PDF)
+async function urlToBase64(url) {
+    try {
+        const response = await fetch(url, { cache: 'no-cache' });
+        const blob = await response.blob();
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    } catch (error) {
+        console.warn("Gagal convert URL to Base64:", url);
+        return null;
+    }
+}
+
 function preloadImage(url) {
     return new Promise((resolve) => {
         const img = new Image();
@@ -112,7 +131,7 @@ function preloadImage(url) {
         img.onload = () => resolve(true);
         img.onerror = () => {
             console.warn("Gagal memuat gambar (404/Error):", url);
-            resolve(false); // Tetap resolve false
+            resolve(false); 
         };
     });
 }
@@ -136,22 +155,17 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function checkSession() {
-    // Cek SessionStorage yang diset oleh modul Auth utama
     const ssoAuth = sessionStorage.getItem("authenticated");
     const ssoEmail = sessionStorage.getItem("loggedInUserEmail");
     const ssoCabang = sessionStorage.getItem("loggedInUserCabang");
     const ssoRole = sessionStorage.getItem("userRole");
 
-    // Jika tidak ada session auth yang valid, tendang ke halaman login utama
     if (ssoAuth !== "true" || !ssoEmail) {
         alert("Sesi Anda telah habis atau Anda belum login.");
-        // Ganti URL di bawah sesuai dengan URL login utama app Anda
-        // Misalnya root '/' atau '/auth/index.html'
         window.location.href = '/';
         return;
     }
 
-    // Set STATE user dari session
     STATE.user = {
         email: ssoEmail,
         cabang: ssoCabang,
@@ -168,7 +182,6 @@ function proceedToApp() {
 
     show(getEl("main-header"));
 
-    // Tampilkan pesan sukses jika baru saja redirect setelah simpan
     if (localStorage.getItem("saved_ok") === "1") {
         showToast("Berhasil disimpan! ✅", "success");
         localStorage.removeItem("saved_ok");
@@ -193,10 +206,8 @@ function checkTimeLimit() {
     const wib = new Date(utc + 7 * 60 * 60000);
     const hour = wib.getHours();
 
-    // Hanya cek jika user sudah di dalam aplikasi
     if (hour < 6 || hour >= 18) {
         const timeStr = `${hour.toString().padStart(2, "0")}:${wib.getMinutes().toString().padStart(2, "0")}`;
-
         if (STATE.user) {
             if (getEl("warning-modal") && getEl("warning-modal").classList.contains("hidden")) {
                 showWarningModal(`Sesi Anda telah berakhir.\nAplikasi hanya dapat diakses pada jam operasional 06.00–18.00 WIB.\nSekarang pukul ${timeStr} WIB.`, () => doLogout());
@@ -206,9 +217,8 @@ function checkTimeLimit() {
 }
 
 function doLogout() {
-    // Hapus sesi dan redirect ke login utama
     sessionStorage.clear();
-    localStorage.removeItem("user"); // Bersihkan legacy local jika ada
+    localStorage.removeItem("user");
     STATE.user = null;
     window.location.href = '/';
 }
@@ -230,8 +240,6 @@ function switchToView(viewName) {
 // ==========================================
 // 4. API CALLS
 // ==========================================
-// apiLogin dihapus karena login ditangani terpusat
-
 async function loadSpkData(cabang) {
     if (!cabang) return;
     try {
@@ -267,18 +275,15 @@ async function saveTemp(payload) {
             body: JSON.stringify(payload),
         });
 
-        // TANGANI ERROR HTML DARI SERVER
         if (!res.ok) {
-            // Kita ambil text-nya saja (jangan json) untuk debugging
             const errText = await res.text(); 
-            // Potong pesan error agar tidak terlalu panjang
             throw new Error(`Gagal Simpan Temp (${res.status}): ${errText.substring(0, 50)}...`);
         }
 
         return await res.json();
     } catch (e) {
         console.error("Save Temp Error:", e);
-        throw e; // Lempar ke pemanggil untuk ditangani
+        throw e;
     }
 }
 
@@ -286,13 +291,10 @@ async function cekStatus(ulok) {
     if (!ulok) return null;
     try {
         const res = await fetch(`${API_BASE_URL}/doc/cek-status?ulok=${ulok}`);
-        
-        // JIKA SERVER ERROR (500/404), JANGAN PARSE JSON
         if (!res.ok) {
             console.warn(`Gagal cek status (Server ${res.status}). Mengabaikan validasi status.`);
-            return null; // Return null agar proses tetap bisa lanjut
+            return null;
         }
-        
         return await res.json();
     } catch (e) {
         console.warn("Koneksi bermasalah saat cek status:", e);
@@ -304,13 +306,9 @@ async function cekStatus(ulok) {
 // 5. EVENT LISTENERS
 // ==========================================
 function initEventListeners() {
-    // LOGIN FORM LISTENERS DIHAPUS
-
-    // LOGOUT
     const btnLogout = getEl("btn-logout");
     if (btnLogout) btnLogout.addEventListener("click", doLogout);
 
-    // MANUAL/AUTO ULOK
     const chkManual = getEl("chk-manual-ulok");
     if (chkManual) {
         chkManual.addEventListener("change", (e) => {
@@ -331,7 +329,6 @@ function initEventListeners() {
         });
     }
 
-    // SELECT ULOK
     const selUlok = getEl("sel-ulok");
     if (selUlok) {
         selUlok.addEventListener("change", async (e) => {
@@ -347,7 +344,6 @@ function initEventListeners() {
         });
     }
 
-    // INPUT ULOK MANUAL
     const inpUlokMan = getEl("inp-ulok-manual");
     if (inpUlokMan) {
         inpUlokMan.addEventListener("change", async (e) => {
@@ -358,7 +354,6 @@ function initEventListeners() {
         });
     }
 
-    // INPUT CHANGES
     const inputs = document.querySelectorAll("#data-input-form input");
     inputs.forEach(inp => {
         inp.addEventListener("change", (e) => {
@@ -368,7 +363,6 @@ function initEventListeners() {
         });
     });
 
-    // FORM SUBMIT
     const formInput = getEl("data-input-form");
     if (formInput) {
         formInput.addEventListener("submit", (e) => {
@@ -379,11 +373,9 @@ function initEventListeners() {
         });
     }
 
-    // BACK TO FORM
     const btnBack = getEl("btn-back-form");
     if (btnBack) btnBack.addEventListener("click", () => switchToView("form"));
 
-    // PAGINATION
     document.querySelectorAll(".pagination-btn").forEach(btn => {
         btn.addEventListener("click", (e) => {
             document.querySelectorAll(".pagination-btn").forEach(b => b.classList.remove("active"));
@@ -393,7 +385,6 @@ function initEventListeners() {
         });
     });
 
-    // CAMERA LISTENERS
     const btnCloseCam = getEl("btn-close-cam");
     if (btnCloseCam) btnCloseCam.addEventListener("click", closeCamera);
 
@@ -415,7 +406,6 @@ function initEventListeners() {
         }
     });
 
-    // FILE UPLOAD
     const inpFile = getEl("inp-file-upload");
     if (inpFile) {
         inpFile.addEventListener("change", (e) => {
@@ -449,7 +439,6 @@ function initEventListeners() {
         });
     }
 
-    // TIDAK BISA DIFOTO
     const btnCant = getEl("btn-cant-snap");
     if (btnCant) {
         btnCant.addEventListener("click", () => {
@@ -475,11 +464,9 @@ function initEventListeners() {
         });
     }
 
-    // WARNING MODAL OK
     const btnWarnOk = getEl("btn-warning-ok");
     if (btnWarnOk) btnWarnOk.addEventListener("click", () => hide(getEl("warning-modal")));
 
-    // SAVE PDF
     const btnPdf = getEl("btn-save-pdf");
     if (btnPdf) btnPdf.addEventListener("click", generateAndSendPDF);
 }
@@ -591,7 +578,7 @@ async function loadTempData(ulok, isManualOverride = false) {
     
     try {
         const [res, statusRes] = await Promise.all([
-            getTempByUlok(ulok).catch(err => ({ ok: false, error: err })), // Aman jika fetch gagal
+            getTempByUlok(ulok).catch(err => ({ ok: false, error: err })), 
             cekStatus(ulok).catch(() => null)
         ]);
 
@@ -616,7 +603,6 @@ async function loadTempData(ulok, isManualOverride = false) {
                     const id = idx + 1;
                     const url = `${API_BASE_URL}/doc/view-photo/${pid}`;
                     
-                    // PERBAIKAN: Tambahkan .catch() agar satu error tidak membatalkan semua
                     const p = preloadImage(url)
                         .then(() => true)
                         .catch((err) => {
@@ -626,7 +612,6 @@ async function loadTempData(ulok, isManualOverride = false) {
                         
                     preloadPromises.push(p);
 
-                    // Simpan URL ke state (meski belum tentu berhasil load)
                     STATE.photos[id] = {
                         url: url,
                         point: ALL_POINTS.find(p => p.id === id) || { id, label: "Unknown" },
@@ -634,7 +619,6 @@ async function loadTempData(ulok, isManualOverride = false) {
                     };
                 });
 
-                // Tunggu semua selesai (sukses atau gagal)
                 if (preloadPromises.length > 0) {
                     await Promise.all(preloadPromises);
                 }
@@ -694,20 +678,18 @@ function renderFloorPlan() {
     const compSec = getEl("completion-section");
     const isApproved = STATE.documentStatus === "DISETUJUI";
 
-    // 1. Handle Tombol Simpan
     if (btnSave) {
         if (isApproved) {
-            hide(btnSave); // Hilangkan tombol jika sudah disetujui
+            hide(btnSave);
         } else {
-            show(btnSave); // Tampilkan kembali jika belum
+            show(btnSave);
         }
     }
 
-    // 2. Handle Pesan di Bawah
     if (compSec) {
         if (isApproved) {
             show(compSec);
-            compSec.className = "alert alert-success"; // Pakai style hijau/sukses
+            compSec.className = "alert alert-success"; 
             compSec.innerHTML = `
                 <h3 style="margin: 0 0 0.5rem 0;">
                     <i class="fa-solid fa-clipboard-check"></i> Dokumen Sudah Disetujui
@@ -752,11 +734,10 @@ function renderFloorPlan() {
                 btn.disabled = true;
                 btn.style.cursor = "wait";
             } else if (isApproved) {
-                // Jika disetujui, kunci semua titik
-                btn.disabled = false; // Tetap bisa diklik untuk LIHAT foto
+                btn.disabled = false;
                 btn.style.cursor = "pointer";
                 if (!STATE.photos[p.id]) {
-                    btn.disabled = true; // Tapi yg kosong gak bisa diklik
+                    btn.disabled = true;
                     btn.style.opacity = 0.5;
                 }
             } else if (isLocked) {
@@ -792,7 +773,6 @@ function renderPhotoList() {
     if (!list) return;
     list.innerHTML = "";
 
-    // PERUBAHAN: Gunakan PHOTO_POINTS berdasarkan halaman aktif, bukan ALL_POINTS
     const currentPoints = PHOTO_POINTS[STATE.currentPage] || [];
 
     currentPoints.forEach(p => {
@@ -825,24 +805,18 @@ window.viewLargePhoto = (url) => {
     hide(getEl("cam-preview-container"));
     show(getEl("photo-result-container"));
 
-    // Sembunyikan tombol kamera
     hide(getEl("actions-pre-capture"));
     hide(getEl("actions-post-capture"));
-    // HAPUS: show(getEl("actions-view-only"));
 
     getEl("cam-title").textContent = "Lihat Foto";
     show(getEl("camera-modal"));
 
-    // Handle tombol X di pojok kanan atas
     const btnClose = getEl("btn-close-cam");
     const newBtn = btnClose.cloneNode(true);
     btnClose.parentNode.replaceChild(newBtn, btnClose);
     newBtn.addEventListener("click", closeCamera);
-
-    // HAPUS: Logika btnCloseView
 };
 
-// GANTI fungsi resetCameraUI dengan yang ini
 function resetCameraUI() {
     STATE.capturedBlob = null;
     STATE.currentPhotoNote = null;
@@ -895,18 +869,15 @@ function closeCamera() {
 function capturePhoto() {
     if (!STATE.stream) return;
 
-    // 1. Ambil elemen
     const video = getEl("cam-video");
     const canvas = getEl("cam-canvas");
     const imgResult = getEl("captured-img");
     
     if (!video || !canvas || !imgResult) return;
 
-    // 2. Setup Canvas dengan RESIZING (Agar tidak kegedean)
     let w = video.videoWidth;
     let h = video.videoHeight;
     
-    // Batasi lebar maksimal 1000px (Cukup HD untuk laporan)
     const MAX_WIDTH = 1000;
     if (w > MAX_WIDTH) {
         h = Math.round(h * (MAX_WIDTH / w));
@@ -916,33 +887,18 @@ function capturePhoto() {
     canvas.width = w;
     canvas.height = h;
     
-    // 3. Draw ke Canvas
     const ctx = canvas.getContext("2d");
     ctx.drawImage(video, 0, 0, w, h);
 
-    // 4. Convert ke Blob/DataURL dengan KOMPRESI (Quality 0.6)
-    // Ini solusi utama untuk error 500 Payload Too Large
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.6);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.65); // Kualitas 0.65
     
     STATE.capturedBlob = dataUrl;
     imgResult.src = dataUrl;
 
-    // 5. Ubah Tampilan UI
     hide(getEl("cam-preview-container"));
     show(getEl("photo-result-container"));
     hide(getEl("actions-pre-capture"));
     show(getEl("actions-post-capture"));
-}
-
-function resetCameraUI() {
-    STATE.capturedBlob = null;
-    STATE.currentPhotoNote = null;
-    show(getEl("cam-preview-container"));
-    hide(getEl("photo-result-container"));
-    
-    show(getEl("actions-pre-capture"));
-    hide(getEl("actions-post-capture"));
-    hide(getEl("actions-view-only"));
 }
 
 async function saveCapturedPhotoOptimistic() {
@@ -955,7 +911,6 @@ async function saveCapturedPhotoOptimistic() {
 
     const pointId = STATE.currentPoint.id;
 
-    // Simpan ke state lokal
     STATE.photos[pointId] = {
         url: base64,
         point: STATE.currentPoint,
@@ -963,7 +918,6 @@ async function saveCapturedPhotoOptimistic() {
         note: null
     };
 
-    // Auto-advance ke nomor berikutnya
     if (pointId === STATE.currentPhotoNumber) {
         let next = pointId + 1;
         if (next > 38) next = 38;
@@ -990,7 +944,7 @@ async function savePhotoToBackend(base64, note, pointId) {
         console.log(`Foto #${pointId} synced to server.`);
     } catch (e) {
         console.error("Gagal save foto background:", e);
-        showToast(`Gagal sync foto #${pointId}: ${e.message}`, "error");
+        showToast(`Warning: Foto #${pointId} belum tersync ke server. Periksa koneksi.`, "warning");
     }
 }
 
@@ -1008,10 +962,10 @@ function showWarningModal(msg, onOk) {
     show(getEl("warning-modal"));
 }
 
+// [FIX] FUNGSI GENERATE PDF YANG SUDAH DIUPDATE
 async function generateAndSendPDF() {
     console.log("Memulai proses PDF...");
 
-    // 1. Validasi Data
     if (typeof ALL_POINTS === 'undefined' || !ALL_POINTS || ALL_POINTS.length === 0) {
         showToast("Error Sistem: Data ALL_POINTS tidak ditemukan.", "error");
         return;
@@ -1019,10 +973,9 @@ async function generateAndSendPDF() {
 
     const ulok = STATE.formData.nomorUlok;
 
-    // 2. Cek Status (Dengan fungsi cekStatus yang sudah diperbaiki di atas)
     if (ulok) {
         showLoading("Mengecek status...");
-        const statusRes = await cekStatus(ulok); // Aman walau error 500
+        const statusRes = await cekStatus(ulok);
         
         if (statusRes && (statusRes.status === "DISETUJUI" || statusRes.status === "MENUNGGU VALIDASI")) {
             hideLoading();
@@ -1031,9 +984,40 @@ async function generateAndSendPDF() {
         }
     }
 
+    showLoading("Menyiapkan data gambar...");
+
+    // [FIX] Convert semua URL gambar ke Base64 sebelum kirim ke Worker
+    // Copy state agar tampilan UI tidak berubah (shallow copy object photos)
+    const photosForPdf = {};
+    const photoKeys = Object.keys(STATE.photos);
+
+    // Proses konversi async parallel
+    const conversionPromises = photoKeys.map(async (key) => {
+        const original = STATE.photos[key];
+        // Clone object item foto
+        const newItem = { ...original };
+        
+        // Cek jika URL adalah link (bukan data:image)
+        if (newItem.url && !newItem.url.startsWith("data:")) {
+            try {
+                // Fetch dan convert
+                const base64 = await urlToBase64(newItem.url);
+                if (base64) {
+                    newItem.url = base64; // Ganti URL dengan Base64 di copy object
+                } else {
+                    console.warn(`Gagal convert foto #${key}, PDF mungkin kosong di bagian ini.`);
+                }
+            } catch (e) {
+                console.error(`Error convert foto #${key} for PDF:`, e);
+            }
+        }
+        photosForPdf[key] = newItem;
+    });
+
+    await Promise.all(conversionPromises);
+
     showLoading("Membuat PDF...");
 
-    // 3. Init Worker
     let worker;
     try {
         worker = new Worker("pdf.worker.js");
@@ -1045,7 +1029,7 @@ async function generateAndSendPDF() {
 
     worker.postMessage({
         formData: STATE.formData,
-        capturedPhotos: STATE.photos,
+        capturedPhotos: photosForPdf, // [FIX] Kirim data yang sudah diconvert
         allPhotoPoints: ALL_POINTS
     });
 
@@ -1072,22 +1056,19 @@ async function generateAndSendPDF() {
                 emailPengirim: user.email || ""
             };
 
-            // --- PERBAIKAN FETCH UTAMA (SAVE-TOKO) ---
             const resSave = await fetch(`${API_BASE_URL}/doc/save-toko`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
             });
             
-            // Cek Status HTTP Dulu!
             if (!resSave.ok) {
-                const errText = await resSave.text(); // Baca text, bukan json
+                const errText = await resSave.text();
                 throw new Error(`Server Error (${resSave.status}): ${errText.substring(0, 100)}`);
             }
             
-            const jsonSave = await resSave.json(); // Baru parse json jika ok
+            const jsonSave = await resSave.json();
 
-            // Kirim Email
             await fetch(`${API_BASE_URL}/doc/send-pdf-email`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -1101,7 +1082,6 @@ async function generateAndSendPDF() {
                 })
             });
 
-            // Download Lokal
             const url = URL.createObjectURL(pdfBlob);
             const a = document.createElement("a");
             a.href = url;
@@ -1115,7 +1095,6 @@ async function generateAndSendPDF() {
 
         } catch (err) {
             console.error("Upload Error:", err);
-            // Tampilkan pesan error yang lebih manusiawi
             showToast("Gagal Simpan: " + err.message, "error");
             hideLoading();
         } finally {
