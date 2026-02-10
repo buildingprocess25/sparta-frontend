@@ -58,6 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
         dayInsert: `${API_BASE_URL}/gantt/day/insert`,
         dayKeterlambatan: `${API_BASE_URL}/gantt/day/keterlambatan`,
         dependencyInsert: `${API_BASE_URL}/gantt/dependency/insert`
+        // endpoint pengawasanInsert DIHAPUS
     };
 
     // ==================== 3. STATE MANAGEMENT ====================
@@ -74,9 +75,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let hasUserInput = false;
     let isProjectLocked = false;
     let supervisionDays = {};
-    let isInitializing = true; 
+    let isInitializing = true; // Flag untuk mencegah auto-save saat load/refresh
+    // isSupervisionLocked DIHAPUS karena otomatis
 
     // ==================== 4. RULES & TEMPLATES ====================
+
+    // MAPPING HARI PENGAWASAN (BARU)
     const SUPERVISION_RULES = {
         10: [2, 5, 8, 10],
         14: [2, 7, 10, 14],
@@ -178,14 +182,23 @@ document.addEventListener('DOMContentLoaded', () => {
         return formatDateID(targetDate);
     }
 
+    // FUNGSI BARU: Hitung Pengawasan Otomatis
     function calculateSupervisionDays() {
-        supervisionDays = {}; 
+        supervisionDays = {}; // Reset
+
         if (!currentProject || !currentProject.duration) return;
+
         const dur = parseInt(currentProject.duration);
         if (isNaN(dur)) return;
+
         const days = SUPERVISION_RULES[dur];
         if (days && Array.isArray(days)) {
-            days.forEach(dayNum => { supervisionDays[dayNum] = true; });
+            days.forEach(dayNum => {
+                supervisionDays[dayNum] = true;
+            });
+            console.log(`🔍 Pengawasan Auto (${dur} Hari):`, days);
+        } else {
+            console.warn(`⚠️ Tidak ada mapping pengawasan untuk durasi ${dur} hari.`);
         }
     }
 
@@ -247,25 +260,38 @@ document.addEventListener('DOMContentLoaded', () => {
         const ulokSelect = document.getElementById("ulokSelect");
         ulokSelect.innerHTML = '<option value="">-- Pilih Proyek --</option>';
 
+        // 1. Populate Dropdown
         projects.forEach(project => {
-            projectTasks[project.ulok] = []; 
+            projectTasks[project.ulok] = []; // Inisialisasi storage task
             const option = document.createElement("option");
+
+            // Value di sini adalah format gabungan: "Z001-2512-0001-ME"
             option.value = project.ulok;
+
+            // Label dropdown
             option.textContent = `${project.ulok} | ${project.store} (${project.work})`;
             ulokSelect.appendChild(option);
         });
 
         ulokSelect.addEventListener('change', () => {
+            // User manual change - pastikan initialization selesai
             isInitializing = false;
             changeUlok();
         });
 
+        // ============================================================
+        // 2. LOGIKA AUTO-LOAD (ULOK + LINGKUP) DARI RAB
+        // ============================================================
         const urlParams = new URLSearchParams(window.location.search);
+
+        // Ambil parameter (contoh: ulok="Z00126016565" atau "Z001-2601-6565", lingkup="Sipil")
         const autoUlok = urlParams.get('ulok');
         const autoLingkup = urlParams.get('lingkup');
         const isLocked = urlParams.get('locked');
+
         let foundMatch = false;
 
+        // Helper: Normalize ulok code (hapus semua dash untuk perbandingan)
         const normalizeUlok = (code) => {
             if (!code) return '';
             return String(code).replace(/-/g, '').toUpperCase().trim();
@@ -273,56 +299,92 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (autoUlok) {
             const normalizedAutoUlok = normalizeUlok(autoUlok);
+            console.log(`🔗 Mencari proyek: Kode=${autoUlok} (normalized: ${normalizedAutoUlok}), Lingkup=${autoLingkup || 'Semua'}`);
+
+            // Cari opsi yang COCOK KEDUANYA (Kode & Lingkup)
             const targetProject = projects.find(p => {
+                // Normalize kedua sisi untuk perbandingan yang akurat
                 const normalizedUlokClean = normalizeUlok(p.ulokClean);
                 const normalizedUlok = normalizeUlok(p.ulok);
+
+                // 1. Cek Kode Ulok (Normalized Match)
                 const isCodeMatch = normalizedUlokClean === normalizedAutoUlok ||
                     normalizedUlok.includes(normalizedAutoUlok) ||
                     normalizedAutoUlok.includes(normalizedUlokClean);
-                const isScopeMatch = autoLingkup ? p.work.toLowerCase() === autoLingkup.toLowerCase() : true;
+
+                // 2. Cek Lingkup (Case Insensitive)
+                const isScopeMatch = autoLingkup
+                    ? p.work.toLowerCase() === autoLingkup.toLowerCase()
+                    : true;
+
+                if (isCodeMatch && isScopeMatch) {
+                    console.log(`   ✓ Match found: ${p.ulok} (ulokClean: ${p.ulokClean}, work: ${p.work})`);
+                }
+
                 return isCodeMatch && isScopeMatch;
             });
 
             if (targetProject) {
+                // Jika ketemu, pilih value dropdown yang sesuai (misal "Z001-2601-6565-Sipil")
                 ulokSelect.value = targetProject.ulok;
                 foundMatch = true;
+
+                console.log("✅ Proyek ditemukan & dipilih:", targetProject.ulok);
+
+                // Load Data Gantt Chart
                 changeUlok();
+
+                // Kunci Dropdown jika mode locked
                 if (isLocked === 'true') {
                     ulokSelect.disabled = true;
                     ulokSelect.style.backgroundColor = "#e9ecef";
                     ulokSelect.style.cursor = "not-allowed";
                     ulokSelect.title = "Terkunci: Mode Review RAB";
+
+                    // Tambahan Badge Visual (Opsional)
                     const roleBadge = document.getElementById("roleBadge");
                     if (roleBadge && !document.getElementById('lock-badge')) {
                         roleBadge.innerHTML += ` <span id="lock-badge" style="font-size:0.8em; background:#feb2b2; color:#9b2c2c; padding:2px 6px; border-radius:4px; margin-left:10px;">🔒 Mode RAB</span>`;
                     }
                 }
             } else {
+                console.warn("⚠️ Data URL valid, tapi proyek tidak ditemukan di list akun ini.");
+                console.log("   Available projects:", projects.map(p => `${p.ulok} (${p.work})`));
+
+                // Fallback: Coba cari hanya berdasarkan kode ulok jika lingkup tidak ketemu
                 const partialMatch = projects.find(p => {
                     const normalizedUlokClean = normalizeUlok(p.ulokClean);
                     return normalizedUlokClean === normalizedAutoUlok;
                 });
+
                 if (partialMatch) {
+                    console.log("   Partial match found:", partialMatch.ulok);
                     ulokSelect.value = partialMatch.ulok;
                     foundMatch = true;
                     changeUlok();
+
                     if (isLocked === 'true') {
                         ulokSelect.disabled = true;
                         ulokSelect.style.backgroundColor = "#e9ecef";
                         ulokSelect.style.cursor = "not-allowed";
+                        ulokSelect.title = "Terkunci: Mode Review RAB";
                     }
                 }
             }
         }
 
+        // 3. Fallback jika tidak ada parameter URL
         if (!foundMatch && !ulokSelect.value) {
             ulokSelect.value = "";
             showSelectProjectMessage();
             localStorage.removeItem("lastSelectedUlok");
         }
 
+        // Set flag bahwa inisialisasi selesai setelah delay singkat
+        // untuk memastikan semua proses load sudah complete
         setTimeout(() => {
             isInitializing = false;
+            console.log("✅ Inisialisasi selesai, save operations enabled");
         }, 1000);
     }
 
@@ -331,6 +393,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const ulokSelect = document.getElementById("ulokSelect");
         const selectedUlok = ulokSelect.value;
 
+        // Reset States
         supervisionDays = {};
         dayGanttData = null;
         rawGanttData = null;
@@ -349,33 +412,27 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem("lastSelectedUlok", selectedUlok);
         currentProject = projects.find(p => p.ulok === selectedUlok);
 
+        // Set loading state untuk mencegah perubahan selama fetch
         isLoadingGanttData = true;
 
         await fetchGanttData(selectedUlok);
 
+        // Setelah fetch, update pengawasan otomatis berdasarkan durasi
         calculateSupervisionDays();
 
+        // Render semua komponen
         renderProjectInfo();
         renderApiData();
         renderBottomActionBar();
 
-        if (currentTasks.length > 0) {
-            if (hasUserInput) {
-                renderChart();
-            } else {
-                document.getElementById("ganttChart").innerHTML = `
+        if (hasUserInput) {
+            renderChart();
+        } else {
+            document.getElementById("ganttChart").innerHTML = `
                 <div style="text-align: center; padding: 60px; color: #6c757d;">
                     <div style="font-size: 48px; margin-bottom: 20px;">ℹ️</div>
                     <h2 style="margin-bottom: 15px;">Belum Ada Jadwal</h2>
                     <p>${APP_MODE === 'kontraktor' ? 'Silakan input jadwal pada form di atas.' : 'Menunggu Kontraktor membuat jadwal.'}</p>
-                </div>`;
-            }
-        } else {
-             // Handle jika tasks kosong sama sekali
-             document.getElementById("ganttChart").innerHTML = `
-                <div style="text-align: center; padding: 60px; color: #6c757d;">
-                    <h2 style="margin-bottom: 15px;">🚫 Tidak Ada Item Pekerjaan</h2>
-                    <p>Data RAB kosong atau tidak tersedia untuk kategori ini.</p>
                 </div>`;
         }
 
@@ -411,6 +468,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 parseGanttDataToTasks(rawGanttData, selectedValue, dayGanttData);
 
                 if (currentTasks.length === 0) {
+                    console.warn("Raw data ada tapi tasks kosong, load default.");
                     loadDefaultTasks(selectedValue);
                 } else {
                     hasUserInput = true;
@@ -427,15 +485,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- MODIFIED FUNCTION: loadDefaultTasks ---
     function loadDefaultTasks(selectedValue) {
         let template = currentProject.work === 'ME' ? taskTemplateME : taskTemplateSipil;
         
+        // Cek apakah ada data kategori dari RAB (API)
         if (filteredCategories && Array.isArray(filteredCategories) && filteredCategories.length > 0) {
             console.log("📋 Menggunakan Filter Kategori dari RAB:", filteredCategories);
             
+            // PERBAIKAN: Gunakan RAB sebagai Sumber Utama (Source of Truth)
+            // Loop array dari RAB, bukan memfilter template.
             currentTasks = filteredCategories.map((rabItemName, index) => {
                 const rabNameClean = rabItemName.toLowerCase().trim();
+
+                // Cari padanan di template untuk standardisasi (Opsional)
                 const templateMatch = template.find(t => {
                     const tName = t.name.toLowerCase().trim();
                     return tName === rabNameClean || tName.includes(rabNameClean) || rabNameClean.includes(tName);
@@ -444,23 +506,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 return {
                     id: index + 1,
-                    name: finalName, 
+                    name: finalName, // Nama sesuai RAB atau Template
                     start: 0,
                     duration: 0,
-                    dependencies: [], // UBAH KE ARRAY
-                    // dependency: null, // HAPUS INI
+                    dependencies: [],
+                    dependency: null,
                     keterlambatan: 0,
                     inputData: { ranges: [] }
                 };
             });
+
         } else {
-            console.warn("⚠️ Data RAB kosong. Tidak menampilkan tahapan pekerjaan.");
-            currentTasks = []; 
+            // Fallback: Jika RAB kosong, gunakan Full Template Default
+            console.warn("⚠️ Data RAB kosong/tidak valid. Menggunakan template default.");
+            currentTasks = JSON.parse(JSON.stringify(template)).map(t => ({
+                ...t,
+                inputData: { ranges: [] }
+            }));
         }
 
         projectTasks[selectedValue] = currentTasks;
         hasUserInput = false;
         isProjectLocked = false;
+        
+        // Render ulang agar perubahan terlihat
         renderApiData();
     }
 
@@ -471,17 +540,26 @@ document.addEventListener('DOMContentLoaded', () => {
         let dynamicTasks = [];
         let earliestDate = null;
         let tempTaskList = [];
-        
-        // --- (Bagian logika RAB / Save Data lama tetap sama) ---
         if (filteredCategories && Array.isArray(filteredCategories) && filteredCategories.length > 0) {
+            console.log("🔄 Sinkronisasi dengan data RAB terbaru (Loose Match)...");
+
             let template = currentProject.work === 'ME' ? taskTemplateME : taskTemplateSipil;
+            
+            // Mapping dari Nama RAB ke Nama Template (Standardisasi)
             tempTaskList = filteredCategories.map((catNameFromRab, index) => {
                 const rabNameClean = catNameFromRab.toLowerCase().trim();
+
+                // CARI MATCHING DI TEMPLATE (LEBIH FLEKSIBEL)
+                // Kita cari item di template yang namanya mengandung kata dari RAB, atau sebaliknya.
                 const templateItem = template.find(t => {
                     const tName = t.name.toLowerCase().trim();
                     return tName === rabNameClean || tName.includes(rabNameClean) || rabNameClean.includes(tName);
                 });
+
+                // Jika ketemu di template, pakai nama Template (biar rapi). Jika tidak, pakai nama dari RAB.
                 const officialName = templateItem ? templateItem.name : catNameFromRab; 
+
+                // Cari Data Keterlambatan yang mungkin tersimpan di ganttData lama
                 let savedKeterlambatan = 0;
                 if (ganttData) {
                     let i = 1;
@@ -489,6 +567,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         const keyName = `Kategori_${i}`;
                         const keyDelay = `Keterlambatan_Kategori_${i}`;
                         if (!ganttData.hasOwnProperty(keyName)) break;
+
+                        // Cek apakah data lama cocok dengan nama baru
                         const oldName = (ganttData[keyName] || "").toLowerCase().trim();
                         if (oldName && (oldName === officialName.toLowerCase().trim() || oldName.includes(rabNameClean))) {
                             savedKeterlambatan = parseInt(ganttData[keyDelay]) || 0;
@@ -497,55 +577,82 @@ document.addEventListener('DOMContentLoaded', () => {
                         i++;
                     }
                 }
-                return { id: index + 1, name: officialName, keterlambatan: savedKeterlambatan };
+
+                return {
+                    id: index + 1,
+                    name: officialName,
+                    keterlambatan: savedKeterlambatan
+                };
             });
+
         } else {
+            // FALLBACK: Jika tidak ada data RAB, baca murni dari save file lama
+            console.warn("⚠️ Tidak ada data RAB/filtered_categories, menggunakan data simpanan saja.");
             let i = 1;
             while (ganttData) {
                 const kategoriKey = `Kategori_${i}`;
                 const keterlambatanKey = `Keterlambatan_Kategori_${i}`;
+
                 if (!ganttData.hasOwnProperty(kategoriKey)) break;
+
                 const kategoriName = ganttData[kategoriKey];
                 const keterlambatan = parseInt(ganttData[keterlambatanKey]) || 0;
+
                 if (kategoriName && kategoriName.trim() !== '') {
-                    tempTaskList.push({ id: i, name: kategoriName, keterlambatan: keterlambatan });
+                    tempTaskList.push({
+                        id: i,
+                        name: kategoriName,
+                        keterlambatan: keterlambatan
+                    });
                 }
                 i++;
             }
         }
 
-        // --- (Bagian mapping tanggal tetap sama) ---
+        // --- LOGIKA RANGE & TANGGAL (TIDAK BERUBAH) ---
         const categoryRangesMap = {};
+
         if (dayGanttDataArray && Array.isArray(dayGanttDataArray) && dayGanttDataArray.length > 0) {
+            // 1. Tentukan Earliest Date
             dayGanttDataArray.forEach(entry => {
                 const hAwalStr = entry.h_awal;
                 if (hAwalStr) {
                     const parsedDate = parseDateDDMMYYYY(hAwalStr);
                     if (parsedDate && !isNaN(parsedDate.getTime())) {
-                        if (!earliestDate || parsedDate < earliestDate) earliestDate = parsedDate;
+                        if (!earliestDate || parsedDate < earliestDate) {
+                            earliestDate = parsedDate;
+                        }
                     }
                 }
             });
 
             if (!earliestDate) earliestDate = new Date();
+
             const projectStartDate = earliestDate;
             currentProject.startDate = projectStartDate.toISOString().split('T')[0];
             const msPerDay = 1000 * 60 * 60 * 24;
 
+            // 2. Mapping Ranges
             dayGanttDataArray.forEach(entry => {
                 const kategori = entry.Kategori;
                 if (!kategori) return;
+
                 const hAwalStr = entry.h_awal;
                 const hAkhirStr = entry.h_akhir;
                 if (!hAwalStr || !hAkhirStr) return;
+
                 const startDate = parseDateDDMMYYYY(hAwalStr);
                 const endDate = parseDateDDMMYYYY(hAkhirStr);
+
                 if (!startDate || !endDate || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return;
+
                 const startDay = Math.round((startDate - projectStartDate) / msPerDay) + 1;
                 const endDay = Math.round((endDate - projectStartDate) / msPerDay) + 1;
                 const duration = endDay - startDay + 1;
+
                 const key = kategori.toLowerCase().trim();
                 if (!categoryRangesMap[key]) categoryRangesMap[key] = [];
+
                 categoryRangesMap[key].push({
                     start: startDay > 0 ? startDay : 1,
                     end: endDay > 0 ? endDay : 1,
@@ -558,42 +665,43 @@ document.addEventListener('DOMContentLoaded', () => {
             currentProject.startDate = earliestDate.toISOString().split('T')[0];
         }
 
-        // --- UPDATE LOGIC MAPPING DEPENDENCY ---
+        // --- MAPPING FINAL KE DYNAMICTASKS ---
         tempTaskList.forEach(item => {
             const normalizedName = item.name.toLowerCase().trim();
             let ranges = [];
+
+            // Cari ranges dengan logic Fuzzy Match juga
             for (const [kategoriKey, rangeArray] of Object.entries(categoryRangesMap)) {
+                // Logic: Nama Task mengandung Key Data, atau Key Data mengandung Nama Task
                 if (normalizedName === kategoriKey || normalizedName.includes(kategoriKey) || kategoriKey.includes(normalizedName)) {
                     ranges = rangeArray;
                     break;
                 }
             }
+
             let totalDuration = 0;
             let minStart = 0;
+
             if (ranges.length > 0) {
                 totalDuration = ranges.reduce((sum, r) => sum + r.duration, 0);
                 minStart = Math.min(...ranges.map(r => r.start));
             }
 
-            // [FIX] Mengambil SEMUA parent ID, bukan cuma satu
-            let dependencyTaskIds = [];
+            // Dependency Logic
+            let dependencyTaskId = null;
             if (dependencyData && dependencyData.length > 0) {
-                // Cari semua entri di dependencyData dimana 'Kategori_Terikat' (Anak) == Task ini
-                const parents = dependencyData.filter(d =>
+                const depAsChild = dependencyData.find(d =>
                     d.Kategori_Terikat && 
                     (String(d.Kategori_Terikat).toLowerCase().trim() === normalizedName || normalizedName.includes(String(d.Kategori_Terikat).toLowerCase().trim()))
                 );
-
-                parents.forEach(p => {
-                    if (p.Kategori) {
-                        const parentNameNorm = String(p.Kategori).toLowerCase().trim();
-                        const parentTask = tempTaskList.find(t => {
-                            const tName = t.name.toLowerCase().trim();
-                            return tName === parentNameNorm || tName.includes(parentNameNorm) || parentNameNorm.includes(tName);
-                        });
-                        if (parentTask) dependencyTaskIds.push(parentTask.id);
-                    }
-                });
+                if (depAsChild && depAsChild.Kategori) {
+                    const parentNameNorm = String(depAsChild.Kategori).toLowerCase().trim();
+                    const parentTask = tempTaskList.find(t => {
+                        const tName = t.name.toLowerCase().trim();
+                        return tName === parentNameNorm || tName.includes(parentNameNorm) || parentNameNorm.includes(tName);
+                    });
+                    if (parentTask) dependencyTaskId = parentTask.id;
+                }
             }
 
             dynamicTasks.push({
@@ -601,8 +709,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 name: item.name,
                 start: minStart,
                 duration: totalDuration,
-                dependencies: dependencyTaskIds, // ARRAY
-                // dependency: dependencyTaskId, // HAPUS
+                dependencies: [],
+                dependency: dependencyTaskId,
                 keterlambatan: item.keterlambatan || 0,
                 inputData: { ranges: ranges }
             });
@@ -644,17 +752,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- FORM PIC (DELAY ONLY - SUPERVISION AUTO) ---
     window.renderPicDelayForm = function (container) {
-        if (!currentTasks || currentTasks.length === 0) {
-            container.innerHTML = `
-                <div class="api-card warning">
-                    <h3 style="color: #c05621; margin:0;">Data Pekerjaan Kosong</h3>
-                    <p style="margin-top:5px;">Tidak ada item pekerjaan yang tersedia untuk proyek ini.</p>
-                </div>`;
-            return;
-        }
-
         let html = '';
+
         let optionsHtml = '<option value="">-- Pilih Tahapan --</option>';
         if (dayGanttData) {
             dayGanttData.forEach((d, idx) => {
@@ -664,7 +765,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
+        // Info Pengawasan Auto
         const dur = currentProject.duration || '-';
+
         html += `
             <div class="api-card info" style="margin-bottom: 15px;">
                 <h3 style="color: #2b6cb0; margin:0; font-size: 15px;">ℹ️ Info Pengawasan</h3>
@@ -675,7 +778,9 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
 
             <div class="delay-control-card">
-                <div class="delay-title"><span>Input Keterlambatan</span></div>
+                <div class="delay-title">
+                    <span>Input Keterlambatan</span>
+                </div>
                 <div class="delay-form-row">
                     <div class="form-group" style="flex: 2;">
                         <label>Pilih Tahapan</label>
@@ -694,27 +799,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- FORM KONTRAKTOR ---
     window.renderContractorInputForm = function (container) {
-        if (!currentTasks || currentTasks.length === 0) {
-            container.innerHTML = `
-                <div class="api-card warning">
-                    <h3 style="color: #c05621; margin:0;">Data Pekerjaan Kosong</h3>
-                    <p style="margin-top:5px;">Data RAB dari server kosong. Tidak ada tahapan pekerjaan yang ditampilkan.</p>
-                </div>`;
-            return;
-        }
-
         let html = `<div class="api-card"><div class="api-card-title">Input Jadwal & Keterikatan</div><div class="task-input-container">`;
 
-        currentTasks.forEach((task) => {
-            const ranges = task.inputData.ranges || [];
-            
-            // [FIX] Cari Task Mana yang menjadikan 'task' ini sebagai parent-nya (dependencies contains task.id)
-            const childTask = currentTasks.find(t => t.dependencies && t.dependencies.includes(task.id));
-            const selectedChildId = childTask ? childTask.id : "";
+        // Cek kelengkapan data
+        const isAllTasksFilled = currentTasks.every(t =>
+            t.inputData && t.inputData.ranges && t.inputData.ranges.length > 0
+        );
 
+        currentTasks.forEach((task, index) => {
+            const ranges = task.inputData.ranges || [];
+            const childTask = currentTasks.find(t => t.dependency === task.id);
+            const selectedChildId = childTask ? childTask.id : "";
             let dependencyOptions = `<option value="">- Tidak Ada -</option>`;
 
             currentTasks.forEach(candidate => {
+                // Syarat: Hanya tampilkan task yang posisinya di bawah (ID lebih besar)
                 if (candidate.id > task.id) {
                     const selected = (candidate.id == selectedChildId) ? 'selected' : '';
                     dependencyOptions += `<option value="${candidate.id}" ${selected}>${candidate.id}. ${candidate.name}</option>`;
@@ -727,21 +826,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div style="font-weight:700; font-size:14px; color:#2d3748; margin-bottom:12px; border-bottom:1px solid #e2e8f0; padding-bottom:8px;">
                     ${task.id}. ${escapeHtml(task.name)}
                 </div>
+
                 <div style="display:flex; align-items:flex-start; gap:25px;"> 
+                    
                     <div style="width:30%; min-width: 150px;"> 
                         <label style="font-size:11px; color:#718096; font-weight:600; display:block; margin-bottom:4px;">${labelKeterikatan}</label>
+                        
                         <select class="form-control dep-select" data-task-id="${task.id}" style="font-size:12px; padding:6px; width:100%;">
                             ${dependencyOptions}
                         </select>
+                        
                         <div style="font-size:10px; color:#a0aec0; margin-top:4px; line-height:1.2;">
                             *Pilih tahapan yang akan dimulai setelah ini selesai.
                         </div>
                     </div>
+
                     <div style="width:70%;">
                         <label style="font-size:11px; color:#718096; font-weight:600; display:block; margin-bottom:4px;">Durasi (Hari Ke- sampai Hari Ke-)</label>
                         <div class="task-ranges-container" id="ranges-${task.id}">`;
 
             const rangesToRender = ranges.length > 0 ? ranges : [{ start: 0, end: 0 }];
+
             rangesToRender.forEach((r, idx) => {
                 const isSaved = ranges.length > 0;
                 html += createRangeHTML(task.id, idx, r.start, r.end, isSaved);
@@ -754,6 +859,10 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>`;
         });
 
+        const btnDisabledAttr = isAllTasksFilled ? '' : 'disabled';
+        const btnStyle = isAllTasksFilled ? '' : 'background-color: #cbd5e0; cursor: not-allowed;';
+        const lockLabel = isAllTasksFilled ? 'Kunci Jadwal' : 'Lengkapi & Terapkan Dahulu';
+
         html += `</div>
             <div class="task-input-actions">
                 <button class="btn-reset-schedule" onclick="resetTaskSchedule()">Reset</button>
@@ -764,8 +873,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     window.createRangeHTML = function (taskId, idx, start, end, isSaved = false) {
+        // --- PERBAIKAN: Ambil Max Durasi dari Project ---
+        // Jika durasi tidak ada/nol, set default aman (misal 100) atau 999
         const maxDuration = currentProject && currentProject.duration ? parseInt(currentProject.duration) : 999;
+        
         const btnColor = isSaved ? 'background: #fed7d7; color: #c53030;' : 'background: #e2e8f0; color: #4a5568;';
+
         const validationLogic = `if(parseInt(this.value) > ${maxDuration}) { alert('Maksimal durasi proyek ini adalah ${maxDuration} hari'); this.value = ${maxDuration}; } if(this.value < 0) this.value = 1;`;
 
         return `
@@ -801,18 +914,24 @@ document.addEventListener('DOMContentLoaded', () => {
     window.removeRange = async function (taskId, idx, isSaved) {
         const rowId = `range-group-${taskId}-${idx}`;
         const element = document.getElementById(rowId);
+
+        // Ambil objek task dari memori lokal
         const taskObj = currentTasks.find(t => t.id === taskId);
 
+        // 1. LOGIKA HAPUS DATA LOKAL (Belum Disimpan)
         if (!isSaved) {
             if (element) element.remove();
             if (taskObj && taskObj.inputData && taskObj.inputData.ranges) {
                 taskObj.inputData.ranges.splice(idx, 1);
             }
+            // Update chart agar visual bar hilang
             renderChart();
+            // Update form agar index array kembali rapi
             renderApiData();
             return;
         }
 
+        // 2. LOGIKA HAPUS DATA SERVER (Sudah Tersimpan)
         if (!confirm("Data ini sudah tersimpan di server. Yakin ingin menghapusnya?")) return;
 
         const taskName = taskObj ? taskObj.name : "";
@@ -821,6 +940,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // Cari data ASLI di variable 'dayGanttData' (Cache Server)
         let dateStartStr = "";
         let dateEndStr = "";
         let foundMatch = false;
@@ -829,6 +949,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const rawDataList = dayGanttData.filter(d =>
                 d.Kategori.toLowerCase().trim() === taskName.toLowerCase().trim()
             );
+
             if (rawDataList[idx]) {
                 dateStartStr = rawDataList[idx].h_awal;
                 dateEndStr = rawDataList[idx].h_akhir;
@@ -836,6 +957,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        // Fallback hitung manual jika cache tidak ketemu
         if (!foundMatch) {
             const startVal = parseInt(document.getElementById(`start-${taskId}-${idx}`).value) || 0;
             const endVal = parseInt(document.getElementById(`end-${taskId}-${idx}`).value) || 0;
@@ -871,13 +993,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!response.ok) {
                 const responseText = await response.text();
-                throw new Error(responseText);
+                let errorMsg = responseText;
+                try {
+                    const errObj = JSON.parse(responseText);
+                    if (errObj.message) errorMsg = errObj.message;
+                } catch (e) { }
+                throw new Error(errorMsg);
             }
 
+            // === PERBAIKAN UTAMA DISINI ===
+
+            // 1. Hapus data dari Array Lokal (currentTasks)
+            // Kita menghapus index spesifik tanpa me-reload data lain
             if (taskObj && taskObj.inputData && taskObj.inputData.ranges) {
                 taskObj.inputData.ranges.splice(idx, 1);
             }
+
+            // 2. Update Cache Server Lokal (dayGanttData)
+            // Ini penting agar jika user hapus lagi tanpa refresh, urutan index tetap sinkron
             if (dayGanttData) {
+                // Cari index global di dayGanttData yang cocok dengan kriteria
                 const globalIdx = dayGanttData.findIndex(d =>
                     d.Kategori.toLowerCase().trim() === taskName.toLowerCase().trim() &&
                     d.h_awal === dateStartStr &&
@@ -888,9 +1023,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
+            // 3. Render Ulang UI dari Memory Lokal
+            // renderApiData akan menggambar ulang form berdasarkan 'currentTasks'
+            // Karena 'currentTasks' masih memegang inputan user lain (yang belum disave),
+            // maka inputan tersebut TIDAK AKAN HILANG/MUNDUR.
             renderApiData();
             renderChart();
+
             alert("Data berhasil dihapus.");
+            // HAPUS atau KOMENTARI baris ini:
+            // changeUlok(); 
 
         } catch (err) {
             console.error("Remove Failed:", err);
@@ -900,8 +1042,73 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    async function saveDependency(kategori, kategoriTerikat) {
+        const payload = {
+            "nomor_ulok": currentProject.ulokClean,
+            "lingkup_pekerjaan": currentProject.work.toUpperCase(),
+            "dependency_data": [
+                {
+                    "Kategori": kategori.toUpperCase(),
+                    "Kategori_Terikat": kategoriTerikat.toUpperCase()
+                }
+            ]
+        };
+
+        const response = await fetch(ENDPOINTS.dependencyInsert, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Server Error (${response.status}): ${errorText}`);
+        }
+        return await response.json();
+    }
+
+    async function removeDependency(kategori, kategoriTerikat) {
+        const payload = {
+            "nomor_ulok": currentProject.ulokClean,
+            "lingkup_pekerjaan": currentProject.work.toUpperCase(),
+            "remove_dependency_data": [
+                {
+                    "Kategori": kategori.toUpperCase(),
+                    "Kategori_Terikat": kategoriTerikat.toUpperCase()
+                }
+            ]
+        };
+
+        const response = await fetch(ENDPOINTS.dependencyInsert, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Server Error (${response.status}): ${errorText}`);
+        }
+        return await response.json();
+    }
+
+    function updateLocalDependencyData(kategori, kategoriTerikat) {
+        dependencyData = dependencyData.filter(d =>
+            d.Kategori.toLowerCase().trim() !== kategori.toLowerCase().trim()
+        );
+        if (kategoriTerikat) {
+            dependencyData.push({
+                "Nomor Ulok": currentProject.ulokClean,
+                "Lingkup_Pekerjaan": currentProject.work.toUpperCase(),
+                "Kategori": kategori,
+                "Kategori_Terikat": kategoriTerikat
+            });
+        }
+    }
+
     window.resetTaskSchedule = function () {
         if (!confirm("Reset semua inputan?")) return;
+
         currentTasks.forEach(t => {
             t.inputData.ranges = [];
             t.start = 0;
@@ -921,8 +1128,10 @@ document.addEventListener('DOMContentLoaded', () => {
         updateStats();
     }
 
-    window.applyTaskSchedule = async function () { 
+    window.applyTaskSchedule = async function () { // Tambahkan async
         if (isInitializing) return;
+
+        // Tampilkan loading cursor
         document.body.style.cursor = 'wait';
         const btnApply = document.querySelector('.btn-apply-schedule');
         if (btnApply) btnApply.textContent = "Menyimpan...";
@@ -931,27 +1140,29 @@ document.addEventListener('DOMContentLoaded', () => {
         let error = false;
         const maxAllowedDay = currentProject && currentProject.duration ? parseInt(currentProject.duration) : 999;
 
-        // [FIX] Reset array dependencies
-        tempTasks.forEach(t => t.dependencies = []); 
+        // 1. Reset Dependency di tempTasks dulu
+        tempTasks.forEach(t => t.dependency = null);
+
+        // 2. BACA INPUT DARI UI (Dropdown & Tanggal)
+        // Kita simpan list dependency baru untuk dikirim ke server nanti
         let newDependencyList = [];
 
-        // Loop setiap input dropdown
         currentTasks.forEach(realTask => {
             const container = document.getElementById(`ranges-${realTask.id}`);
             const depSelect = document.querySelector(`.dep-select[data-task-id="${realTask.id}"]`);
+
+            // Baca Dropdown: Value yang dipilih adalah CHILD ID
             const selectedChildId = depSelect ? parseInt(depSelect.value) : null;
 
-            // [FIX] Logic Push ke Array Dependencies
+            // Mapping Dependency: Jika Baris A memilih B, maka B bergantung pada A.
             if (selectedChildId) {
                 const childTaskInTemp = tempTasks.find(t => t.id === selectedChildId);
                 const parentTaskInTemp = tempTasks.find(t => t.id === realTask.id);
-                
+
                 if (childTaskInTemp && parentTaskInTemp) {
-                    // Masukkan ID Parent ke dalam list dependencies Anak
-                    if(!childTaskInTemp.dependencies.includes(realTask.id)){
-                        childTaskInTemp.dependencies.push(realTask.id);
-                    }
-                    
+                    childTaskInTemp.dependency = realTask.id; // Update Lokal
+
+                    // Masukkan ke antrian simpan server
                     newDependencyList.push({
                         parentName: parentTaskInTemp.name,
                         childName: childTaskInTemp.name
@@ -959,6 +1170,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
+            // Baca Range Tanggal (Sama seperti sebelumnya)
             if (container) {
                 let newRanges = [];
                 Array.from(container.children).forEach(row => {
@@ -982,8 +1194,35 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // 3. VALIDASI KETERIKATAN (DILONGGARKAN / DISABLED)
+        // MODIFIKASI: Kita izinkan child mulai sebelum parent selesai (Overlap diperbolehkan)
+        /* for (const task of tempTasks) {
+            if (task.dependency) {
+                const parentId = parseInt(task.dependency);
+                const parentTask = tempTasks.find(pt => pt.id === parentId);
+                if (parentTask && parentTask.inputData.ranges.length > 0 && task.inputData.ranges.length > 0) {
+                    const parentMaxEnd = Math.max(...parentTask.inputData.ranges.map(r => r.end));
+                    const childMinStart = Math.min(...task.inputData.ranges.map(r => r.start));
+
+                    if (childMinStart <= parentMaxEnd) {
+                        alert(
+                            `❌ VALIDASI JADWAL GAGAL\n\n` +
+                            `Tahapan "${task.name}" (Mulai Hari ke-${childMinStart}) tidak boleh mendahului atau bersamaan dengan selesainya ` +
+                            `Tahapan "${parentTask.name}" (Selesai Hari ke-${parentMaxEnd}).\n\n` +
+                            `Harap ubah jadwal "${task.name}" agar dimulai minimal Hari ke-${parentMaxEnd + 1}.`
+                        );
+                        document.body.style.cursor = 'default';
+                        if (btnApply) btnApply.textContent = "Hitung & Terapkan Jadwal";
+                        return;
+                    }
+                }
+            }
+        }
+        */
         console.log("⚠️ Validasi strict mode dinonaktifkan: Overlap jadwal diperbolehkan.");
 
+
+        // 4. Update Final Data Lokal
         tempTasks.forEach(task => {
             const ranges = task.inputData.ranges;
             const totalDur = ranges.reduce((sum, r) => sum + r.duration, 0);
@@ -996,19 +1235,24 @@ document.addEventListener('DOMContentLoaded', () => {
         currentTasks = tempTasks;
         hasUserInput = true;
 
+        // ==================== NEW: SINKRONISASI DEPENDENCY KE SERVER ====================
         try {
+            // A. Simpan Jadwal Utama (Gantt Data & Tanggal)
             await saveProjectSchedule("Active");
 
+            // B. Simpan Dependency (Batch Update)
+            // 1. Siapkan payload HAPUS semua dependency lama (Clean Slate)
+            // Kita gunakan dependencyData yang ada di memori (state dari server sebelumnya)
             if (dependencyData.length > 0) {
                 const removePayload = {
                     "nomor_ulok": currentProject.ulokClean,
                     "lingkup_pekerjaan": currentProject.work.toUpperCase(),
-                    // Hapus semua dependensi lama (karena API backend mungkin perlu clear all first)
                     "remove_dependency_data": dependencyData.map(d => ({
                         "Kategori": d.Kategori,
-                        "Kategori_Terikat": d.Kategori_Terikat 
+                        "Kategori_Terikat": d.Kategori_Terikat // Opsional tergantung backend, tapi aman dikirim
                     }))
                 };
+                // Kirim request hapus
                 await fetch(ENDPOINTS.dependencyInsert, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1016,6 +1260,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
 
+            // 2. Siapkan payload INSERT dependency baru dari UI
             if (newDependencyList.length > 0) {
                 const insertPayload = {
                     "nomor_ulok": currentProject.ulokClean,
@@ -1025,6 +1270,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         "Kategori_Terikat": item.childName.toUpperCase()
                     }))
                 };
+                // Kirim request simpan baru
                 await fetch(ENDPOINTS.dependencyInsert, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1032,12 +1278,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
 
+            // 3. Update Variable Lokal dependencyData agar sinkron tanpa refresh
             dependencyData = newDependencyList.map(item => ({
                 "Nomor Ulok": currentProject.ulokClean,
                 "Lingkup_Pekerjaan": currentProject.work.toUpperCase(),
                 "Kategori": item.parentName,
                 "Kategori_Terikat": item.childName
             }));
+
+            console.log("✅ Dependencies Synced:", dependencyData);
 
         } catch (err) {
             console.error("Sync Error:", err);
@@ -1046,16 +1295,23 @@ document.addEventListener('DOMContentLoaded', () => {
             document.body.style.cursor = 'default';
             if (btnApply) btnApply.textContent = "Hitung & Terapkan Jadwal";
         }
+        // ==============================================================================
 
         renderChart();
         updateStats();
-        renderApiData(); 
-        renderBottomActionBar(); 
+        renderApiData(); // Re-render form untuk update state dropdown
+        renderBottomActionBar(); // Cek ulang validasi tombol kunci
     }
 
     window.confirmAndPublish = function () {
-        if (isInitializing) return;
+        // Cegah save saat inisialisasi/refresh
+        if (isInitializing) {
+            console.log("⏳ Skip publish - masih dalam proses inisialisasi");
+            return;
+        }
 
+        // 1. VALIDASI TANGGAL (Range)
+        // Pastikan semua task sudah memiliki input tanggal/durasi
         const isAllDatesFilled = currentTasks.every(t =>
             t.inputData && t.inputData.ranges && t.inputData.ranges.length > 0
         );
@@ -1065,11 +1321,28 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // ============================================================
+        // 2. VALIDASI KETERIKATAN (FORWARD CHECK) - [LOGIKA BARU]
+        // ============================================================
+        // Aturan: Setiap task HARUS memilih "Tahapan Selanjutnya" (memiliki Anak),
+        // KECUALI Tahapan Paling Akhir (ID Terbesar).
+
+        // Urutkan task berdasarkan ID untuk menemukan mana yang paling akhir
         const sortedTasks = [...currentTasks].sort((a, b) => a.id - b.id);
         const lastTaskId = sortedTasks[sortedTasks.length - 1].id;
+
+        // Cari task yang putus (Belum memilih tahapan selanjutnya)
         const brokenChains = sortedTasks.filter(task => {
+
+            // PENGECUALIAN: Tahapan Paling Akhir BOLEH KOSONG (Skip validasi)
             if (task.id === lastTaskId) return false;
+
+            // Untuk task lain (misal ID 1, 2, ... N-1), kita cek:
+            // Apakah ada task lain yang kolom 'dependency'-nya berisi ID task ini?
+            // (Artinya: Apakah Task ini sudah dipilih sebagai Parent oleh task lain?)
             const hasNextStep = currentTasks.some(child => child.dependency === task.id);
+
+            // Jika tidak ada task yang menunjuk ke sini, berarti user belum pilih dropdown "Tahapan Selanjutnya"
             return !hasNextStep;
         });
 
@@ -1083,16 +1356,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 `${listNames}\n\n` +
                 `Solusi: Pilih tahapan selanjutnya pada dropdown baris tersebut.`
             );
-            return; 
+            return; // STOP PROSES
         }
 
+        // 3. Konfirmasi Final
         if (!confirm("Yakin kunci jadwal? Data tidak bisa diubah lagi.")) return;
         saveProjectSchedule("Terkunci");
     }
 
     async function saveProjectSchedule(status) {
-        if (isInitializing) return;
+        // Double check: Cegah save saat inisialisasi
+        if (isInitializing) {
+            console.warn("⚠️ Blocked auto-save during initialization");
+            return;
+        }
 
+        // --- 1. SETUP LOADING SCREEN (Hanya jika Publish/Terkunci) ---
         const overlay = document.getElementById('loading-overlay');
         const loadingTitle = document.getElementById('loading-title');
         const loadingDesc = document.getElementById('loading-desc');
@@ -1123,9 +1402,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (ranges.length > 0) {
                 payload[`Kategori_${t.id}`] = t.name;
+
                 const pStart = new Date(currentProject.startDate);
                 const tStart = new Date(pStart); tStart.setDate(pStart.getDate() + ranges[0].start - 1);
                 const tEnd = new Date(pStart); tEnd.setDate(pStart.getDate() + ranges[ranges.length - 1].end - 1);
+
                 payload[`Hari_Mulai_Kategori_${t.id}`] = tStart.toISOString().split('T')[0];
                 payload[`Hari_Selesai_Kategori_${t.id}`] = tEnd.toISOString().split('T')[0];
                 payload[`Keterlambatan_Kategori_${t.id}`] = "0";
@@ -1151,29 +1432,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             await fetch(ENDPOINTS.insertData, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+
             if (dayPayload.length > 0) {
                 await fetch(ENDPOINTS.dayInsert, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dayPayload) });
             }
 
+            // --- 2. JIKA SUKSES PUBLISH (TERKUNCI) ---
             if (isPublishing) {
                 if (overlay) {
                     loadingTitle.textContent = "Berhasil!";
                     loadingDesc.textContent = "Jadwal terkunci. Mengalihkan ke halaman utama...";
                 }
+
+                // Redirect setelah 1.5 detik ke index.html Gantt (Membersihkan parameter URL)
                 setTimeout(() => {
                     window.location.href = "../../gantt/index.html";
                 }, 1500);
             } else {
+                // Jika hanya save biasa (tombol Terapkan), cukup alert kecil
                 alert(`Jadwal berhasil disimpan (Status: ${status})`);
                 renderChart();
             }
 
         } catch (err) {
             console.error(err);
+
+            // Sembunyikan loading jika error
             if (isPublishing && overlay) {
                 overlay.classList.remove('active');
                 overlay.classList.add('hidden-overlay');
             }
+
             alert("Gagal menyimpan data: " + err.message);
         }
     }
@@ -1216,51 +1505,45 @@ document.addEventListener('DOMContentLoaded', () => {
         const chart = document.getElementById('ganttChart');
         if (!chart) return;
 
-        if (!currentTasks || currentTasks.length === 0) {
-            chart.innerHTML = '';
-            return;
-        }
-
         const DAY_WIDTH = 40;
         const ROW_HEIGHT = 50;
+        
+        // --- 1. LOGIKA RIPPLE EFFECT (Kalkulasi Pergeseran Relatif) ---
+        // Logika Baru: Mempertahankan Overlap, tapi mewariskan Delay.
+        
         const effectiveEndDates = {}; 
 
+        // Reset computed shift
         currentTasks.forEach(t => t.computed = { shift: 0 });
 
-        // [FIX] Kalkulasi Ripple Effect dengan Multiple Dependencies
         currentTasks.forEach(task => {
             const ranges = task.inputData?.ranges || [];
-            let maxShift = 0;
+            let shift = 0;
 
-            if (task.dependencies && task.dependencies.length > 0) {
-                // Cek semua parent, ambil shift terbesar
-                task.dependencies.forEach(parentId => {
-                    const parentTask = currentTasks.find(t => t.id === parentId);
-                    if (parentTask) {
-                        const parentExistingShift = parentTask.computed.shift || 0;
-                        let parentInputDelay = 0;
-                        const pRanges = parentTask.inputData?.ranges || [];
-                        if (pRanges.length > 0) {
-                            parentInputDelay = parseInt(pRanges[pRanges.length - 1].keterlambatan || 0);
-                        }
-                        
-                        // Shift = (End Parent + Shift Parent) - Start Task + 1
-                        // Namun kode asli hanya menambahkan shift akumulatif. 
-                        // Kita ikuti logic asli: Shift += Parent Shift + Delay Parent
-                        
-                        const potentialShift = parentExistingShift + parentInputDelay;
-                        if (potentialShift > maxShift) {
-                            maxShift = potentialShift;
-                        }
+            if (task.dependency) {
+                const parentTask = currentTasks.find(t => t.id === task.dependency);
+                if (parentTask) {
+                    // Ambil shift akumulatif dari parent
+                    const parentExistingShift = parentTask.computed.shift || 0;
+                    
+                    // Ambil input delay user pada parent (dari range terakhir)
+                    let parentInputDelay = 0;
+                    const pRanges = parentTask.inputData?.ranges || [];
+                    if (pRanges.length > 0) {
+                        parentInputDelay = parseInt(pRanges[pRanges.length - 1].keterlambatan || 0);
                     }
-                });
+
+                    // Shift anak = Total pergeseran parent
+                    shift = parentExistingShift + parentInputDelay;
+                }
             }
-            
-            task.computed.shift = maxShift;
-            
+
+            task.computed.shift = shift;
+
+            // Hitung titik akhir efektif untuk keperluan panah garis
             if (ranges.length > 0) {
                 const lastRange = ranges[ranges.length - 1];
-                const actualEnd = lastRange.end + maxShift;
+                const actualEnd = lastRange.end + shift;
                 const ownDelay = parseInt(lastRange.keterlambatan || 0);
                 effectiveEndDates[task.id] = actualEnd + ownDelay;
             } else {
@@ -1268,6 +1551,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+        // --- 2. HITUNG DIMENSI CHART ---
         let maxTaskEndDay = 0;
         currentTasks.forEach(task => {
             const ranges = task.inputData?.ranges || [];
@@ -1283,6 +1567,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const totalDaysToRender = Math.max(projectDuration, maxTaskEndDay) + 5;
         const totalChartWidth = totalDaysToRender * DAY_WIDTH;
 
+        // --- 3. RENDER HEADER ---
         const headerTitle = "Timeline Project";
         let html = '<div class="chart-header">';
         html += '<div class="task-column">Tahapan</div>';
@@ -1300,11 +1585,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let taskCoordinates = {};
 
+        // --- 4. RENDER TASKS (BARS) ---
         currentTasks.forEach((task, index) => {
             const ranges = task.inputData?.ranges || [];
             const shift = task.computed.shift;
+
             let durTxt = ranges.reduce((s, r) => s + r.duration, 0);
 
+            // Koordinat Bar (Visual)
             const maxEnd = ranges.length ? Math.max(...ranges.map(r => r.end + shift + (parseInt(r.keterlambatan) || 0))) : 0;
             const minStart = ranges.length ? Math.min(...ranges.map(r => r.start + shift)) : 0;
 
@@ -1320,8 +1608,10 @@ document.addEventListener('DOMContentLoaded', () => {
             ranges.forEach((range) => {
                 const actualStart = range.start + shift;
                 const actualEnd = range.end + shift;
+
                 const leftPos = (actualStart - 1) * DAY_WIDTH;
                 const widthPos = (range.duration * DAY_WIDTH) - 1;
+
                 const hasDelay = range.keterlambatan && range.keterlambatan > 0;
                 const isShifted = shift > 0;
 
@@ -1340,6 +1630,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
+            // Supervision Markers
             for (const [day, isActive] of Object.entries(supervisionDays)) {
                 if (isActive) {
                     const dInt = parseInt(day);
@@ -1350,6 +1641,7 @@ document.addEventListener('DOMContentLoaded', () => {
             html += `</div></div>`;
         });
 
+        // --- 5. RENDER DEPENDENCY LINES (SVG) ---
         const svgDefs = `
             <defs>
                 <marker id="depArrow" viewBox="0 0 10 6" refX="7" refY="3" markerWidth="8" markerHeight="6" orient="auto">
@@ -1358,38 +1650,41 @@ document.addEventListener('DOMContentLoaded', () => {
             </defs>`;
 
         let svgLines = '';
-        
-        // [FIX] Loop Multiple Dependencies untuk menggambar garis
         currentTasks.forEach(task => {
-            if (task.dependencies && task.dependencies.length > 0) {
-                task.dependencies.forEach(parentId => {
-                    const parent = taskCoordinates[parentId];
-                    const me = taskCoordinates[task.id];
-                    if (parent && me && parent.endX !== undefined && me.startX !== undefined) {
-                        const startX = parent.endX;
-                        const startY = parent.centerY;
-                        const endX = me.startX;
-                        const endY = me.centerY;
-                        const deltaX = endX - startX;
-                        let tension = 40;
-                        if (deltaX < 40) tension = 60;
-                        if (deltaX < 0) tension = 100;
-                        const cp1x = startX + tension;
-                        const cp1y = startY;
-                        const cp2x = endX - tension;
-                        const cp2y = endY;
-                        const path = `M ${startX} ${startY} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${endX} ${endY}`;
-                        const parentTask = currentTasks.find(t => t.id === parentId);
-                        const tooltipText = parentTask ? `${task.name} menunggu ${parentTask.name}` : '';
-                        svgLines += `<path d="${path}" class="dependency-line" marker-end="url(#depArrow)" opacity="0.95"><title>${tooltipText}</title></path>`;
-                        svgLines += `<circle class="dependency-node" cx="${startX}" cy="${startY}" r="4" />`;
-                        svgLines += `<circle class="dependency-node" cx="${endX}" cy="${endY}" r="4" />`;
-                    }
-                });
+            if (task.dependency) {
+                const parent = taskCoordinates[task.dependency];
+                const me = taskCoordinates[task.id];
+
+                if (parent && me && parent.endX !== undefined && me.startX !== undefined) {
+                    const startX = parent.endX;
+                    const startY = parent.centerY;
+                    const endX = me.startX;
+                    const endY = me.centerY;
+
+                    const deltaX = endX - startX;
+                    let tension = 40;
+                    if (deltaX < 40) tension = 60;
+                    if (deltaX < 0) tension = 100;
+
+                    const cp1x = startX + tension;
+                    const cp1y = startY;
+                    const cp2x = endX - tension;
+                    const cp2y = endY;
+
+                    const path = `M ${startX} ${startY} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${endX} ${endY}`;
+                    
+                    const parentTask = currentTasks.find(t => t.id === task.dependency);
+                    const tooltipText = parentTask ? `${task.name} menunggu ${parentTask.name}` : '';
+
+                    svgLines += `<path d="${path}" class="dependency-line" marker-end="url(#depArrow)" opacity="0.95"><title>${tooltipText}</title></path>`;
+                    svgLines += `<circle class="dependency-node" cx="${startX}" cy="${startY}" r="4" />`;
+                    svgLines += `<circle class="dependency-node" cx="${endX}" cy="${endY}" r="4" />`;
+                }
             }
         });
 
         const svgHeight = currentTasks.length * ROW_HEIGHT;
+
         html += `
             <svg class="chart-lines-svg" style="position:absolute; top:0; left:250px; width:${totalChartWidth}px; height:${svgHeight}px; pointer-events:none; z-index:10;">
                 ${svgDefs}
@@ -1401,15 +1696,18 @@ document.addEventListener('DOMContentLoaded', () => {
         chart.innerHTML = html;
     }
 
-    // Update juga fungsi renderBottomActionBar karena logika cek 'isAllConnected' berubah
+    // ==================== FUNGSI BARU: TOMBOL BAWAH ====================
     window.renderBottomActionBar = function () {
         const container = document.getElementById('bottom-action-container');
         if (!container) return;
+
+        // Reset konten
         container.innerHTML = '';
+
+        // 1. Cek Mode Aplikasi (Hanya Kontraktor yang bisa kunci)
         if (APP_MODE !== 'kontraktor') return;
 
-        if (!currentTasks || currentTasks.length === 0) return;
-
+        // 2. Cek apakah Project Terkunci
         if (isProjectLocked) {
             container.innerHTML = `
                 <div class="bottom-info-text">
@@ -1418,118 +1716,34 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // 3. Validasi Data (Sama seperti logika sebelumnya)
+        // a. Cek Tanggal Lengkap
         const isAllDatesFilled = currentTasks.length > 0 && currentTasks.every(t =>
             t.inputData && t.inputData.ranges && t.inputData.ranges.length > 0
         );
 
-        const sortedTasks = [...currentTasks].sort((a, b) => a.id - b.id);
-        const lastTaskId = sortedTasks.length > 0 ? sortedTasks[sortedTasks.length - 1].id : 0;
-
-        // [FIX] Cek apakah ada yang menunjuk task ini sebagai parent (Child depends on Parent)
-        // Task dianggap "tersambung" jika dia adalah Parent dari task lain, KECUALI dia adalah task terakhir.
-        const isAllConnected = sortedTasks.every(task => {
-            if (task.id === lastTaskId) return true; 
-            // Cek apakah ada task lain yg punya 'task.id' di dalam array dependencies-nya
-            return currentTasks.some(child => child.dependencies && child.dependencies.includes(task.id));
-        });
-
-        const isReadyToLock = isAllDatesFilled && isAllConnected;
-        let btnText = isReadyToLock ? "Kunci & Terbitkan Jadwal" : "Lengkapi Jadwal Dahulu";
-        let btnAttr = isReadyToLock ? "" : "disabled";
-        let infoText = isReadyToLock
-            ? "Pastikan grafik di atas sudah sesuai sebelum mengunci."
-            : "Harap lengkapi <strong>Durasi</strong> dan <strong>Keterikatan</strong> pada semua tahapan.";
-
-        container.innerHTML = `
-            <div class="bottom-info-text">
-                ℹ️ ${infoText}
-            </div>
-            <button class="btn-publish-bottom" onclick="confirmAndPublish()" ${btnAttr}>
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-                ${btnText}
-            </button>
-        `;
-    }
-
-    // Update juga confirmAndPublish agar validasinya benar
-    window.confirmAndPublish = function () {
-        if (isInitializing) return;
-
-        const isAllDatesFilled = currentTasks.every(t =>
-            t.inputData && t.inputData.ranges && t.inputData.ranges.length > 0
-        );
-
-        if (!isAllDatesFilled) {
-            alert("Gagal Kunci Jadwal:\nHarap lengkapi durasi/tanggal pada SEMUA tahapan pekerjaan terlebih dahulu.");
-            return;
-        }
-
-        const sortedTasks = [...currentTasks].sort((a, b) => a.id - b.id);
-        const lastTaskId = sortedTasks[sortedTasks.length - 1].id;
-        
-        // [FIX] Validasi Broken Chains dengan Array
-        const brokenChains = sortedTasks.filter(task => {
-            if (task.id === lastTaskId) return false;
-            // Harus ada task lain yang dependencies-nya mengandung task.id ini
-            const hasNextStep = currentTasks.some(child => child.dependencies && child.dependencies.includes(task.id));
-            return !hasNextStep;
-        });
-
-        if (brokenChains.length > 0) {
-            const listNames = brokenChains.map(t => `- ${t.name}`).join("\n");
-            alert(
-                `❌ GAGAL KUNCI JADWAL\n\n` +
-                `Agar alur pekerjaan tersambung, Anda wajib memilih "Tahapan Selanjutnya" pada setiap baris.\n` +
-                `(Kecuali tahapan paling akhir).\n\n` +
-                `Tahapan berikut belum memiliki kelanjutan (belum dipilih sebagai parent oleh tahapan lain):\n` +
-                `${listNames}\n\n` +
-                `Solusi: Pilih tahapan selanjutnya pada dropdown baris tersebut.`
-            );
-            return; 
-        }
-
-        if (!confirm("Yakin kunci jadwal? Data tidak bisa diubah lagi.")) return;
-        saveProjectSchedule("Terkunci");
-    }
-
-    window.renderBottomActionBar = function () {
-        const container = document.getElementById('bottom-action-container');
-        if (!container) return;
-        container.innerHTML = '';
-        if (APP_MODE !== 'kontraktor') return;
-
-        // Jangan render tombol jika tasks kosong
-        if (!currentTasks || currentTasks.length === 0) return;
-
-        if (isProjectLocked) {
-            container.innerHTML = `
-                <div class="bottom-info-text">
-                    ✅ <strong>Status: Terkunci.</strong> Jadwal telah diterbitkan ke PIC.
-                </div>`;
-            return;
-        }
-
-        const isAllDatesFilled = currentTasks.length > 0 && currentTasks.every(t =>
-            t.inputData && t.inputData.ranges && t.inputData.ranges.length > 0
-        );
-
+        // b. Cek Keterikatan (Validasi Forward Chaining)
         const sortedTasks = [...currentTasks].sort((a, b) => a.id - b.id);
         const lastTaskId = sortedTasks.length > 0 ? sortedTasks[sortedTasks.length - 1].id : 0;
 
         const isAllConnected = sortedTasks.every(task => {
-            if (task.id === lastTaskId) return true; 
+            if (task.id === lastTaskId) return true; // Task terakhir boleh tidak punya anak
+            // Cek apakah ada task lain yang menjadikan task ini sebagai dependency
             return currentTasks.some(child => child.dependency === task.id);
         });
 
         const isReadyToLock = isAllDatesFilled && isAllConnected;
+
+        // 4. Siapkan Label & Atribut
         let btnText = isReadyToLock ? "Kunci & Terbitkan Jadwal" : "Lengkapi Jadwal Dahulu";
         let btnAttr = isReadyToLock ? "" : "disabled";
+
+        // Info text di sebelah kiri tombol
         let infoText = isReadyToLock
             ? "Pastikan grafik di atas sudah sesuai sebelum mengunci."
             : "Harap lengkapi <strong>Durasi</strong> dan <strong>Keterikatan</strong> pada semua tahapan.";
 
+        // 5. Render HTML
         container.innerHTML = `
             <div class="bottom-info-text">
                 ℹ️ ${infoText}
@@ -1548,6 +1762,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (rab.Nama_Toko) currentProject.store = rab.Nama_Toko;
         if (rab.Durasi_Pekerjaan) currentProject.duration = rab.Durasi_Pekerjaan;
         if (rab.Kategori_Lokasi) currentProject.kategoriLokasi = rab.Kategori_Lokasi;
+
+        // Re-calculate supervision when RAB updates duration
         calculateSupervisionDays();
     }
 
