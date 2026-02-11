@@ -1,89 +1,72 @@
 SPARTA Frontend (System Documentation)
-Project: SPARTA (Sistem Dokumentasi Bangunan Toko Baru - Alfamart)
 
-Stack: Vanilla JavaScript (ES6+), CSS3, HTML5
+**Project:** SPARTA (Sistem Dokumentasi Bangunan Toko Baru - Alfamart)
+**Stack:** Vanilla JavaScript (ES6+), CSS3, HTML5
+**Backend Integration:** Python (Render) & Google Apps Script
+**Platform:** Web (PWA Supported)
 
-Deployment: Vercel (Static Hosting)
+---
 
-📖 Overview
-SPARTA Frontend adalah antarmuka berbasis web untuk manajemen proses pembangunan dan pemeliharaan toko. Aplikasi ini dirancang menggunakan Vanilla JavaScript murni untuk meminimalkan overhead dependensi, dengan fokus pada performa ringan dan kompatibilitas browser.
+## 📖 Overview
 
-Aplikasi ini mencakup fitur autentikasi, manajemen hak akses berbasis peran (RBAC), dan pembatasan akses berdasarkan waktu operasional.
+SPARTA Frontend adalah antarmuka manajemen proyek konstruksi yang dirancang untuk memonitoring pembangunan dan renovasi toko Alfamart. Aplikasi ini dibangun menggunakan **Vanilla JavaScript** murni dengan arsitektur modular, memprioritaskan performa ringan tanpa ketergantungan pada framework besar (seperti React/Vue).
 
-🛠 Tech Stack & Architecture
-Core: HTML5, CSS3, Vanilla JS (No Framework).
+Sistem ini mencakup manajemen RAB, SPK, Kurva S (Gantt Chart), Laporan Opname, hingga audit log aktivitas pengguna.
 
-State Management: sessionStorage untuk manajemen sesi user (Role, Cabang).
+## 📂 Module Architecture
 
-API Integration: fetch API ke Python Backend (Render) & Google Apps Script (Logging).
+Setiap fitur memiliki direktori terisolasi di dalam folder `client/` yang berisi logika (`script.js`), tampilan (`index.html`), dan gaya (`style.css`) masing-masing.
 
-PWA: Mendukung Progressive Web App (via manifest.json).
+### 1. 🔐 Core System & Security
+* **Authentication (`client/auth/`)**
+  * Menangani login via Python Backend API.
+  * **Audit Logging:** Mengirim data log aktivitas login (sukses/gagal) ke Google Apps Script.
+  * **Session Management:** Menyimpan `userRole` dan `loggedInUserCabang` di `sessionStorage` (hilang saat browser ditutup).
+* **Time-Based Access Control (`client/script.js`)**
+  * **Landing Page Gatekeeper:** Membatasi akses aplikasi hanya pada hari kerja (Senin-Jumat) dan jam kerja (06:00 - 18:00 WIB).
 
-🚀 Key Features & Business Logic
-1. Time-Based Access Control (Landing Page)
-Sistem menerapkan pembatasan akses ketat di sisi klien pada entry point.
+### 2. 📊 Dashboard & Navigation
+* **Dashboard (`client/dashboard/`)**
+  * Sentral navigasi yang menerapkan **RBAC (Role-Based Access Control)**.
+  * Menu ditampilkan secara dinamis berdasarkan role user: *Manager, Coordinator, Support,* atau *Kontraktor*.
+  * **Head Office Logic:** User internal Head Office mendapatkan akses menu tambahan "User Log".
 
-Logic: User hanya bisa masuk ke halaman login jika waktu lokal menunjukkan:
+### 3. 💰 Cost & Planning (RAB)
+* **RAB (`client/rab/`)**
+  * Modul Rencana Anggaran Biaya.
+  * Fitur: Input item pekerjaan (Sipil/ME), kalkulasi otomatis volume x harga, dan rekapitulasi total biaya.
 
-Hari: Senin - Jumat (1-5).
+### 4. 📝 Work Orders (SPK)
+* **SPK (`client/spk/`)**
+  * Monitoring Surat Perintah Kerja aktif berdasarkan cabang pengguna.
+* **Tambah SPK / Addendum (`client/tambahspk/`)**
+  * Form pengajuan perpanjangan waktu SPK. Otomatis menghitung tanggal akhir baru berdasarkan durasi tambahan.
 
-Jam: 06:00 - 18:00 WIB.
+### 5. 📉 Project Monitoring (Gantt & Opname)
+* **Gantt Chart (`client/gantt/`)**
+  * Visualisasi jadwal proyek (Kurva S).
+  * Menggunakan library visualisasi atau implementasi custom canvas/SVG untuk merender timeline pekerjaan.
+* **Opname (`client/opname/`)**
+  * Pelaporan progres mingguan/bulanan.
+  * Fitur: Upload foto bukti pekerjaan dan kalkulasi persentase bobot realisasi.
 
-Code Reference: client/script.js.
+### 6. 📁 Document Management
+* **Foto Dokumen (`client/ftdokumen/`)**: Upload dokumentasi visual proyek.
+* **Supervisi Dokumen (`client/svdokumen/`)**: Validasi kelengkapan dokumen administrasi proyek (khusus role internal).
+* **E-Materai (`client/materai/`)**: Pengelolaan dokumen bermaterai digital.
 
-Note: Jika diakses di luar jam tersebut, user akan mendapatkan alert akses ditolak.
+### 7. 🛠️ Utilities
+* **User Log (`client/userlog/`)**: Halaman audit trail untuk melihat riwayat login dan aktivitas user (Eksklusif Head Office).
+* **Instruksi Lapangan (`client/il/`)**: Pencatatan instruksi perubahan mendadak di lapangan.
 
-2. Authentication & Logging
-Endpoint: Login melakukan POST ke Python Backend (/api/login).
+---
 
-Audit Log: Setiap percobaan login (baik sukses maupun gagal) dicatat ke Google Apps Script via POST request.
+## ⚙️ Configuration
 
-Session: Token/Role tidak disimpan di cookie, melainkan di sessionStorage:
+Aplikasi ini menggunakan konfigurasi *hardcoded* untuk endpoint API. Jika Anda mengganti backend atau URL Apps Script, Anda wajib mengubah file berikut:
 
-userRole: Menentukan menu yang tampil.
-
-loggedInUserCabang: Menentukan konteks lokasi (Head Office vs Cabang).
-
-3. Role-Based Access Control (RBAC)
-Dashboard merender menu secara dinamis berdasarkan userRole yang didapat saat login. Logic ini terdapat di client/dashboard/script.js.
-
-Role Matrix: | Role | Akses Menu Utama | | :--- | :--- | | Branch Building & Maintenance Manager | SPK, Pengawasan, Opname, Tambah SPK, Gantt, Dok, SP | | Branch Building Coordinator | Dokumentasi, SV Dokumen, Gantt, Opname, SP | | Branch Building Support | Dokumentasi, Opname, Gantt, SV Dokumen, SP | | Kontraktor | RAB, Materai, Opname, Gantt |
-
-Special Logic (Head Office):
-
-Jika Cabang === 'HEAD OFFICE' DAN user bukan Kontraktor, menu User Log akan otomatis ditambahkan.
-
-⚙️ Configuration & Environment
-Saat ini, endpoint API masih hardcoded di dalam file client/auth/script.js.
-
-JavaScript
-// client/auth/script.js
-const APPS_SCRIPT_POST_URL = "https://script.google.com/macros/s/.../exec";
-const PYTHON_API_LOGIN_URL = "https://sparta-backend-5hdj.onrender.com/api/login";
-Developer Note: Untuk scalability dan keamanan jangka panjang, disarankan memindahkan URL ini ke file konfigurasi terpisah atau environment variables jika beralih menggunakan bundler (Vite/Webpack) di masa depan.
-
-📦 Installation & Development
-Karena project ini menggunakan Vanilla JS, tidak ada proses build yang kompleks.
-
-Clone Repository:
-
-Bash
-git clone <repository-url>
-cd sparta-frontend
-Run Locally: Gunakan ekstensi Live Server di VS Code atau jalankan simple python server:
-
-Bash
-# Dari root folder
-python -m http.server 8000
-Buka http://localhost:8000/client/ di browser.
-
-Deployment: Project ini deployment-ready untuk platform static hosting seperti Vercel atau Netlify. Pastikan root directory diatur ke folder utama proyek.
-
-🛡️ Security Considerations
-Client-Side Enforcement: Validasi jam kerja dan penyembunyian menu saat ini dilakukan di sisi client (JavaScript).
-
-Risk: User yang paham teknis bisa mem-bypass ini via Console/Network tools.
-
-Recommendation: Pastikan Backend (Python) juga memvalidasi token dan hak akses pada setiap request API, bukan hanya mengandalkan frontend untuk keamanan.
-
-Session Storage: Data sensitif sesi hilang saat tab ditutup (by design).
+**Auth Config (`client/auth/script.js`)**:
+    ```javascript
+    const APPS_SCRIPT_POST_URL = "[https://script.google.com/macros/s/.../exec](https://script.google.com/macros/s/.../exec)";
+    const PYTHON_API_LOGIN_URL = "[https://sparta-backend-5hdj.onrender.com/api/login](https://sparta-backend-5hdj.onrender.com/api/login)";
+    ```
