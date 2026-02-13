@@ -1692,6 +1692,9 @@ const Render = {
                                         <th style="padding:12px;">Kategori</th>
                                         <th style="padding:12px;">Jenis Pekerjaan</th>
                                         <th style="padding:12px; text-align:center;">Volume Akhir</th>
+                                        <th class="text-center" style="width: 10%;">Design</th>
+                                        <th class="text-center" style="width: 10%;">Kualitas</th>
+                                        <th class="text-center" style="width: 10%;">Spesifikasi</th>
                                         <th style="padding:12px; text-align:center;">Foto</th>
                                         <th style="padding:12px;">PIC</th>
                                         <th style="padding:12px;">Waktu Submit</th>
@@ -1707,6 +1710,21 @@ const Render = {
                                             <td>${item.kategori_pekerjaan}</td>
                                             <td>${item.jenis_pekerjaan}</td>
                                             <td class="text-center"><b>${item.volume_akhir}</b> ${item.satuan || ''}</td>
+                                            <td class="text-center">
+                                                <span class="badge ${item.design === 'Sesuai' ? 'badge-success' : (item.design ? 'badge-danger' : 'badge-neutral')}">
+                                                    ${item.design || '-'}
+                                                </span>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge ${item.kualitas === 'Baik' ? 'badge-success' : (item.kualitas ? 'badge-danger' : 'badge-neutral')}">
+                                                    ${item.kualitas || '-'}
+                                                </span>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge ${item.spesifikasi === 'Sesuai' ? 'badge-success' : (item.spesifikasi ? 'badge-danger' : 'badge-neutral')}">
+                                                    ${item.spesifikasi || '-'}
+                                                </span>
+                                            </td>
                                             <td class="text-center">
                                                 ${item.foto_url ? `<a href="${item.foto_url}" target="_blank" class="btn btn-outline" style="padding:4px 8px; font-size:12px;">Lihat</a>` : '<span style="color:#999;">-</span>'}
                                             </td>

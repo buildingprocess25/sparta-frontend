@@ -417,6 +417,35 @@ tr:hover td { background-color: #f8fafc; }
     100% { transform: rotate(360deg); }
 }
 
+.badge {
+    display: inline-block;
+    padding: 4px 8px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    border-radius: 4px;
+    text-align: center;
+}
+
+/* Warna untuk status OK (Sesuai / Baik) */
+.badge-success {
+    background-color: #dcfce7; /* Hijau muda */
+    color: #166534;           /* Hijau tua */
+    border: 1px solid #bbf7d0;
+}
+
+/* Warna untuk status Masalah (Tidak Sesuai / Tidak Baik) */
+.badge-danger {
+    background-color: #fee2e2; /* Merah muda */
+    color: #991b1b;           /* Merah tua */
+    border: 1px solid #fecaca;
+}
+
+/* Warna Netral (Jika data kosong) */
+.badge-neutral {
+    background-color: #f1f5f9;
+    color: #64748b;
+}
+
 /* ======================== NEW DROPDOWN STYLES ======================== */
 
 /* Style dasar untuk Select/Dropdown */
