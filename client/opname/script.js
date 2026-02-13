@@ -1006,7 +1006,7 @@ const Render = {
         // ... (Kode UI Pilih Lingkup tetap sama, tidak berubah) ...
         if (!AppState.selectedLingkup) {
             /* ... (Kode bagian Pilih Lingkup Biarkan Saja) ... */
-             container.innerHTML = `
+            container.innerHTML = `
                 <div class="container" style="padding-top:40px;">
                     <div class="card text-center" style="max-width:600px; margin:0 auto;">
                         <h2 style="color:var(--primary);">Pilih Lingkup Pekerjaan</h2>
@@ -1155,10 +1155,11 @@ const Render = {
                                 <thead>
                                     <tr style="background:var(--primary); color:white;">
                                         <th style="padding:10px;">Kategori</th><th style="padding:10px;">Jenis Pekerjaan</th>
-                                        <th class="text-center">Vol RAB</th><th class="text-center">Sat</th>
-                                        <th class="text-right">H. Mat</th><th class="text-right">H. Upah</th>
-                                        <th class="text-center">Vol Akhir</th><th class="text-center">Selisih</th>
-                                        <th class="text-right">Total</th>
+                                        <th class="text-center">Volume RAB</th><th class="text-center">Satuan</th>
+                                        <th class="text-center">Harga Material</th><th class="text-center">Harga Upah</th>
+                                        <th class="text-center">Volume Akhir</th><th class="text-center">Selisih</th>
+                                        <th class="text-center">Total</th><th class="text-center">Desain</th>
+                                        <th class="text-center">Kualitas</th><th class="text-center">Spesifikasi</th>
                                         <th class="text-center">Foto</th><th style="padding:10px;">Catatan</th>
                                         <th class="text-center">Status</th><th class="text-center">Aksi</th>
                                     </tr>
@@ -1195,6 +1196,25 @@ const Render = {
                                             
                                             <td class="text-right font-bold" id="total-${item.id}" style="color:${item.total_harga<0?'red':'black'}">
                                                 ${formatRupiah(item.total_harga)}
+                                            </td>
+
+                                            <td class="text-center">
+                                                <select class="form-select design-select" data-id="${item.id}" style="font-size: 0.9rem; padding: 4px;">
+                                                    <option value="Sesuai" ${item.design === 'Sesuai' ? 'selected' : ''}>Sesuai</option>
+                                                    <option value="Tidak Sesuai" ${item.design === 'Tidak Sesuai' ? 'selected' : ''}>Tidak Sesuai</option>
+                                                </select>
+                                            </td>
+                                            <td class="text-center">
+                                                <select class="form-select quality-select" data-id="${item.id}" style="font-size: 0.9rem; padding: 4px;">
+                                                    <option value="Baik" ${item.kualitas === 'Baik' ? 'selected' : ''}>Baik</option>
+                                                    <option value="Tidak Baik" ${item.kualitas === 'Tidak Baik' ? 'selected' : ''}>Tidak Baik</option>
+                                                </select>
+                                            </td>
+                                            <td class="text-center">
+                                                <select class="form-select spec-select" data-id="${item.id}" style="font-size: 0.9rem; padding: 4px;">
+                                                    <option value="Sesuai" ${item.spesifikasi === 'Sesuai' ? 'selected' : ''}>Sesuai</option>
+                                                    <option value="Tidak Sesuai" ${item.spesifikasi === 'Tidak Sesuai' ? 'selected' : ''}>Tidak Sesuai</option>
+                                                </select>
                                             </td>
                                             
                                             <td class="text-center">
@@ -1335,6 +1355,41 @@ const Render = {
                             renderTable(); 
                         } catch(err) { alert("Upload gagal"); }
                     }
+                });
+
+                // 1. Listener untuk Dropdown Design
+                container.querySelectorAll('.design-select').forEach(sel => {
+                    sel.addEventListener('change', (e) => {
+                        const id = parseInt(e.target.getAttribute('data-id')); // Ambil ID item
+                        const val = e.target.value; // Ambil nilai yang dipilih (Sesuai/Tidak Sesuai)
+                        
+                        // Cari item yang sesuai di memori (AppState) dan update datanya
+                        const item = AppState.opnameItems.find(i => i.id === id);
+                        if(item) {
+                            item.design = val; // Simpan ke memori
+                            console.log(`Item ${id} Design diubah menjadi: ${val}`); // Cek di console
+                        }
+                    });
+                });
+
+                // 2. Listener untuk Dropdown Kualitas
+                container.querySelectorAll('.quality-select').forEach(sel => {
+                    sel.addEventListener('change', (e) => {
+                        const id = parseInt(e.target.getAttribute('data-id'));
+                        const val = e.target.value;
+                        const item = AppState.opnameItems.find(i => i.id === id);
+                        if(item) item.kualitas = val;
+                    });
+                });
+
+                // 3. Listener untuk Dropdown Spesifikasi
+                container.querySelectorAll('.spec-select').forEach(sel => {
+                    sel.addEventListener('change', (e) => {
+                        const id = parseInt(e.target.getAttribute('data-id'));
+                        const val = e.target.value;
+                        const item = AppState.opnameItems.find(i => i.id === id);
+                        if(item) item.spesifikasi = val;
+                    });
                 });
 
                 container.querySelectorAll('.save-btn').forEach(btn => {
