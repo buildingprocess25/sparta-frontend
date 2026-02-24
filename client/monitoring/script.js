@@ -361,11 +361,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (modalMainTitle) modalMainTitle.textContent = "Detail Nilai Toko";
         if (btnBackToSummary) btnBackToSummary.style.display = 'none'; 
 
-        // Gunakan parseFloat, bukan parseCurrency
-        const ntItems = filteredData.filter(item => {
-            const val = parseFloat(item["Nilai Toko"]);
-            return !isNaN(val) && val > 0;
-        }).sort((a, b) => (parseFloat(b["Nilai Toko"]) || 0) - (parseFloat(a["Nilai Toko"]) || 0));
+        const ntItems = filteredData.filter(item => parseScore(item["Nilai Toko"]) > 0)
+            .sort((a, b) => parseScore(b["Nilai Toko"]) - parseScore(a["Nilai Toko"]));
 
         if(listStatusTitle) listStatusTitle.textContent = `Daftar Proyek & Nilai Toko (${ntItems.length})`;
 
@@ -378,8 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const ulok = item["Nomor Ulok"] || '-';
                     const rawIndex = filteredData.indexOf(item);
                     
-                    // Ambil angkanya langsung
-                    const nilaiToko = parseFloat(item["Nilai Toko"]) || 0;
+                    const nilaiToko = formatScore(parseScore(item["Nilai Toko"]));
 
                     return `
                     <div class="store-item" data-index="${rawIndex}">
@@ -482,7 +478,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
             } else if (currentModalContext === 'NILAI_TOKO') {
                 const opnameFinal = formatRupiah(parseCurrency(item["Grand Total Opname Final"]));
-                const nilaiToko = parseFloat(item["Nilai Toko"]) || 0;
+                const nilaiToko = formatScore(parseScore(item["Nilai Toko"]));
 
                 storeDetailContainer.innerHTML = `
                     <div class="detail-grid">
@@ -602,6 +598,33 @@ document.addEventListener('DOMContentLoaded', () => {
         return 0;
     };
 
+    const parseScore = (value) => {
+        if (value === null || value === undefined || value === '') return 0;
+        let num = 0;
+        if (typeof value === 'number') {
+            num = value;
+        } else if (typeof value === 'string') {
+            if (value.includes('#REF!') || value.includes('Error')) return 0;
+            let cleanStr = value.replace(/,/g, '.');
+            num = parseFloat(cleanStr);
+        }
+        
+        if (isNaN(num)) return 0;
+        
+        if (num > 100) {
+            num = num / 100;
+        }
+        
+        return num;
+    };
+
+    const formatScore = (num) => {
+        return new Intl.NumberFormat("id-ID", {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2
+        }).format(num);
+    };
+
     const getYearFromDate = (dateStr) => {
         if (!dateStr) return null;
         const match = dateStr.match(/\d{4}/);
@@ -612,7 +635,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return x === 1 ? 1 : 1 - Math.pow(2, -10 * x);
     };
 
-    function animateValue(id, start, end, duration, formatter = (val) => val) {
+    function animateValue(id, start, end, duration, formatter = (val) => val, isFloat = false) {
         const obj = document.getElementById(id);
         if(!obj) return;
         let startTimestamp = null;
@@ -622,7 +645,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const timeProgress = Math.min((timestamp - startTimestamp) / duration, 1);
             const easedProgress = easeOutExpo(timeProgress);
             
-            const currentVal = Math.floor(easedProgress * (end - start) + start);
+            // Logika baru untuk mendukung angka desimal (koma)
+            let currentVal = easedProgress * (end - start) + start;
+            if (!isFloat) {
+                currentVal = Math.floor(currentVal);
+            }
+            
             obj.innerHTML = formatter(currentVal);
             
             if (timeProgress < 1) {
@@ -745,8 +773,8 @@ document.addEventListener('DOMContentLoaded', () => {
         data.forEach(item => {
             totalSPK += parseCurrency(item["Nominal SPK"]);
             
-            const nt = parseFloat(item["Nilai Toko"]);
-            if (!isNaN(nt) && nt > 0) {
+            const nt = parseScore(item["Nilai Toko"]);
+            if (nt > 0) {
                 sumNilaiToko += nt;
                 countNilaiToko++;
             }
@@ -765,8 +793,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const avgKeterlambatan = totalProyek > 0 ? Math.round(totalKeterlambatan / totalProyek) : 0;
         const avgCostM2 = totalLuasTerbangun > 0 ? (totalOpname / totalLuasTerbangun) : 0;
-        
-        const avgNilaiToko = countNilaiToko > 0 ? Math.round(sumNilaiToko / countNilaiToko) : 0;
+        const avgNilaiToko = countNilaiToko > 0 ? (sumNilaiToko / countNilaiToko) : 0;
 
         const animDuration = 1500; 
         
@@ -778,7 +805,7 @@ document.addEventListener('DOMContentLoaded', () => {
         animateValue("card-avg-cost-m2", 0, avgCostM2, animDuration, formatRupiah);
         
         if(document.getElementById('card-nilai-toko')) {
-            animateValue("card-nilai-toko", 0, avgNilaiToko, animDuration);
+            animateValue("card-nilai-toko", 0, avgNilaiToko, animDuration, formatScore, true);
         }
     }
 
