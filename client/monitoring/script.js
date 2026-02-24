@@ -361,8 +361,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (modalMainTitle) modalMainTitle.textContent = "Detail Nilai Toko";
         if (btnBackToSummary) btnBackToSummary.style.display = 'none'; 
 
-        const ntItems = filteredData.filter(item => parseCurrency(item["Nilai Toko"]) > 0)
-            .sort((a, b) => parseCurrency(b["Nilai Toko"]) - parseCurrency(a["Nilai Toko"]));
+        // Gunakan parseFloat, bukan parseCurrency
+        const ntItems = filteredData.filter(item => {
+            const val = parseFloat(item["Nilai Toko"]);
+            return !isNaN(val) && val > 0;
+        }).sort((a, b) => (parseFloat(b["Nilai Toko"]) || 0) - (parseFloat(a["Nilai Toko"]) || 0));
 
         if(listStatusTitle) listStatusTitle.textContent = `Daftar Proyek & Nilai Toko (${ntItems.length})`;
 
@@ -374,7 +377,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     const lingkup = item.Lingkup_Pekerjaan ? item.Lingkup_Pekerjaan : '-';
                     const ulok = item["Nomor Ulok"] || '-';
                     const rawIndex = filteredData.indexOf(item);
-                    const nilaiToko = formatRupiah(parseCurrency(item["Nilai Toko"]));
+                    
+                    // Ambil angkanya langsung
+                    const nilaiToko = parseFloat(item["Nilai Toko"]) || 0;
 
                     return `
                     <div class="store-item" data-index="${rawIndex}">
@@ -383,7 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <span>Ulok: ${ulok} | ${item.Cabang || '-'}</span>
                         </div>
                         <div class="store-badge" style="background:#fef3c7; color:#d97706; border: 1px solid #fde68a; font-size: 13px;">
-                            ${nilaiToko}
+                            Skor: ${nilaiToko}
                         </div>
                     </div>
                 `}).join('');
@@ -477,13 +482,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
             } else if (currentModalContext === 'NILAI_TOKO') {
                 const opnameFinal = formatRupiah(parseCurrency(item["Grand Total Opname Final"]));
-                const nilaiToko = formatRupiah(parseCurrency(item["Nilai Toko"]));
+                const nilaiToko = parseFloat(item["Nilai Toko"]) || 0;
 
                 storeDetailContainer.innerHTML = `
                     <div class="detail-grid">
                         <div class="detail-item"><span class="detail-label">Grand Total Opname Final</span><span class="detail-value" style="color:#2f855a; font-size: 16px;">${opnameFinal}</span></div>
-                        <div class="detail-item"><span class="detail-label">Nilai Toko</span><span class="detail-value" style="color:#d97706; font-size: 16px;">${nilaiToko}</span></div>
-                        
+                        <div class="detail-item"><span class="detail-label">Nilai Toko</span><span class="detail-value" style="color:#d97706; font-size: 16px;">${nilaiToko} / 100</span></div>
                         <div class="detail-item"><span class="detail-label">Kode Toko / Ulok</span><span class="detail-value">${item.Kode_Toko || '-'} / ${item["Nomor Ulok"] || '-'}</span></div>
                         <div class="detail-item"><span class="detail-label">Cabang</span><span class="detail-value">${item.Cabang || '-'}</span></div>
                     </div>
@@ -734,11 +738,18 @@ document.addEventListener('DOMContentLoaded', () => {
         let totalDenda = 0;
         let totalOpname = 0;
         let totalLuasTerbangun = 0;
-        let totalNilaiToko = 0; // Menampung Nilai Toko
+        
+        let sumNilaiToko = 0; 
+        let countNilaiToko = 0;
 
         data.forEach(item => {
             totalSPK += parseCurrency(item["Nominal SPK"]);
-            totalNilaiToko += parseCurrency(item["Nilai Toko"]); 
+            
+            const nt = parseFloat(item["Nilai Toko"]);
+            if (!isNaN(nt) && nt > 0) {
+                sumNilaiToko += nt;
+                countNilaiToko++;
+            }
             
             const durasiSpk = parseFloat(item["Durasi SPK"]) || 0;
             const tambahSpk = parseFloat(item["tambah_spk"]) || 0;
@@ -754,6 +765,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const avgKeterlambatan = totalProyek > 0 ? Math.round(totalKeterlambatan / totalProyek) : 0;
         const avgCostM2 = totalLuasTerbangun > 0 ? (totalOpname / totalLuasTerbangun) : 0;
+        
+        const avgNilaiToko = countNilaiToko > 0 ? Math.round(sumNilaiToko / countNilaiToko) : 0;
 
         const animDuration = 1500; 
         
@@ -764,9 +777,8 @@ document.addEventListener('DOMContentLoaded', () => {
         animateValue("card-total-denda", 0, totalDenda, animDuration, formatRupiah);
         animateValue("card-avg-cost-m2", 0, avgCostM2, animDuration, formatRupiah);
         
-        // Animasi untuk Card Nilai Toko yang baru
         if(document.getElementById('card-nilai-toko')) {
-            animateValue("card-nilai-toko", 0, totalNilaiToko, animDuration, formatRupiah);
+            animateValue("card-nilai-toko", 0, avgNilaiToko, animDuration);
         }
     }
 
