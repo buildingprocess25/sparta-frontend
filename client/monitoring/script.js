@@ -75,8 +75,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const hasSerahTerima = (item["tanggal_serah_terima"] && String(item["tanggal_serah_terima"]).trim() !== "") || 
                                    (item["Tgl Serah Terima"] && String(item["Tgl Serah Terima"]).trim() !== "");
             const hasOpnameFinal = item["tanggal_opname_final"] && String(item["tanggal_opname_final"]).trim() !== "";
+            
+            // Variabel baru untuk mengecek kolom "Status"
+            const hasStatus = item["Status"] && String(item["Status"]).trim() !== "";
 
-            // 2. Terapkan logika pengelompokan sesuai urutan prioritas
+            // 2. Terapkan logika pengelompokan sesuai urutan prioritas mundur (dari akhir project ke awal)
             if (hasOpnameFinal) {
                 // Done: kolom tanggal_opname_final sudah terisi
                 currentGroupedProjects['Done'].push(item);
@@ -86,10 +89,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentGroupedProjects['Kerja Tambah Kurang'].push(item);
             } 
             else if (hasSPK && !hasSerahTerima) {
-                // Approval SPK & Ongoing: nilai SPK sudah terisi & tanggal serah terima belum
-                currentGroupedProjects['Approval SPK'].push(item);
+                // Ongoing: nilai SPK sudah terisi & tanggal serah terima belum
                 currentGroupedProjects['Ongoing'].push(item);
             } 
+            else if (hasStatus && !hasSPK) {
+                // Approval SPK: kolom status sudah terisi & nilai SPK belum
+                currentGroupedProjects['Approval SPK'].push(item);
+            }
             else if (hasPenawaranFinal && !hasSPK) {
                 // Approval RAB & Proses PJU: penawaran final terisi & nominal SPK belum
                 currentGroupedProjects['Approval RAB'].push(item);
