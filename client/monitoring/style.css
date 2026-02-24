@@ -294,6 +294,11 @@ select:hover {
     box-shadow: 0 20px 25px -5px rgba(139, 92, 246, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
+#card-avg-keterlambatan-wrapper:hover {
+    border-color: #ef4444;
+    box-shadow: 0 20px 25px -5px rgba(239, 68, 68, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
 .stat-card::after {
     content: '';
     position: absolute;

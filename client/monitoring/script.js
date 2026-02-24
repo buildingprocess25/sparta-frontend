@@ -34,7 +34,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const totalProyekCard = document.getElementById('card-total-proyek-wrapper');
     const totalSpkCard = document.getElementById('card-total-spk-wrapper'); 
     const totalJhkCard = document.getElementById('card-total-jhk-wrapper'); 
-    const avgCostM2Card = document.getElementById('card-avg-cost-m2-wrapper'); // BARU
+    const avgCostM2Card = document.getElementById('card-avg-cost-m2-wrapper'); 
+    const avgKeterlambatanCard = document.getElementById('card-avg-keterlambatan-wrapper'); // BARU
 
     // Variabel View List Toko & Detail
     const modalMainTitle = document.getElementById('modalMainTitle'); 
@@ -241,7 +242,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (projectModal) projectModal.style.display = 'flex';
     };
 
-    // --- FUNGSI 4: Modal untuk Rata-rata Cost /m² (BARU) ---
+    // --- FUNGSI 4: Modal untuk Rata-rata Cost /m² ---
     const showAvgCostM2Details = () => {
         if (!filteredData || filteredData.length === 0) return;
         currentModalContext = 'COST_M2'; 
@@ -249,7 +250,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (modalMainTitle) modalMainTitle.textContent = "Detail Cost /m² per Proyek";
         if (btnBackToSummary) btnBackToSummary.style.display = 'none'; 
 
-        // Filter toko yang punya Opname Final & Luas Terbangunan > 0, lalu urutkan
         const costItems = filteredData.filter(item => {
             const opname = parseCurrency(item["Grand Total Opname Final"]);
             const luas = parseFloat(item["Luas Terbangunan"]) || 0;
@@ -298,7 +298,61 @@ document.addEventListener('DOMContentLoaded', () => {
         if (projectModal) projectModal.style.display = 'flex';
     };
 
-    // --- FUNGSI 5: Render Detail Toko Spesifik (Diperbarui) ---
+    // --- FUNGSI 5: Modal untuk Keterlambatan (BARU) ---
+    const showKeterlambatanDetails = () => {
+        if (!filteredData || filteredData.length === 0) return;
+        currentModalContext = 'KETERLAMBATAN'; 
+
+        if (modalMainTitle) modalMainTitle.textContent = "Detail Keterlambatan Proyek";
+        if (btnBackToSummary) btnBackToSummary.style.display = 'none'; 
+
+        // Filter toko yang punya Keterlambatan > 0, lalu urutkan
+        const delayItems = filteredData.filter(item => {
+            const telat = parseFloat(item["Keterlambatan"]) || 0;
+            return telat > 0;
+        }).sort((a, b) => {
+            const telatA = parseFloat(a["Keterlambatan"]) || 0;
+            const telatB = parseFloat(b["Keterlambatan"]) || 0;
+            return telatB - telatA;
+        });
+
+        if(listStatusTitle) listStatusTitle.textContent = `Daftar Proyek Terlambat (${delayItems.length})`;
+
+        if (storeListContainer) {
+            if (delayItems.length === 0) {
+                storeListContainer.innerHTML = '<div style="text-align:center; color:#718096; padding: 30px;">Tidak ada data proyek yang terlambat.</div>';
+            } else {
+                storeListContainer.innerHTML = delayItems.map(item => {
+                    const lingkup = item.Lingkup_Pekerjaan ? item.Lingkup_Pekerjaan : '-';
+                    const ulok = item["Nomor Ulok"] || '-';
+                    const rawIndex = filteredData.indexOf(item);
+                    const telat = parseFloat(item["Keterlambatan"]) || 0;
+
+                    return `
+                    <div class="store-item" data-index="${rawIndex}">
+                        <div class="store-info">
+                            <strong>${item.Nama_Toko || 'Tanpa Nama'} <span style="font-weight: 500; color: #3b82f6;">(${lingkup})</span></strong>
+                            <span>Ulok: ${ulok} | ${item.Cabang || '-'}</span>
+                        </div>
+                        <div class="store-badge" style="background:#fff5f5; color:#e53e3e; border: 1px solid #fed7d7; font-size: 13px;">
+                            ${telat} Hari
+                        </div>
+                    </div>
+                `}).join('');
+            }
+        }
+
+        if (modalSummaryView && modalListView && modalStoreDetailView) {
+            modalSummaryView.style.display = 'none';
+            modalStoreDetailView.style.display = 'none';
+            modalListView.style.display = 'block';
+        }
+
+        if (projectModal) projectModal.style.display = 'flex';
+    };
+
+
+    // --- FUNGSI 6: Render Detail Toko Spesifik (Diperbarui) ---
     const renderStoreDetail = (index) => {
         const item = filteredData[index];
         if (!item) return;
@@ -331,7 +385,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 `;
             } else if (currentModalContext === 'COST_M2') {
-                // Tampilan Detail untuk Cost /m2 (Baru ditambahkan)
                 const luasBangunan = parseFloat(item["Luas Bangunan"]) || 0;
                 const luasTerbangun = parseFloat(item["Luas Terbangunan"]) || 0;
                 const luasTerbuka = parseFloat(item["Luas Area Terbuka"]) || 0;
@@ -354,6 +407,25 @@ document.addEventListener('DOMContentLoaded', () => {
                         
                         <div class="detail-item"><span class="detail-label">Luas Area Sales</span><span class="detail-value">${luasSales} m²</span></div>
                         <div class="detail-item"><span class="detail-label">Luas Gudang</span><span class="detail-value">${luasGudang} m²</span></div>
+                    </div>
+                `;
+            } else if (currentModalContext === 'KETERLAMBATAN') {
+                // Tampilan Detail khusus untuk Keterlambatan (BARU)
+                const akhirSpk = item["Akhir_SPK"] || '-';
+                const tambahSpk = item["tambah_spk"] || '0';
+                const tglSerahTerima = item["tanggal_serah_terima"] || item["Tgl Serah Terima"] || '-';
+                const telat = parseFloat(item["Keterlambatan"]) || 0;
+
+                storeDetailContainer.innerHTML = `
+                    <div class="detail-grid">
+                        <div class="detail-item"><span class="detail-label">Total Keterlambatan</span><span class="detail-value" style="color:#e53e3e; font-size: 16px;">${telat} Hari</span></div>
+                        <div class="detail-item"><span class="detail-label">Kode Toko / Ulok</span><span class="detail-value">${item.Kode_Toko || '-'} / ${item["Nomor Ulok"] || '-'}</span></div>
+                        
+                        <div class="detail-item"><span class="detail-label">Akhir SPK</span><span class="detail-value">${akhirSpk}</span></div>
+                        <div class="detail-item"><span class="detail-label">Tambah SPK</span><span class="detail-value">${tambahSpk} Hari</span></div>
+                        
+                        <div class="detail-item"><span class="detail-label">Tanggal Serah Terima</span><span class="detail-value" style="color:#2f855a;">${tglSerahTerima}</span></div>
+                        <div class="detail-item"><span class="detail-label">Cabang</span><span class="detail-value">${item.Cabang || '-'}</span></div>
                     </div>
                 `;
             } else {
@@ -388,7 +460,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if(totalProyekCard) totalProyekCard.addEventListener('click', showProjectDetails);
     if(totalSpkCard) totalSpkCard.addEventListener('click', showSpkDetails); 
     if(totalJhkCard) totalJhkCard.addEventListener('click', showJhkDetails); 
-    if(avgCostM2Card) avgCostM2Card.addEventListener('click', showAvgCostM2Details); // Event klik baru untuk Cost /m2
+    if(avgCostM2Card) avgCostM2Card.addEventListener('click', showAvgCostM2Details); 
+    if(avgKeterlambatanCard) avgKeterlambatanCard.addEventListener('click', showKeterlambatanDetails); // EVENT KLIK BARU
     
     // Event Delegation: Menangkap klik pada card stat di dalam modal
     if(grid) {
