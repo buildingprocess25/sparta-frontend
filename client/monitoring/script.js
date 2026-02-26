@@ -467,15 +467,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const opnameFinal = formatRupiah(group.totalOpname);
             const costPerM2 = formatRupiah(Math.round(group.costPerM2));
 
-            // Helper untuk merapikan angka luas dengan koma & titik
-            const formatArea = (val) => new Intl.NumberFormat('id-ID').format(val || 0);
-
-            const luasBangunan = formatArea(parseFloat(refItem["Luas Bangunan"]) || 0);
-            const luasTerbangun = formatArea(parseFloat(refItem["Luas Terbangunan"]) || 0);
-            const luasTerbuka = formatArea(parseFloat(refItem["Luas Area Terbuka"]) || 0);
-            const luasParkir = formatArea(parseFloat(refItem["Luas Area Parkir"]) || 0);
-            const luasSales = formatArea(parseFloat(refItem["Luas Area Sales"]) || 0);
-            const luasGudang = formatArea(parseFloat(refItem["Luas Gudang"]) || 0);
+            // Mengambil nilai murni dari JSON
+            const luasBangunan = refItem["Luas Bangunan"] || 0;
+            const luasTerbangun = refItem["Luas Terbangunan"] || 0;
+            const luasTerbuka = refItem["Luas Area Terbuka"] || 0;
+            const luasParkir = refItem["Luas Area Parkir"] || 0;
+            const luasSales = refItem["Luas Area Sales"] || 0;
+            const luasGudang = refItem["Luas Gudang"] || 0;
 
             storeDetailContainer.innerHTML = `
                 <div class="detail-grid">
