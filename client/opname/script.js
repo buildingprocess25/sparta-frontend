@@ -1162,12 +1162,16 @@ const Render = {
                 const items = AppState.opnameItems;
                 
                 // Hitung total awal
-                const totalVal = items.reduce((sum, i) => sum + (i.total_harga || 0), 0);
-                
-                // Pembulatan
+                const totalVal = Math.round(items.reduce((sum, i) => {
+                    const vol = i.volume_akhir !== "" ? Number(String(i.volume_akhir).replace(',', '.')) || 0 : Number(String(i.vol_rab).replace(',', '.')) || 0;
+                    return sum + (vol * (i.harga_material + i.harga_upah));
+                }, 0));
+
+                // Pembulatan (kelipatan 10.000 ke bawah)
                 const totalPembulatan = Math.floor(totalVal / 10000) * 10000;
                 
-                const ppn = totalPembulatan * 0.11;
+                // PPN 11% dari nilai yang sudah dibulatkan
+                const ppn = Math.round(totalPembulatan * 0.11);
                 const denda = penaltyData.denda_nominal || 0;
                 
                 // Grand Total = (Pembulatan + PPN) - Denda
@@ -1430,9 +1434,12 @@ const Render = {
                         }
 
                         // Recalculate Grand Total With Penalty
-                        const newTotalVal = AppState.opnameItems.reduce((sum, i) => sum + (i.total_harga || 0), 0);
+                        const newTotalVal = Math.round(AppState.opnameItems.reduce((sum, i) => {
+                            const vol = i.volume_akhir !== "" ? Number(String(i.volume_akhir).replace(',', '.')) || 0 : Number(String(i.vol_rab).replace(',', '.')) || 0;
+                            return sum + (vol * (i.harga_material + i.harga_upah));
+                        }, 0));
                         const newPembulatan = Math.floor(newTotalVal / 10000) * 10000;
-                        const newPpn = newPembulatan * 0.11;
+                        const newPpn = Math.round(newPembulatan * 0.11);
                         const penaltyVal = penaltyData.denda_nominal || 0; 
                         const newGrandTotal = (newPembulatan + newPpn) - penaltyVal;
 
@@ -1664,9 +1671,9 @@ const Render = {
                 };
             });
 
-            const totalBiaya = items.reduce((sum, i) => sum + i.total_harga, 0);
+            const totalBiaya = Math.round(items.reduce((sum, i) => sum + i.total_harga, 0));
             const totalPembulatan = Math.floor(totalBiaya / 10000) * 10000;
-            const ppn = totalPembulatan * 0.11;
+            const ppn = Math.round(totalPembulatan * 0.11);
             const grandTotal = totalPembulatan + ppn;
 
             const html = `
