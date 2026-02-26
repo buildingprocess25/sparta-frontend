@@ -408,8 +408,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (modalMainTitle) modalMainTitle.textContent = "Detail Nilai Toko";
         if (btnBackToSummary) btnBackToSummary.style.display = 'none'; 
 
-        const ntItems = filteredData.filter(item => parseScore(item["Nilai Toko"]) > 0)
-            .sort((a, b) => parseScore(b["Nilai Toko"]) - parseScore(a["Nilai Toko"]));
+        // Gunakan parseFloat hanya untuk logika filter dan sorting agar urutannya tetap benar
+        const ntItems = filteredData.filter(item => {
+            const val = parseFloat(item["Nilai Toko"]);
+            return !isNaN(val) && val > 0;
+        }).sort((a, b) => (parseFloat(b["Nilai Toko"]) || 0) - (parseFloat(a["Nilai Toko"]) || 0));
 
         if(listStatusTitle) listStatusTitle.textContent = `Daftar Proyek & Nilai Toko (${ntItems.length})`;
 
@@ -422,7 +425,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     const ulok = item["Nomor Ulok"] || '-';
                     const rawIndex = filteredData.indexOf(item);
                     
-                    const nilaiToko = formatScore(parseScore(item["Nilai Toko"]));
+                    // MENGAMBIL NILAI MURNI DARI JSON (Tanpa Format)
+                    const nilaiToko = item["Nilai Toko"] || '-';
 
                     return `
                     <div class="store-item" data-index="${rawIndex}">
@@ -623,14 +627,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
             } else if (currentModalContext === 'NILAI_TOKO') {
                 const opnameFinal = formatRupiah(parseCurrency(item["Grand Total Opname Final"]));
-                const nilaiToko = formatScore(parseScore(item["Nilai Toko"]));
+                
+                // Ambil nilai murni dari JSON (Tanpa fungsi formatScore)
+                const nilaiTokoRaw = item["Nilai Toko"] || '-';
+                
+                // Ambil nama kontraktor
+                const kontraktor = item["Kontraktor"] || '-';
 
                 storeDetailContainer.innerHTML = `
                     <div class="detail-grid">
                         <div class="detail-item"><span class="detail-label">Grand Total Opname Final</span><span class="detail-value" style="color:#2f855a; font-size: 16px;">${opnameFinal}</span></div>
-                        <div class="detail-item"><span class="detail-label">Nilai Toko</span><span class="detail-value" style="color:#d97706; font-size: 16px;">${nilaiToko} / 100</span></div>
+                        <div class="detail-item"><span class="detail-label">Nilai Toko</span><span class="detail-value" style="color:#d97706; font-size: 16px;">${nilaiTokoRaw}</span></div>
+                        
                         <div class="detail-item"><span class="detail-label">Kode Toko / Ulok</span><span class="detail-value">${item.Kode_Toko || '-'} / ${item["Nomor Ulok"] || '-'}</span></div>
                         <div class="detail-item"><span class="detail-label">Cabang</span><span class="detail-value">${item.Cabang || '-'}</span></div>
+                        
+                        <div class="detail-item" style="grid-column: span 2; border-bottom: none;"><span class="detail-label">Kontraktor</span><span class="detail-value">${kontraktor}</span></div>
                     </div>
                 `;
             } else {
