@@ -924,6 +924,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let totalDenda = 0;
         let totalOpname = 0;
         let totalLuasTerbangun = 0;
+        let uniqueUlokLuas = {};
         
         let sumNilaiToko = 0; 
         let countNilaiToko = 0;
