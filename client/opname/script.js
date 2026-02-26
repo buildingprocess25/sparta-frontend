@@ -1163,10 +1163,14 @@ const Render = {
                 
                 // Hitung total awal
                 const totalVal = items.reduce((sum, i) => sum + (i.total_harga || 0), 0);
+                
+                // Pembulatan
                 const totalPembulatan = Math.floor(totalVal / 10000) * 10000;
-                const ppn = totalVal * 0.11;
-                const denda = penaltyData.denda_nominal;
-                // Grand Total = (Total + PPN) - Denda
+                
+                const ppn = totalPembulatan * 0.11;
+                const denda = penaltyData.denda_nominal || 0;
+                
+                // Grand Total = (Pembulatan + PPN) - Denda
                 const grandTotal = (totalPembulatan + ppn) - denda;
 
                 let btnColor = '#6c757d'; 
@@ -1429,7 +1433,7 @@ const Render = {
                         const newTotalVal = AppState.opnameItems.reduce((sum, i) => sum + (i.total_harga || 0), 0);
                         const newPembulatan = Math.floor(newTotalVal / 10000) * 10000;
                         const newPpn = newPembulatan * 0.11;
-                        const penaltyVal = penaltyData.denda_nominal;
+                        const penaltyVal = penaltyData.denda_nominal || 0; 
                         const newGrandTotal = (newPembulatan + newPpn) - penaltyVal;
 
                         // Update Summary DOM
@@ -1440,19 +1444,19 @@ const Render = {
 
                         if (elSumTotal) {
                             elSumTotal.innerText = formatRupiah(newTotalVal);
-                            elSumTotal.style.color = newTotalVal < 0 ? 'red' : 'black';
+                            elSumTotal.style.color = newTotalVal < 0 ? '#dc2626' : 'black';
                         }
                         if (elSumPembulatan) {
                             elSumPembulatan.innerText = formatRupiah(newPembulatan);
-                            elSumPembulatan.style.color = newPembulatan < 0 ? 'red' : 'black';
+                            elSumPembulatan.style.color = newPembulatan < 0 ? '#dc2626' : 'black';
                         }
                         if (elSumPpn) {
                             elSumPpn.innerText = formatRupiah(newPpn);
-                            elSumPpn.style.color = newPpn < 0 ? 'red' : 'black';
+                            elSumPpn.style.color = newPpn < 0 ? '#dc2626' : 'black';
                         }
                         if (elSumGrand) {
                             elSumGrand.innerText = formatRupiah(newGrandTotal);
-                            elSumGrand.style.color = newGrandTotal < 0 ? 'red' : 'black';
+                            elSumGrand.style.color = newGrandTotal < 0 ? '#dc2626' : 'black';
                         }
                     }
                 });
