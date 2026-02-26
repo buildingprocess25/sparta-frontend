@@ -492,7 +492,7 @@ const UI = {
 
         // Set status awal opsi Renovasi saat halaman pertama kali dimuat
         if (!toggle.checked) {
-            renovasiOption.disabled = true;
+            renovasiOption.disabled = false;
         }
 
         toggle.addEventListener('change', () => {

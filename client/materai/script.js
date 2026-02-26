@@ -354,7 +354,7 @@ function renderViewResults(container) {
         </div>
 
         <div id="resultsWrapper" style="display:none; position: relative; min-height: 100px;">
-             <div id="loadingTable" class="loading-overlay" style="display:none; position: absolute; background: rgba(255,255,255,0.9);">
+            <div id="loadingTable" class="loading-overlay" style="display:none; position: absolute; background: rgba(255,255,255,0.9);">
                 <div class="spinner" style="width: 40px; height: 40px; border-width: 4px;"></div>
                 <div style="margin-top: 10px; font-weight: 500;">Memuat data…</div>
             </div>
