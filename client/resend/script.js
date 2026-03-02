@@ -23,25 +23,36 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    /**
-     * Utility untuk render opsi ke dalam elemen <select>
-     * Mendukung format array string ["A", "B"] atau array object [{id: 1, name: "A"}]
-     */
-    function populateSelect(selectEl, data, placeholderText) {
-        // Reset HTML
+    function populateSelect(selectEl, responseData, placeholderText) {
+        // 1. Reset isi dropdown
         selectEl.innerHTML = `<option value="" disabled selected>${placeholderText}</option>`;
         
-        if (!data || data.length === 0) {
+        // 2. Ekstrak Array dari response API
+        let dataArray = [];
+        if (responseData && Array.isArray(responseData.data)) {
+            // Tangkap array dari dalam object wrapper { data: [...] }
+            dataArray = responseData.data; 
+        } else if (Array.isArray(responseData)) {
+            // Fallback jika response langsung berupa array [...]
+            dataArray = responseData;
+        }
+
+        // 3. Validasi isi data
+        if (dataArray.length === 0) {
             selectEl.innerHTML = `<option value="" disabled selected>Data tidak tersedia</option>`;
             selectEl.disabled = true;
             return;
         }
 
-        data.forEach(item => {
-            const isObject = typeof item === 'object';
-            // Sesuaikan properti (misal: item.id atau item.kode) sesuai response API
-            const val = isObject ? (item.id || item.kode || item.nama) : item; 
-            const label = isObject ? (item.nama || item.name || item.id) : item;
+        // 4. Render ke DOM
+        dataArray.forEach(item => {
+            // Evaluasi apakah item berupa Object atau String murni ("ACEH", "BALARAJA")
+            const isObject = typeof item === 'object' && item !== null;
+            
+            // Karena payload Cabang berupa array string, 'val' dan 'label' akan langsung memakai 'item'
+            // Logika fallback isObject tetap dipertahankan jaga-jaga endpoint Ulok/Lingkup mereturn Object
+            const val = isObject ? (item.id || item.ulok || item.kode || item.nama) : item; 
+            const label = isObject ? (item.nama || item.name || item.id || item.lingkup) : item;
 
             const optionEl = document.createElement('option');
             optionEl.value = val;
@@ -49,6 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
             selectEl.appendChild(optionEl);
         });
 
+        // Enable dropdown setelah selesai render
         selectEl.disabled = false;
     }
 
