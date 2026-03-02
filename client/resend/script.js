@@ -1,51 +1,121 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Referensi Elemen DOM
     const docTypeSelect = document.getElementById('docTypeSelect');
+    const cabangSelect = document.getElementById('cabangSelect');
+    const ulokSelect = document.getElementById('ulokSelect');
     const lingkupSelect = document.getElementById('lingkupSelect');
     const resendForm = document.getElementById('resendForm');
 
-    // Daftar master lingkup pekerjaan. Bisa diekspansi sesuai kebutuhan SPARTA.
-    const lingkupOptions = {
-        rab: ['Sipil', 'ME'],
-        spk: ['Sipil', 'ME']
-    };
+    // Gunakan Base URL dari server Render Anda
+    const BASE_URL = 'https://send-email-app.onrender.com';
 
     /**
-     * Populate dropdown lingkup pekerjaan berdasarkan doc type.
-     * Mencegah hardcode HTML dan memastikan validitas data.
+     * Utility Fetch Data dengan Error Handling
      */
-    function populateLingkup(docType) {
-        // Reset opsi
-        lingkupSelect.innerHTML = '<option value="" disabled selected>Pilih Lingkup Pekerjaan</option>';
-        
-        const options = lingkupOptions[docType] || [];
-        options.forEach(item => {
-            const optionEl = document.createElement('option');
-            optionEl.value = item;
-            optionEl.textContent = item;
-            lingkupSelect.appendChild(optionEl);
-        });
+    async function fetchData(endpoint) {
+        try {
+            const response = await fetch(`${BASE_URL}${endpoint}`);
+            if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+            return await response.json();
+        } catch (error) {
+            console.error(`Gagal mengambil data dari ${endpoint}:`, error);
+            return null; // Return null agar UI bisa tahu terjadi kegagalan
+        }
     }
 
-    // 1. Inisialisasi awal saat load
-    populateLingkup(docTypeSelect.value);
+    /**
+     * Utility untuk render opsi ke dalam elemen <select>
+     * Mendukung format array string ["A", "B"] atau array object [{id: 1, name: "A"}]
+     */
+    function populateSelect(selectEl, data, placeholderText) {
+        // Reset HTML
+        selectEl.innerHTML = `<option value="" disabled selected>${placeholderText}</option>`;
+        
+        if (!data || data.length === 0) {
+            selectEl.innerHTML = `<option value="" disabled selected>Data tidak tersedia</option>`;
+            selectEl.disabled = true;
+            return;
+        }
 
-    // 2. Listener jika user mengganti RAB / SPK
-    docTypeSelect.addEventListener('change', (e) => {
-        populateLingkup(e.target.value);
+        data.forEach(item => {
+            const isObject = typeof item === 'object';
+            // Sesuaikan properti (misal: item.id atau item.kode) sesuai response API
+            const val = isObject ? (item.id || item.kode || item.nama) : item; 
+            const label = isObject ? (item.nama || item.name || item.id) : item;
+
+            const optionEl = document.createElement('option');
+            optionEl.value = val;
+            optionEl.textContent = label;
+            selectEl.appendChild(optionEl);
+        });
+
+        selectEl.disabled = false;
+    }
+
+    /**
+     * 1. INIT: Load Master Cabang saat halaman dibuka
+     */
+    async function initCabang() {
+        cabangSelect.innerHTML = `<option value="" disabled selected>Memuat cabang...</option>`;
+        const dataCabang = await fetchData('/api/cabang-list');
+        
+        if (dataCabang) {
+            populateSelect(cabangSelect, dataCabang, 'Pilih Cabang');
+        } else {
+            cabangSelect.innerHTML = `<option value="" disabled selected>Gagal memuat cabang</option>`;
+        }
+    }
+    
+    // Jalankan init
+    initCabang();
+
+    /**
+     * 2. EVENT LISTENER: Cabang berubah -> Fetch Ulok
+     */
+    cabangSelect.addEventListener('change', async (e) => {
+        const selectedCabang = e.target.value;
+        
+        // Reset state child dropdowns (Penting untuk mencegah stale data)
+        ulokSelect.innerHTML = `<option value="" disabled selected>Memuat ulok...</option>`;
+        ulokSelect.disabled = true;
+        lingkupSelect.innerHTML = `<option value="" disabled selected>Pilih Ulok terlebih dahulu</option>`;
+        lingkupSelect.disabled = true;
+
+        if (!selectedCabang) return;
+
+        const dataUlok = await fetchData(`/api/ulok-by-cabang?cabang=${encodeURIComponent(selectedCabang)}`);
+        populateSelect(ulokSelect, dataUlok, 'Pilih Nomor Ulok');
     });
 
-    // 3. Submit Handler
+    /**
+     * 3. EVENT LISTENER: Ulok berubah -> Fetch Lingkup Pekerjaan
+     */
+    ulokSelect.addEventListener('change', async (e) => {
+        const selectedUlok = e.target.value;
+
+        // Reset child dropdown
+        lingkupSelect.innerHTML = `<option value="" disabled selected>Memuat lingkup...</option>`;
+        lingkupSelect.disabled = true;
+
+        if (!selectedUlok) return;
+
+        const dataLingkup = await fetchData(`/api/lingkup-by-ulok?ulok=${encodeURIComponent(selectedUlok)}`);
+        populateSelect(lingkupSelect, dataLingkup, 'Pilih Lingkup Pekerjaan');
+    });
+
+    /**
+     * 4. SUBMIT HANDLER
+     */
     resendForm.addEventListener('submit', async function (e) {
         e.preventDefault();
 
-        // Ambil nilai
-        const ulok = document.getElementById('ulokInput').value.trim();
-        const lingkup = lingkupSelect.value;
         const docType = docTypeSelect.value;
+        const ulok = ulokSelect.value;
+        const lingkup = lingkupSelect.value;
 
-        // Validasi ekstra (karena disabled select value bisa bernilai string kosong)
-        if (!lingkup) {
-            alert('Silakan pilih lingkup pekerjaan terlebih dahulu.');
+        // Proteksi layer ganda, pastikan tidak submit string kosong
+        if (!ulok || !lingkup) {
+            alert('Harap lengkapi Cabang, Ulok, dan Lingkup Pekerjaan.');
             return;
         }
 
@@ -54,12 +124,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const btnSpinner = document.getElementById('btnSpinner');
         const alertBox = document.getElementById('alertBox');
 
-        // Dynamic API routing
         const API_URL = docType === 'spk'
-            ? 'https://send-email-app.onrender.com/api/resend-email-spk'
-            : 'https://send-email-app.onrender.com/api/resend-email';
+            ? `${BASE_URL}/api/resend-email-spk`
+            : `${BASE_URL}/api/resend-email`;
 
-        // State: Loading
+        // UI State: Loading
         submitBtn.disabled = true;
         btnText.textContent = 'Memproses...';
         btnSpinner.classList.remove('d-none');
@@ -69,9 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(API_URL, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ulok: ulok, lingkup: lingkup })
             });
 
@@ -88,9 +155,9 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('Fetch error:', error);
             alertBox.classList.add('alert-danger', 'border-danger');
-            alertBox.innerHTML = `<i class="fa-solid fa-circle-xmark me-2"></i> Gagal terhubung ke server Render. Pastikan API berjalan.`;
+            alertBox.innerHTML = `<i class="fa-solid fa-circle-xmark me-2"></i> Gagal terhubung ke server. Pastikan API berjalan.`;
         } finally {
-            // State: Restore
+            // UI State: Reset
             submitBtn.disabled = false;
             btnText.textContent = 'Kirim Ulang Email';
             btnSpinner.classList.add('d-none');

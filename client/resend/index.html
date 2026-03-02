@@ -38,14 +38,24 @@
                         </div>
 
                         <div class="mb-3 input-group-custom">
-                            <label for="ulokInput" class="form-label fw-bold">Nomor Ulok</label>
-                            <input type="text" class="form-control" id="ulokInput" placeholder="Contoh: ULOK-12345" required>
+                            <label for="cabangSelect" class="form-label fw-bold">Cabang</label>
+                            <select class="form-select form-control" id="cabangSelect" required disabled>
+                                <option value="" disabled selected>Memuat cabang...</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3 input-group-custom">
+                            <label for="ulokSelect" class="form-label fw-bold">Nomor Ulok</label>
+                            <select class="form-select form-control" id="ulokSelect" required disabled>
+                                <option value="" disabled selected>Pilih Cabang terlebih dahulu</option>
+                            </select>
                         </div>
 
                         <div class="mb-4 input-group-custom">
                             <label for="lingkupSelect" class="form-label fw-bold">Lingkup Pekerjaan</label>
-                            <select class="form-select form-control" id="lingkupSelect" required>
-                                </select>
+                            <select class="form-select form-control" id="lingkupSelect" required disabled>
+                                <option value="" disabled selected>Pilih Ulok terlebih dahulu</option>
+                            </select>
                         </div>
 
                         <button type="submit" class="btn btn-custom w-100 py-3" id="submitBtn">
