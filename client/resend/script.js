@@ -124,9 +124,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const docType = docTypeSelect.value;
         const ulok = ulokSelect.value;
         const lingkup = lingkupSelect.value;
+        const cabang = cabangSelect.value;
 
         // Proteksi layer ganda, pastikan tidak submit string kosong
-        if (!ulok || !lingkup) {
+        if (!ulok || !lingkup || !cabang) {
             alert('Harap lengkapi Cabang, Ulok, dan Lingkup Pekerjaan.');
             return;
         }
@@ -151,7 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ulok: ulok, lingkup: lingkup, cabangInput: cabangSelect.value })
+                body: JSON.stringify({ ulok: ulok, lingkup: lingkup, cabangInput: cabang})
             });
 
             const result = await response.json();
