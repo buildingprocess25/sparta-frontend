@@ -1,67 +1,72 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const tabButtons = document.querySelectorAll('#docTypeTabs .nav-link');
-    const docTypeInput = document.getElementById('docTypeInput');
-    const lingkupInput = document.getElementById('lingkupInput');
+    const docTypeSelect = document.getElementById('docTypeSelect');
+    const lingkupSelect = document.getElementById('lingkupSelect');
+    const resendForm = document.getElementById('resendForm');
 
-    // Fungsi untuk mengubah UI berdasarkan jenis dokumen
-    function applyDocType(docType) {
-        docTypeInput.value = docType;
+    // Daftar master lingkup pekerjaan. Bisa diekspansi sesuai kebutuhan SPARTA.
+    const lingkupOptions = {
+        rab: ['Renovasi Sipil', 'Sipil', 'MEP', 'Sipil & MEP'],
+        spk: ['Sipil', 'Renovasi Sipil', 'MEP', 'Sipil & MEP']
+    };
 
-        // Ubah tampilan tab aktif
-        tabButtons.forEach(btn => {
-            const active = btn.dataset.docType === docType;
-            btn.classList.toggle('active', active);
+    /**
+     * Populate dropdown lingkup pekerjaan berdasarkan doc type.
+     * Mencegah hardcode HTML dan memastikan validitas data.
+     */
+    function populateLingkup(docType) {
+        // Reset opsi
+        lingkupSelect.innerHTML = '<option value="" disabled selected>Pilih Lingkup Pekerjaan</option>';
+        
+        const options = lingkupOptions[docType] || [];
+        options.forEach(item => {
+            const optionEl = document.createElement('option');
+            optionEl.value = item;
+            optionEl.textContent = item;
+            lingkupSelect.appendChild(optionEl);
         });
-
-        // Ubah placeholder sesuai tab
-        if (docType === 'spk') {
-            lingkupInput.placeholder = 'Contoh: Sipil';
-        } else {
-            lingkupInput.placeholder = 'Contoh: Renovasi Sipil';
-        }
     }
 
-    // Event Listener untuk setiap tombol tab
-    tabButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            applyDocType(btn.dataset.docType);
-        });
+    // 1. Inisialisasi awal saat load
+    populateLingkup(docTypeSelect.value);
+
+    // 2. Listener jika user mengganti RAB / SPK
+    docTypeSelect.addEventListener('change', (e) => {
+        populateLingkup(e.target.value);
     });
 
-    // Inisialisasi awal ke tab RAB
-    applyDocType('rab');
+    // 3. Submit Handler
+    resendForm.addEventListener('submit', async function (e) {
+        e.preventDefault();
 
-    // Event Listener untuk form submit
-    document.getElementById('resendForm').addEventListener('submit', async function (e) {
-        e.preventDefault(); // Mencegah page reload
-
-        // Ambil nilai dari inputan
+        // Ambil nilai
         const ulok = document.getElementById('ulokInput').value.trim();
-        const lingkup = document.getElementById('lingkupInput').value.trim();
-        const docType = docTypeInput.value;
+        const lingkup = lingkupSelect.value;
+        const docType = docTypeSelect.value;
 
-        // Elemen UI
+        // Validasi ekstra (karena disabled select value bisa bernilai string kosong)
+        if (!lingkup) {
+            alert('Silakan pilih lingkup pekerjaan terlebih dahulu.');
+            return;
+        }
+
         const submitBtn = document.getElementById('submitBtn');
         const btnText = document.getElementById('btnText');
         const btnSpinner = document.getElementById('btnSpinner');
         const alertBox = document.getElementById('alertBox');
 
-        // URL API Render Node.js Anda
+        // Dynamic API routing
         const API_URL = docType === 'spk'
             ? 'https://send-email-app.onrender.com/api/resend-email-spk'
             : 'https://send-email-app.onrender.com/api/resend-email';
 
-        // State: Loading (Tombol disable & animasi memutar)
+        // State: Loading
         submitBtn.disabled = true;
         btnText.textContent = 'Memproses...';
         btnSpinner.classList.remove('d-none');
         alertBox.style.display = 'none';
-        
-        // Reset class alert ke default agar tidak bentrok warnanya
         alertBox.className = 'alert mt-4 mb-0 shadow-sm'; 
 
         try {
-            // Tembak API Node.js di Render
             const response = await fetch(API_URL, {
                 method: 'POST',
                 headers: {
@@ -72,28 +77,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const result = await response.json();
 
-            // Tangani Response
             if (response.ok) {
-                // Berhasil
                 alertBox.classList.add('alert-success', 'border-success');
                 alertBox.innerHTML = `<i class="fa-solid fa-circle-check me-2"></i> ${result.message} <br> <small class="mt-1 d-block">Terkirim ke: <strong>${result.recipient}</strong> (${result.role})</small>`;
             } else {
-                // Error dari server (misal: data tidak ketemu)
                 alertBox.classList.add('alert-warning', 'border-warning');
                 alertBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-2"></i> ${result.error || result.message || 'Terjadi kesalahan.'}`;
             }
 
         } catch (error) {
-            // Error jaringan atau server mati
             console.error('Fetch error:', error);
             alertBox.classList.add('alert-danger', 'border-danger');
-            alertBox.innerHTML = `<i class="fa-solid fa-circle-xmark me-2"></i> Gagal terhubung ke server. Pastikan API berjalan dan internet stabil.`;
+            alertBox.innerHTML = `<i class="fa-solid fa-circle-xmark me-2"></i> Gagal terhubung ke server Render. Pastikan API berjalan.`;
         } finally {
-            // State: Selesai Loading (Kembalikan tombol seperti semula)
+            // State: Restore
             submitBtn.disabled = false;
             btnText.textContent = 'Kirim Ulang Email';
             btnSpinner.classList.add('d-none');
-            alertBox.style.display = 'block'; // Tampilkan alert
+            alertBox.style.display = 'block';
         }
     });
 });

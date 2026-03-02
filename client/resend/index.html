@@ -27,17 +27,15 @@
         <div class="row justify-content-center">
             <div class="col-md-8 col-lg-6">
                 <div class="card card-custom p-4">
-                    <ul class="nav nav-pills nav-justified mb-4 custom-tabs" id="docTypeTabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" type="button" data-doc-type="rab">RAB</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" type="button" data-doc-type="spk">SPK</button>
-                        </li>
-                    </ul>
-
+                    
                     <form id="resendForm">
-                        <input type="hidden" id="docTypeInput" value="rab">
+                        <div class="mb-3 input-group-custom">
+                            <label for="docTypeSelect" class="form-label fw-bold">Jenis Dokumen</label>
+                            <select class="form-select form-control" id="docTypeSelect" required>
+                                <option value="rab" selected>RAB</option>
+                                <option value="spk">SPK</option>
+                            </select>
+                        </div>
 
                         <div class="mb-3 input-group-custom">
                             <label for="ulokInput" class="form-label fw-bold">Nomor Ulok</label>
@@ -45,8 +43,9 @@
                         </div>
 
                         <div class="mb-4 input-group-custom">
-                            <label for="lingkupInput" class="form-label fw-bold">Lingkup Pekerjaan</label>
-                            <input type="text" class="form-control" id="lingkupInput" placeholder="Contoh: Renovasi Sipil" required>
+                            <label for="lingkupSelect" class="form-label fw-bold">Lingkup Pekerjaan</label>
+                            <select class="form-select form-control" id="lingkupSelect" required>
+                                </select>
                         </div>
 
                         <button type="submit" class="btn btn-custom w-100 py-3" id="submitBtn">

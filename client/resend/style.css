@@ -123,17 +123,20 @@ body {
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
-/* ================= INPUT STYLES ================= */
-.input-group-custom .form-control {
+/* ================= INPUT & SELECT STYLES ================= */
+.input-group-custom .form-control,
+.input-group-custom .form-select {
     border-radius: 8px; /* Mengikuti radius Opname */
     border: 1px solid #cbd5e1;
     padding: 0.85rem 1rem;
     font-size: 1rem;
     color: var(--text-color);
     transition: all 0.2s;
+    background-color: #fff;
 }
 
-.input-group-custom .form-control:focus {
+.input-group-custom .form-control:focus,
+.input-group-custom .form-select:focus {
     border-color: var(--red-sparta);
     box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
     outline: none;
