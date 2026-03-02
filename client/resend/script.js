@@ -151,7 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ulok: ulok, lingkup: lingkup })
+                body: JSON.stringify({ ulok: ulok, lingkup: lingkup, cabangInput: cabangSelect.value })
             });
 
             const result = await response.json();
