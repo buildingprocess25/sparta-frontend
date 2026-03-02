@@ -1458,9 +1458,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const shift = task.computed.shift;
             let durTxt = ranges.reduce((s, r) => s + r.duration, 0);
 
-            // Sesuaikan batas max end dengan kecepatan
+            // [PERBAIKAN] Batas maxEnd dan minStart dikurangi 'kecepatan' agar kalkulasi garis SVG ikut bergeser maju
             const maxEnd = ranges.length ? Math.max(...ranges.map(r => r.end + shift + (parseInt(r.keterlambatan) || 0) - (parseInt(r.kecepatan) || 0))) : 0;
-            const minStart = ranges.length ? Math.min(...ranges.map(r => r.start + shift)) : 0;
+            const minStart = ranges.length ? Math.min(...ranges.map(r => r.start + shift - (parseInt(r.kecepatan) || 0))) : 0;
 
             taskCoordinates[task.id] = {
                 centerY: (index * ROW_HEIGHT) + (ROW_HEIGHT / 2),
@@ -1472,17 +1472,15 @@ document.addEventListener('DOMContentLoaded', () => {
             html += `<div class="timeline" style="width: ${totalChartWidth}px;">`;
 
             ranges.forEach((range) => {
-                const actualStart = range.start + shift;
                 const ownDelay = parseInt(range.keterlambatan || 0);
                 const ownSpeed = parseInt(range.kecepatan || 0);
 
+                const actualStart = range.start + shift - ownSpeed;
+                const displayDuration = range.duration; 
+
                 const hasDelay = ownDelay > 0;
                 const hasSpeed = ownSpeed > 0;
-                const isShifted = shift !== 0;
-
-                // Jika lebih cepat, balok utama dipotong durasinya
-                let displayDuration = range.duration;
-                if (hasSpeed) displayDuration = Math.max(1, range.duration - ownSpeed);
+                const isShifted = shift !== 0 || ownSpeed > 0;
 
                 const leftPos = (actualStart - 1) * DAY_WIDTH;
                 const widthPos = (displayDuration * DAY_WIDTH) - 1;
@@ -1495,14 +1493,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 html += `<div class="${barClass}" style="left: ${leftPos}px; width: ${widthPos}px; ${borderStyle}" title="${task.name}"> ${displayDuration} Hari</div>`;
 
-                // Render Keterlambatan (Merah)
                 if (hasDelay) {
                     const delayLeftPos = (actualStart - 1 + displayDuration) * DAY_WIDTH;
                     const delayWidthPos = ownDelay * DAY_WIDTH - 1;
                     html += `<div class="bar delayed" style="left:${delayLeftPos}px; width:${delayWidthPos}px; background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%); opacity: 0.85;">+${ownDelay}</div>`;
                 }
 
-                // Render Kecepatan (Hijau Bergaris - Menandakan waktu yang tidak dipakai/dihemat)
                 if (hasSpeed) {
                     const speedLeftPos = (actualStart - 1 + displayDuration) * DAY_WIDTH;
                     const speedWidthPos = ownSpeed * DAY_WIDTH - 1;
@@ -1513,7 +1509,11 @@ document.addEventListener('DOMContentLoaded', () => {
             for (const [day, isActive] of Object.entries(supervisionDays)) {
                 if (isActive) {
                     const dInt = parseInt(day);
-                    const inRange = ranges.some(r => dInt >= (r.start + shift) && dInt <= (r.end + shift));
+                    const inRange = ranges.some(r => {
+                        const s = r.start + shift - (parseInt(r.kecepatan) || 0);
+                        const e = s + r.duration - 1;
+                        return dInt >= s && dInt <= e;
+                    });
                     if (inRange) html += `<div class="supervision-marker" style="left:${(dInt - 1) * DAY_WIDTH}px"></div>`;
                 }
             }
