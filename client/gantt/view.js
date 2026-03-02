@@ -415,7 +415,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     start: startDay > 0 ? startDay : 1,
                     end: endDay > 0 ? endDay : 1,
                     duration: duration > 0 ? duration : 1,
-                    keterlambatan: parseInt(entry.keterlambatan || 0)
+                    keterlambatan: parseInt(entry.keterlambatan || 0),
+                    kecepatan: parseInt(entry.kecepatan || 0)
                 });
             });
         } else {
@@ -486,38 +487,51 @@ document.addEventListener('DOMContentLoaded', () => {
 
         currentTasks.forEach(task => {
             const ranges = task.inputData?.ranges || [];
-            let shift = 0;
+            let maxShift = null;
 
-            if (task.dependency) {
-                const parentEffectiveEnd = effectiveEndDates[task.dependency] || 0;
-                if (ranges.length > 0) {
-                    const plannedStart = ranges[0].start;
-                    if (plannedStart <= parentEffectiveEnd) {
-                        shift = parentEffectiveEnd - plannedStart + 1;
+            if (task.dependencies && task.dependencies.length > 0) {
+                task.dependencies.forEach(parentId => {
+                    const parentTask = currentTasks.find(t => t.id === parentId);
+                    if (parentTask) {
+                        const parentExistingShift = parentTask.computed.shift || 0;
+                        let parentInputDelay = 0;
+                        let parentInputSpeed = 0;
+                        const pRanges = parentTask.inputData?.ranges || [];
+                        if (pRanges.length > 0) {
+                            parentInputDelay = parseInt(pRanges[pRanges.length - 1].keterlambatan || 0);
+                            parentInputSpeed = parseInt(pRanges[pRanges.length - 1].kecepatan || 0); // Ambil data kecepatan parent
+                        }
+                        
+                        // Kalkulasi pergeseran: Jika lebih cepat, bergeser negatif (maju)
+                        const potentialShift = parentExistingShift + parentInputDelay - parentInputSpeed;
+                        if (maxShift === null || potentialShift > maxShift) {
+                            maxShift = potentialShift;
+                        }
                     }
-                }
+                });
             }
-
-            task.computed.shift = shift;
-
+            
+            task.computed.shift = maxShift !== null ? maxShift : 0;
+            
             if (ranges.length > 0) {
                 const lastRange = ranges[ranges.length - 1];
-                const actualEnd = lastRange.end + shift;
+                const actualEnd = lastRange.end + task.computed.shift;
                 const ownDelay = parseInt(lastRange.keterlambatan || 0);
-                effectiveEndDates[task.id] = actualEnd + ownDelay;
+                const ownSpeed = parseInt(lastRange.kecepatan || 0);
+                effectiveEndDates[task.id] = actualEnd + ownDelay - ownSpeed;
             } else {
                 effectiveEndDates[task.id] = 0;
             }
         });
 
-        // --- 2. HITUNG DIMENSI CHART ---
         let maxTaskEndDay = 0;
         currentTasks.forEach(task => {
             const ranges = task.inputData?.ranges || [];
             const shift = task.computed.shift;
             ranges.forEach(range => {
                 const ownDelay = parseInt(range.keterlambatan || 0);
-                const totalEnd = range.end + shift + ownDelay;
+                const ownSpeed = parseInt(range.kecepatan || 0);
+                const totalEnd = range.end + shift + ownDelay - ownSpeed;
                 if (totalEnd > maxTaskEndDay) maxTaskEndDay = totalEnd;
             });
         });
@@ -550,11 +564,10 @@ document.addEventListener('DOMContentLoaded', () => {
         currentTasks.forEach((task, index) => {
             const ranges = task.inputData?.ranges || [];
             const shift = task.computed.shift;
-
             let durTxt = ranges.reduce((s, r) => s + r.duration, 0);
 
-            // Koordinat Bar (Visual)
-            const maxEnd = ranges.length ? Math.max(...ranges.map(r => r.end + shift + (parseInt(r.keterlambatan) || 0))) : 0;
+            // Sesuaikan batas max end dengan kecepatan
+            const maxEnd = ranges.length ? Math.max(...ranges.map(r => r.end + shift + (parseInt(r.keterlambatan) || 0) - (parseInt(r.kecepatan) || 0))) : 0;
             const minStart = ranges.length ? Math.min(...ranges.map(r => r.start + shift)) : 0;
 
             taskCoordinates[task.id] = {
@@ -568,13 +581,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
             ranges.forEach((range) => {
                 const actualStart = range.start + shift;
-                const actualEnd = range.end + shift;
+                const ownDelay = parseInt(range.keterlambatan || 0);
+                const ownSpeed = parseInt(range.kecepatan || 0);
+
+                const hasDelay = ownDelay > 0;
+                const hasSpeed = ownSpeed > 0;
+                const isShifted = shift !== 0;
+
+                // Jika lebih cepat, balok utama dipotong durasinya
+                let displayDuration = range.duration;
+                if (hasSpeed) displayDuration = Math.max(1, range.duration - ownSpeed);
 
                 const leftPos = (actualStart - 1) * DAY_WIDTH;
-                const widthPos = (range.duration * DAY_WIDTH) - 1;
-
-                const hasDelay = range.keterlambatan && range.keterlambatan > 0;
-                const isShifted = shift > 0;
+                const widthPos = (displayDuration * DAY_WIDTH) - 1;
 
                 let barClass = "bar on-time";
                 if (isShifted) barClass = "bar shifted";
@@ -582,12 +601,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const borderStyle = (hasDelay && !isShifted) ? "border: 2px solid #e53e3e;" : "";
 
-                html += `<div class="${barClass}" style="left: ${leftPos}px; width: ${widthPos}px; ${borderStyle}" title="${task.name}"> ${range.duration} Hari</div>`;
+                html += `<div class="${barClass}" style="left: ${leftPos}px; width: ${widthPos}px; ${borderStyle}" title="${task.name}"> ${displayDuration} Hari</div>`;
 
+                // Render Keterlambatan (Merah)
                 if (hasDelay) {
-                    const delayLeftPos = actualEnd * DAY_WIDTH;
-                    const delayWidthPos = range.keterlambatan * DAY_WIDTH - 1;
-                    html += `<div class="bar delayed" style="left:${delayLeftPos}px; width:${delayWidthPos}px; background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%); opacity: 0.85;">+${range.keterlambatan}</div>`;
+                    const delayLeftPos = (actualStart - 1 + displayDuration) * DAY_WIDTH;
+                    const delayWidthPos = ownDelay * DAY_WIDTH - 1;
+                    html += `<div class="bar delayed" style="left:${delayLeftPos}px; width:${delayWidthPos}px; background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%); opacity: 0.85;">+${ownDelay}</div>`;
+                }
+
+                // Render Kecepatan (Hijau Bergaris - Menandakan waktu yang tidak dipakai/dihemat)
+                if (hasSpeed) {
+                    const speedLeftPos = (actualStart - 1 + displayDuration) * DAY_WIDTH;
+                    const speedWidthPos = ownSpeed * DAY_WIDTH - 1;
+                    html += `<div class="bar speed" style="left:${speedLeftPos}px; width:${speedWidthPos}px; background: repeating-linear-gradient(45deg, #48bb78, #48bb78 5px, #38a169 5px, #38a169 10px); opacity: 0.8; border: 1px dashed #22543d; z-index: 6; color: white;">-${ownSpeed}</div>`;
                 }
             });
 
