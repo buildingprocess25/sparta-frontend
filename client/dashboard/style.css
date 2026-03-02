@@ -130,7 +130,7 @@
 }
 
 .menu-item {
-    display: none;
+    display: block;
     background-color: var(--card-background);
     padding: 1.5rem;
     border-radius: 12px;
