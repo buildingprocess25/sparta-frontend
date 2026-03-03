@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'menu-spk': { href: '../../spk/', title: 'Surat Perintah Kerja', desc: 'Form surat perintah kerja untuk kontraktor.' },
         'menu-pengawasan': { href: '../../inputpic/', title: 'PIC Pengawasan', desc: 'Form input pic pengawasan pekerjaan proyek.' },
         'menu-opname': { href: '../../opname/', title: 'Opname', desc: 'Form opname proyek toko.' },
-        'menu-dokumentasi': { href: 'https://dokumentasi-bangunan.vercel.app/', title: 'Dokumentasi Bangunan Toko Baru', desc: 'Form dokumentasi foto bangunan.' },
+        'menu-dokumentasi': { href: '../../ftdokumen/', title: 'Dokumentasi Bangunan Toko Baru', desc: 'Form dokumentasi foto bangunan.' },
         'menu-tambahspk': { href: '../../tambahspk/', title: 'Tambahan Surat Perintah Kerja', desc: 'Form pertambahan hari surat perintah kerja.' },
         'menu-svdokumen': { href: '../../svdokumen/', title: 'Penyimpanan Dokumen Toko', desc: 'Form penyimpanan dokumen.' },
         'menu-gantt': { href: '../../gantt/', title: 'Gantt Chart', desc: 'Progress pekerjaan toko.' },
