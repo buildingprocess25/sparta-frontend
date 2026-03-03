@@ -359,17 +359,23 @@ const PDFGenerator = {
             doc.setTextColor(0, 0, 0);
         };
 
+        // --- CEK CABANG BATAM UNTUK PDF ---
+        const cabangPdfTxt = selectedStore.cabang || selectedStore.nama_cabang || selectedStore.kota || "";
+        const userPdfCabang = sessionStorage.getItem("loggedInUserCabang") || "";
+        const isBatamPdf = cabangPdfTxt.toUpperCase() === "BATAM" || userPdfCabang.toUpperCase() === "BATAM";
+        const ppnRatePdf = isBatamPdf ? 0 : 0.11;
+
         // --- HELPER: Print Summary Box ---
         const printSummaryBox = (label, totalReal, startY) => {
             const totalPembulatan = Math.floor(totalReal / 10000) * 10000;
-            const ppn = totalPembulatan * 0.11;
+            const ppn = totalPembulatan * ppnRatePdf;
             const grandTotal = totalPembulatan + ppn;
 
             doc.autoTable({
                 body: [
                     [label, formatRupiah(totalReal)],
                     ["PEMBULATAN", formatRupiah(totalPembulatan)],
-                    ["PPN 11%", formatRupiah(ppn)],
+                    [`PPN ${isBatamPdf ? '0' : '11'}%`, formatRupiah(ppn)],
                     [`GRAND TOTAL ${label.replace("TOTAL ", "")}`, formatRupiah(grandTotal)]
                 ],
                 startY: startY,
@@ -652,8 +658,8 @@ const PDFGenerator = {
 
         const totalTambahBulat = Math.floor(totalTambah / 10000) * 10000;
         const totalKurangBulat = Math.floor(totalKurang / 10000) * 10000;
-        const ppnTambah = totalTambahBulat * 0.11;
-        const ppnKurang = totalKurangBulat * 0.11;
+        const ppnTambah = totalTambahBulat * ppnRatePdf;
+        const ppnKurang = totalKurangBulat * ppnRatePdf;
         const totalTambahPPN = totalTambahBulat + ppnTambah;
         const totalKurangPPN = totalKurangBulat + ppnKurang;
         
@@ -1160,6 +1166,11 @@ const Render = {
 
             const renderTable = () => {
                 const items = AppState.opnameItems;
+
+                const cabangTxt = (AppState.selectedStore && (AppState.selectedStore.cabang || AppState.selectedStore.nama_cabang || AppState.selectedStore.kota)) || "";
+                const userCabang = sessionStorage.getItem("loggedInUserCabang") || "";
+                const isBatam = cabangTxt.toUpperCase() === "BATAM" || userCabang.toUpperCase() === "BATAM";
+                const ppnRate = isBatam ? 0 : 0.11;
                 
                 // Hitung total awal
                 const totalVal = Math.round(items.reduce((sum, i) => {
@@ -1170,8 +1181,8 @@ const Render = {
                 // Pembulatan (kelipatan 10.000 ke bawah)
                 const totalPembulatan = Math.floor(totalVal / 10000) * 10000;
                 
-                // PPN 11% dari nilai yang sudah dibulatkan
-                const ppn = Math.round(totalPembulatan * 0.11);
+                // PPN dinamis (0% atau 11%)
+                const ppn = Math.round(totalPembulatan * ppnRate);
                 const denda = penaltyData.denda_nominal || 0;
                 
                 // Grand Total = (Pembulatan + PPN) - Denda
@@ -1367,7 +1378,7 @@ const Render = {
                             </div>
                             
                             <div class="summary-row">
-                                <span class="summary-label">PPN (11%)</span> 
+                                <span class="summary-label">PPN (${isBatam ? '0' : '11'}%)</span> 
                                 <span class="summary-value" id="summary-ppn" style="color:${ppn<0?'#dc2626':'inherit'}">
                                     ${formatRupiah(ppn)}
                                 </span>
@@ -1439,7 +1450,7 @@ const Render = {
                             return sum + (vol * (i.harga_material + i.harga_upah));
                         }, 0));
                         const newPembulatan = Math.floor(newTotalVal / 10000) * 10000;
-                        const newPpn = Math.round(newPembulatan * 0.11);
+                        const newPpn = Math.round(newPembulatan * ppnRate);
                         const penaltyVal = penaltyData.denda_nominal || 0; 
                         const newGrandTotal = (newPembulatan + newPpn) - penaltyVal;
 
@@ -1671,9 +1682,15 @@ const Render = {
                 };
             });
 
+            // --- CEK CABANG BATAM ---
+            const cabangTxt = (AppState.selectedStore && (AppState.selectedStore.cabang || AppState.selectedStore.nama_cabang || AppState.selectedStore.kota)) || "";
+            const userCabang = sessionStorage.getItem("loggedInUserCabang") || "";
+            const isBatam = cabangTxt.toUpperCase() === "BATAM" || userCabang.toUpperCase() === "BATAM";
+            const ppnRate = isBatam ? 0 : 0.11;
+
             const totalBiaya = Math.round(items.reduce((sum, i) => sum + i.total_harga, 0));
             const totalPembulatan = Math.floor(totalBiaya / 10000) * 10000;
-            const ppn = Math.round(totalPembulatan * 0.11);
+            const ppn = Math.round(totalPembulatan * ppnRate);
             const grandTotal = totalPembulatan + ppn;
 
             const html = `
@@ -1769,7 +1786,7 @@ const Render = {
                                 <strong>${formatRupiah(totalPembulatan)}</strong>
                             </div>
                             <div class="d-flex justify-between" style="max-width:400px; margin-left:auto; margin-bottom:8px;">
-                                <span style="color:#64748b;">PPN (11%):</span> 
+                                <span style="color:#64748b;">PPN (${isBatam ? '0' : '11'}%):</span> 
                                 <strong>${formatRupiah(ppn)}</strong>
                             </div>
                             
