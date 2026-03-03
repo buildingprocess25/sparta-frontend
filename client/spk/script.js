@@ -87,7 +87,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let approvedRabData = [];
 
     const branchGroups = {
-        "BANDUNG RAYA": ["BANDUNG RAYA"],
         LOMBOK: ["LOMBOK", "SUMBAWA"],
         SUMBAWA: ["LOMBOK", "SUMBAWA"],
         MEDAN: ["MEDAN", "ACEH"],
