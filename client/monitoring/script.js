@@ -806,7 +806,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const getYearFromDate = (dateStr) => {
         if (!dateStr) return null;
-        const match = dateStr.match(/\d{4}/);
+        const dateObj = new Date(dateStr);
+        if (!isNaN(dateObj.getTime())) {
+            return dateObj.getFullYear().toString();
+        }
+        const match = String(dateStr).match(/\d{4}/);
         return match ? match[0] : null;
     };
 
@@ -896,7 +900,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        const uniqueTahun = [...new Set(data.map(item => getYearFromDate(item.Awal_SPK)))]
+        const uniqueTahun = [...new Set(data.map(item => getYearFromDate(item.timestamp)))]
             .filter(y => y)
             .sort((a, b) => b - a);
 
@@ -915,14 +919,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function applyFilters() {
         const selectedCabang = document.getElementById('filterCabang').value;
         const selectedTahun = document.getElementById('filterTahun').value;
-
         filteredData = rawData.filter(item => {
             const matchCabang = (selectedCabang === 'ALL') || (item.Cabang === selectedCabang);
-            const itemYear = getYearFromDate(item.Awal_SPK) || getYearFromDate(item.tanggal_opname_final);
+            const itemYear = getYearFromDate(item.timestamp);
             const matchTahun = (selectedTahun === 'ALL') || (itemYear == selectedTahun);
             return matchCabang && matchTahun;
         });
-
         renderKPI(filteredData);
     }
 
