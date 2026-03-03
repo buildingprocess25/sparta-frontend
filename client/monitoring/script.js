@@ -900,7 +900,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        const uniqueTahun = [...new Set(data.map(item => getYearFromDate(item.timestamp)))]
+        // PERBAIKAN: Gunakan "Timestamp" dengan huruf T kapital sesuai JSON
+        const uniqueTahun = [...new Set(data.map(item => getYearFromDate(item["Timestamp"])))]
             .filter(y => y)
             .sort((a, b) => b - a);
 
@@ -919,12 +920,15 @@ document.addEventListener('DOMContentLoaded', () => {
     function applyFilters() {
         const selectedCabang = document.getElementById('filterCabang').value;
         const selectedTahun = document.getElementById('filterTahun').value;
+        
         filteredData = rawData.filter(item => {
             const matchCabang = (selectedCabang === 'ALL') || (item.Cabang === selectedCabang);
-            const itemYear = getYearFromDate(item.timestamp);
+            const itemYear = getYearFromDate(item["Timestamp"]);
+            
             const matchTahun = (selectedTahun === 'ALL') || (itemYear == selectedTahun);
             return matchCabang && matchTahun;
         });
+        
         renderKPI(filteredData);
     }
 
