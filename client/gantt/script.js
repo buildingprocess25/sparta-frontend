@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
         dayKeterlambatan: `${API_BASE_URL}/gantt/day/keterlambatan`,
         dayKecepatan: `${API_BASE_URL}/gantt/day/kecepatan`,
         dependencyInsert: `${API_BASE_URL}/gantt/dependency/insert`,
-        cabangList: `https://sparta-backend.onrender.com/api/cabang-list`
+        cabangList: `https://send-email-app.onrender.com/api/cabang-list`
     };
 
     // ==================== 3. STATE MANAGEMENT ====================
