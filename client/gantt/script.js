@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
         dayKeterlambatan: `${API_BASE_URL}/gantt/day/keterlambatan`,
         dayKecepatan: `${API_BASE_URL}/gantt/day/kecepatan`,
         dependencyInsert: `${API_BASE_URL}/gantt/dependency/insert`,
-        cabangList: `https://send-email-app.onrender.com/api/cabang-list`
+        cabangList: `${API_BASE_URL}/get_ulok_by_cabang_pic?cabang=` 
     };
 
     // ==================== 3. STATE MANAGEMENT ====================
@@ -276,13 +276,35 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const res = await fetch(ENDPOINTS.cabangList);
                 const data = await res.json();
-                
                 if (Array.isArray(data)) {
-                    uniqueBranches = data.map(c => c.Cabang || c.cabang || c.nama_cabang || c);
-                } else if (data.data && Array.isArray(data.data)) {
-                    uniqueBranches = data.data.map(c => c.Cabang || c.cabang || c.nama_cabang || c);
+                    projects = data.map(item => {
+                        const label = item.label;
+                        const value = item.value;
+                        const { ulok, lingkup } = extractUlokAndLingkup(value);
+                        let projectName = "Reguler";
+                        let storeName = "Tidak Diketahui";
+                        const parts = label.split(" - ");
+                        if (parts.length >= 2) {
+                            storeName = parts[parts.length - 1].replace(/\(ME\)|\(Sipil\)/gi, '').trim();
+                            if (parts.length >= 3) projectName = parts[1].replace(/\(ME\)|\(Sipil\)/gi, "").trim();
+                        }
+                        if (label.toUpperCase().includes("RENOVASI") || ulok.includes("-R")) projectName = "Renovasi";
+                        
+                        return {
+                            ulok: value,
+                            ulokClean: ulok,
+                            store: storeName,
+                            work: lingkup || '-',
+                            projectType: projectName,
+                            startDate: new Date().toISOString().split("T")[0],
+                            alamat: "",
+                            cabang: item.cabang || item.Cabang || "", 
+                            kategoriLokasi: ""
+                        };
+                    });
+                    
+                    uniqueBranches = [...new Set(projects.map(p => p.cabang).filter(c => typeof c === 'string' && c.trim() !== ''))].sort();
                 }
-                uniqueBranches = [...new Set(uniqueBranches.filter(c => typeof c === 'string'))].sort();
             } catch (err) {
                 console.warn("Gagal fetch API cabang, menggunakan fallback data lokal:", err);
                 uniqueBranches = [...new Set(projects.map(p => p.cabang).filter(c => c))].sort();
