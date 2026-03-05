@@ -364,14 +364,14 @@ select:hover {
 }
 
 #card-total-proyek-wrapper {
-    
+    grid-column: span 2;
 }
 
 /* Desain Grid Mini Stats di dalam Card */
 .mini-project-stats {
     display: grid;
-    grid-template-columns: repeat(3, 1fr); /* Tampil 3 kolom, 2 baris */
-    gap: 8px; /* Jarak diperkecil */
+    grid-template-columns: repeat(6, 1fr); 
+    gap: 12px; 
     width: 100%;
     margin-top: 16px;
     padding-top: 16px;
@@ -380,7 +380,7 @@ select:hover {
 
 .mini-stat-item {
     background: var(--bg-color);
-    padding: 8px 4px; /* Padding lebih ramping */
+    padding: 10px 4px; 
     border-radius: 6px;
     text-align: center;
     border: 1px solid var(--border-color);
@@ -395,10 +395,10 @@ select:hover {
 
 .mini-stat-label {
     display: block;
-    font-size: 10px; /* Font lebih kecil agar rapi */
+    font-size: 11px; /* Ukuran font sedikit diperbesar dari sebelumnya karena ruang lebih luas */
     color: #64748b;
     font-weight: 600;
-    margin-bottom: 2px;
+    margin-bottom: 4px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -406,7 +406,7 @@ select:hover {
 
 .mini-stat-value {
     display: block;
-    font-size: 14px; /* Font angka disesuaikan */
+    font-size: 15px;
     font-weight: 700;
     color: var(--secondary-color);
 }
@@ -760,6 +760,14 @@ select:hover {
     
     .chart-card.large {
         min-height: 320px;
+    }
+
+    #card-total-proyek-wrapper {
+        grid-column: span 1;
+    }
+    
+    .mini-project-stats {
+        grid-template-columns: repeat(3, 1fr); /* Kembali jadi 3x2 baris di layar kecil */
     }
 }
 
