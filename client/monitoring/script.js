@@ -285,16 +285,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- FUNGSI 4: Modal untuk Rata-rata Cost /m² ---
     const showAvgCostM2Details = () => {
         if (!filteredData || filteredData.length === 0) return;
-        currentModalContext = 'COST_M2'; 
+        currentModalContext = 'COST_M2_SUMMARY'; 
 
-        if (modalMainTitle) modalMainTitle.textContent = "Detail Cost /m² per Proyek (Grup by Ulok)";
+        if (modalMainTitle) modalMainTitle.textContent = "Kategori Rata-rata Cost /m²";
         if (btnBackToSummary) btnBackToSummary.style.display = 'none'; 
 
-        // 1. Kelompokkan data Opname Final & Luas berdasarkan Ulok
+        // 1. Kelompokkan data Opname Final & 3 Jenis Luas berdasarkan Ulok
         const groupedCost = {};
         filteredData.forEach(item => {
             const opname = parseCurrency(item["Grand Total Opname Final"]);
-            const luas = parseFloat(item["Luas Terbangunan"]) || 0;
+            const lTerbangun = parseFloat(item["Luas Terbangunan"]) || 0;
+            const lBangunan = parseFloat(item["Luas Bangunan"]) || 0;
+            const lTerbuka = parseFloat(item["Luas Area Terbuka"]) || 0;
             const ulok = item["Nomor Ulok"] || 'Tanpa Ulok';
 
             if (!groupedCost[ulok]) {
@@ -303,7 +305,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     namaToko: item.Nama_Toko || 'Tanpa Nama',
                     cabang: item.Cabang || '-',
                     totalOpname: 0,
-                    luasTerbangun: luas > 0 ? luas : 0,
+                    luasTerbangun: lTerbangun > 0 ? lTerbangun : 0,
+                    luasBangunan: lBangunan > 0 ? lBangunan : 0,
+                    luasTerbuka: lTerbuka > 0 ? lTerbuka : 0,
                     items: []
                 };
             }
@@ -311,53 +315,114 @@ document.addEventListener('DOMContentLoaded', () => {
             groupedCost[ulok].totalOpname += opname;
             groupedCost[ulok].items.push(item);
             
-            // Cegah luas = 0 jika di baris ME ternyata kosong tapi di Sipil ada
-            if (groupedCost[ulok].luasTerbangun === 0 && luas > 0) {
-                groupedCost[ulok].luasTerbangun = luas;
-            }
+            if (groupedCost[ulok].luasTerbangun === 0 && lTerbangun > 0) groupedCost[ulok].luasTerbangun = lTerbangun;
+            if (groupedCost[ulok].luasBangunan === 0 && lBangunan > 0) groupedCost[ulok].luasBangunan = lBangunan;
+            if (groupedCost[ulok].luasTerbuka === 0 && lTerbuka > 0) groupedCost[ulok].luasTerbuka = lTerbuka;
         });
 
-        // 2. Hitung Cost/M2 per grup dan urutkan
-        currentCostGroups = Object.values(groupedCost)
-            .filter(group => group.totalOpname > 0 && group.luasTerbangun > 0)
-            .map(group => {
-                group.costPerM2 = group.totalOpname / group.luasTerbangun;
-                return group;
-            })
-            .sort((a, b) => b.costPerM2 - a.costPerM2);
+        currentCostGroups = Object.values(groupedCost).map(group => {
+            group.costTerbangun = group.luasTerbangun > 0 ? group.totalOpname / group.luasTerbangun : 0;
+            group.costBangunan = group.luasBangunan > 0 ? group.totalOpname / group.luasBangunan : 0;
+            group.costTerbuka = group.luasTerbuka > 0 ? group.totalOpname / group.luasTerbuka : 0;
+            return group;
+        });
 
-        if(listStatusTitle) listStatusTitle.textContent = `Daftar Lokasi & Cost/m² (${currentCostGroups.length} Lokasi)`;
+        // 2. Kalkulasi Rata-rata Total Keseluruhan
+        let sumOpnameTerbangun = 0, sumTerbangun = 0;
+        let sumOpnameBangunan = 0, sumBangunan = 0;
+        let sumOpnameTerbuka = 0, sumTerbuka = 0;
 
-        if (storeListContainer) {
-            if (currentCostGroups.length === 0) {
-                storeListContainer.innerHTML = '<div style="text-align:center; color:#718096; padding: 30px;">Tidak ada data Cost/m².</div>';
+        currentCostGroups.forEach(g => {
+            if (g.luasTerbangun > 0) { sumOpnameTerbangun += g.totalOpname; sumTerbangun += g.luasTerbangun; }
+            if (g.luasBangunan > 0) { sumOpnameBangunan += g.totalOpname; sumBangunan += g.luasBangunan; }
+            if (g.luasTerbuka > 0) { sumOpnameTerbuka += g.totalOpname; sumTerbuka += g.luasTerbuka; }
+        });
+
+        const avgTerbangun = sumTerbangun > 0 ? sumOpnameTerbangun / sumTerbangun : 0;
+        const avgBangunan = sumBangunan > 0 ? sumOpnameBangunan / sumBangunan : 0;
+        const avgTerbuka = sumTerbuka > 0 ? sumOpnameTerbuka / sumTerbuka : 0;
+
+        const summaryData = [
+            { label: 'Luas Terbangunan', value: formatRupiah(Math.round(avgTerbangun)) + ' /m²', type: 'TERBANGUN' },
+            { label: 'Luas Bangunan', value: formatRupiah(Math.round(avgBangunan)) + ' /m²', type: 'BANGUNAN' },
+            { label: 'Luas Area Terbuka', value: formatRupiah(Math.round(avgTerbuka)) + ' /m²', type: 'TERBUKA' }
+        ];
+
+        if(grid) {
+            grid.innerHTML = summaryData.map((item, index) => `
+                <div class="modal-stat-item" data-cost-type="${item.type}" style="animation-delay: ${0.1 + (index * 0.05)}s; cursor: pointer;">
+                    <span class="modal-stat-label">Cost/m² (${item.label})</span>
+                    <span class="modal-stat-value" style="color: #805ad5;">${item.value}</span>
+                </div>
+            `).join('');
+        }
+
+        if (modalSummaryView && modalListView && modalStoreDetailView) {
+            modalSummaryView.style.display = 'block';
+            modalStoreDetailView.style.display = 'none';
+            modalListView.style.display = 'none';
+        }
+
+        if (projectModal) projectModal.style.display = 'flex';
+    };
+
+    const renderCostList = (type) => {
+        currentModalContext = 'COST_M2_LIST';
+        if(btnBackToSummary) btnBackToSummary.style.display = 'flex';
+
+        let sortedGroups = [...currentCostGroups];
+        let typeLabel = '';
+        
+        // Sorting berdasarkan pilihan kategori
+        if(type === 'TERBANGUN') {
+            sortedGroups = sortedGroups.filter(g => g.costTerbangun > 0).sort((a,b) => b.costTerbangun - a.costTerbangun);
+            typeLabel = 'Luas Terbangunan';
+        } else if(type === 'BANGUNAN') {
+            sortedGroups = sortedGroups.filter(g => g.costBangunan > 0).sort((a,b) => b.costBangunan - a.costBangunan);
+            typeLabel = 'Luas Bangunan';
+        } else if(type === 'TERBUKA') {
+            sortedGroups = sortedGroups.filter(g => g.costTerbuka > 0).sort((a,b) => b.costTerbuka - a.costTerbuka);
+            typeLabel = 'Luas Area Terbuka';
+        }
+
+        if(listStatusTitle) listStatusTitle.textContent = `Daftar Lokasi & Cost/m² (${typeLabel})`;
+
+        if(storeListContainer) {
+            if(sortedGroups.length === 0) {
+                storeListContainer.innerHTML = '<div style="text-align:center; color:#718096; padding: 30px;">Tidak ada data Cost/m² untuk kategori ini.</div>';
             } else {
-                storeListContainer.innerHTML = currentCostGroups.map((group, index) => {
-                    const costPerM2Str = formatRupiah(Math.round(group.costPerM2));
+                storeListContainer.innerHTML = sortedGroups.map((group) => {
+                    let costVal = 0;
+                    if(type === 'TERBANGUN') costVal = group.costTerbangun;
+                    if(type === 'BANGUNAN') costVal = group.costBangunan;
+                    if(type === 'TERBUKA') costVal = group.costTerbuka;
+                    
+                    const costStr = formatRupiah(Math.round(costVal));
+                    const rawIndex = currentCostGroups.indexOf(group);
 
-                    // Tampilan List tanpa nama lingkup
                     return `
-                    <div class="store-item" data-cost-index="${index}">
+                    <div class="store-item" data-cost-index="${rawIndex}">
                         <div class="store-info">
                             <strong>${group.namaToko}</strong>
                             <span>Ulok: ${group.ulok} | ${group.cabang}</span>
                         </div>
                         <div class="store-badge" style="background:#faf5ff; color:#805ad5; border: 1px solid #e9d8fd; font-size: 13px;">
-                            ${costPerM2Str} /m²
+                            ${costStr} /m²
                         </div>
                     </div>
-                `}).join('');
+                    `;
+                }).join('');
             }
         }
 
-        if (modalSummaryView && modalListView && modalStoreDetailView) {
+        if(modalSummaryView && modalListView && modalStoreDetailView) {
             modalSummaryView.style.display = 'none';
             modalStoreDetailView.style.display = 'none';
             modalListView.style.display = 'block';
         }
-
-        if (projectModal) projectModal.style.display = 'flex';
     };
+
+
 
     // --- FUNGSI 5: Modal untuk Keterlambatan ---
     const showKeterlambatanDetails = () => {
@@ -472,7 +537,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (storeDetailContainer) {
-            // Pemisahan Opname Sipil & ME
             const itemSipil = group.items.find(i => i.Lingkup_Pekerjaan && i.Lingkup_Pekerjaan.toLowerCase().includes('sipil'));
             const itemME = group.items.find(i => i.Lingkup_Pekerjaan && i.Lingkup_Pekerjaan.toLowerCase().includes('me'));
             const refItem = itemSipil || itemME || group.items[0];
@@ -480,9 +544,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const opnameSipil = itemSipil ? parseCurrency(itemSipil["Grand Total Opname Final"]) : 0;
             const opnameME = itemME ? parseCurrency(itemME["Grand Total Opname Final"]) : 0;
             const opnameFinal = formatRupiah(group.totalOpname);
-            const costPerM2 = formatRupiah(Math.round(group.costPerM2));
+            
+            // Format 3 Kategori Cost/m2
+            const costTerbangun = formatRupiah(Math.round(group.costTerbangun));
+            const costBangunan = formatRupiah(Math.round(group.costBangunan));
+            const costTerbuka = formatRupiah(Math.round(group.costTerbuka));
 
-            // Mengambil nilai murni dari JSON
+            // Nilai Murni Luas (Tanpa Koma dari Javascript)
             const luasBangunan = refItem["Luas Bangunan"] || 0;
             const luasTerbangun = refItem["Luas Terbangunan"] || 0;
             const luasTerbuka = refItem["Luas Area Terbuka"] || 0;
@@ -493,14 +561,17 @@ document.addEventListener('DOMContentLoaded', () => {
             storeDetailContainer.innerHTML = `
                 <div class="detail-grid">
                     <div class="detail-item"><span class="detail-label">Grand Total Opname Final</span><span class="detail-value" style="color:#2f855a; font-size: 16px;">${opnameFinal}</span></div>
-                    <div class="detail-item"><span class="detail-label">Cost /m² (Luas Terbangun)</span><span class="detail-value" style="color:#805ad5; font-size: 16px;">${costPerM2}</span></div>
-                    
                     <div class="detail-item"><span class="detail-label">Rincian Opname</span>
                         <span class="detail-value" style="font-weight: 500; line-height: 1.5;">
                             Sipil: <strong>${formatRupiah(opnameSipil)}</strong> <br>
                             ME: <strong>${formatRupiah(opnameME)}</strong>
                         </span>
                     </div>
+                    
+                    <div class="detail-item"><span class="detail-label">Cost /m² (Luas Terbangun)</span><span class="detail-value" style="color:#805ad5; font-size: 15px;">${costTerbangun}</span></div>
+                    <div class="detail-item"><span class="detail-label">Cost /m² (Luas Bangunan)</span><span class="detail-value" style="color:#805ad5; font-size: 15px;">${costBangunan}</span></div>
+                    
+                    <div class="detail-item"><span class="detail-label">Cost /m² (Luas Area Terbuka)</span><span class="detail-value" style="color:#805ad5; font-size: 15px;">${costTerbuka}</span></div>
                     <div class="detail-item"><span class="detail-label">Cabang</span><span class="detail-value">${group.cabang}</span></div>
 
                     <div class="detail-item"><span class="detail-label">Luas Bangunan</span><span class="detail-value">${luasBangunan} m²</span></div>
@@ -699,7 +770,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!statItem) return; 
             
             const status = statItem.getAttribute('data-status');
-            renderStoreList(status);
+            if (status) renderStoreList(status);
+
+            const costType = statItem.getAttribute('data-cost-type');
+            if (costType) renderCostList(costType);
         });
     }
 
