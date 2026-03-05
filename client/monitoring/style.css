@@ -370,17 +370,20 @@ select:hover {
 /* Desain Grid Mini Stats di dalam Card */
 .mini-project-stats {
     display: grid;
-    grid-template-columns: repeat(6, 1fr); 
-    gap: 12px; 
+    grid-template-columns: repeat(3, 1fr); /* 3 Kolom, 2 Baris */
+    gap: 6px 8px; /* Jarak dibuat lebih rapat */
     width: 100%;
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px dashed var(--border-color);
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+    border-left: 1px dashed var(--border-color); /* Garis pemisah pindah ke kiri */
+    padding-left: 16px;
+    flex-grow: 1;
 }
 
 .mini-stat-item {
     background: var(--bg-color);
-    padding: 10px 4px; 
+    padding: 4px 2px; /* Super pipih agar tinggi card normal */
     border-radius: 6px;
     text-align: center;
     border: 1px solid var(--border-color);
@@ -395,10 +398,10 @@ select:hover {
 
 .mini-stat-label {
     display: block;
-    font-size: 11px; /* Ukuran font sedikit diperbesar dari sebelumnya karena ruang lebih luas */
+    font-size: 10px;
     color: #64748b;
     font-weight: 600;
-    margin-bottom: 4px;
+    margin-bottom: 0; /* Margin bawah dihapus agar hemat ruang */
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -406,7 +409,7 @@ select:hover {
 
 .mini-stat-value {
     display: block;
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 700;
     color: var(--secondary-color);
 }
@@ -763,11 +766,18 @@ select:hover {
     }
 
     #card-total-proyek-wrapper {
-        grid-column: span 1;
+        grid-column: span 1 !important;
+        flex-direction: column !important; /* Susun ke bawah lagi khusus di HP */
+        align-items: stretch !important;
     }
     
     .mini-project-stats {
-        grid-template-columns: repeat(3, 1fr); /* Kembali jadi 3x2 baris di layar kecil */
+        grid-template-columns: repeat(3, 1fr); 
+        border-left: none; /* Hilangkan garis vertikal */
+        padding-left: 0;
+        border-top: 1px dashed var(--border-color); /* Kembalikan garis atas */
+        margin-top: 16px;
+        padding-top: 16px;
     }
 }
 
