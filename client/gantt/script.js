@@ -115,6 +115,14 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 17, name: "Pekerjaan SBO", start: 0, duration: 0, dependencies: [] },
     ];
 
+    const BRANCH_GROUPS = {
+        "LOMBOK": ["LOMBOK", "SUMBAWA"],
+        "MEDAN": ["MEDAN", "ACEH"],
+        "LAMPUNG": ["LAMPUNG", "LAMPUNG_KOTABUMI"],
+        "PALEMBANG": ["PALEMBANG", "BENGKULU", "BANGKA", "BELITUNG"],
+        "SIDOARJO": ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"]
+    };
+
     // ==================== 5. HELPER FUNCTIONS ====================
     function formatDateID(date) {
         const d = String(date.getDate()).padStart(2, '0');
@@ -252,6 +260,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const cabangSelect = document.getElementById("cabangSelect");
 
         const isHeadOffice = loggedInUserCabang === 'HEAD OFFICE' && APP_MODE === 'pic';
+        const isBranchGroup = Object.keys(BRANCH_GROUPS).includes(loggedInUserCabang) && APP_MODE === 'pic';
 
         function renderUlokOptions(filterCabang = "ALL") {
             ulokSelect.innerHTML = '<option value="">-- Pilih Proyek --</option>';
@@ -272,34 +281,45 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        if (isHeadOffice) {
+        if (isHeadOffice || isBranchGroup) {
             if (cabangGroup) cabangGroup.style.display = 'flex';
             
-            let uniqueBranches = [];
+            let displayBranches = [];
             
-            try {
-                const res = await fetch(ENDPOINTS.cabangList);
-                const data = await res.json();
-                if (Array.isArray(data)) {
-                    uniqueBranches = data.map(c => c.Cabang || c.cabang || c.nama_cabang || c);
-                } else if (data.data && Array.isArray(data.data)) {
-                    uniqueBranches = data.data.map(c => c.Cabang || c.cabang || c.nama_cabang || c);
+            if (isHeadOffice) {
+                try {
+                    const res = await fetch(ENDPOINTS.cabangList);
+                    const data = await res.json();
+                    if (Array.isArray(data)) {
+                        displayBranches = data.map(c => c.Cabang || c.cabang || c.nama_cabang || c);
+                    } else if (data.data && Array.isArray(data.data)) {
+                        displayBranches = data.data.map(c => c.Cabang || c.cabang || c.nama_cabang || c);
+                    }
+                    displayBranches = [...new Set(displayBranches.filter(c => typeof c === 'string' && c.trim() !== ''))].sort();
+                    
+                } catch (err) {
+                    console.warn("Gagal fetch API cabang, menggunakan fallback data lokal dari data proyek:", err);
+                    displayBranches = [...new Set(projects.map(p => p.cabang).filter(c => typeof c === 'string' && c.trim() !== ''))].sort();
                 }
-                uniqueBranches = [...new Set(uniqueBranches.filter(c => typeof c === 'string' && c.trim() !== ''))].sort();
-                
-            } catch (err) {
-                console.warn("Gagal fetch API cabang, menggunakan fallback data lokal dari data proyek:", err);
-                uniqueBranches = [...new Set(projects.map(p => p.cabang).filter(c => typeof c === 'string' && c.trim() !== ''))].sort();
+            } else if (isBranchGroup) {
+                // Ambil daftar sub-cabang dari mapping
+                displayBranches = BRANCH_GROUPS[loggedInUserCabang];
             }
             
             if (cabangSelect) {
-                cabangSelect.innerHTML = '<option value="ALL">-- Semua Cabang --</option>';
-                uniqueBranches.forEach(c => {
+                cabangSelect.innerHTML = isHeadOffice ? '<option value="ALL">-- Semua Cabang --</option>' : '';
+                
+                displayBranches.forEach(c => {
                     const opt = document.createElement("option");
                     opt.value = c;
                     opt.textContent = c;
                     cabangSelect.appendChild(opt);
                 });
+
+                // Set default selected option untuk branch group sesuai login
+                if (isBranchGroup) {
+                    cabangSelect.value = loggedInUserCabang;
+                }
 
                 cabangSelect.addEventListener('change', async (e) => {
                     const selectedCabang = e.target.value;
@@ -308,6 +328,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ulokSelect.innerHTML = '<option value="">Memuat Proyek...</option>';
                     
                     try {
+                        // Menggunakan encodeURIComponent otomatis menangani spasi (seperti "SIDOARJO BPN_SMD")
                         const url = `${API_BASE_URL}/get_ulok_by_cabang_pic?cabang=${encodeURIComponent(targetCabang)}`;
                         const response = await fetch(url);
                         if (!response.ok) throw new Error("Gagal mengambil data proyek cabang");
@@ -315,14 +336,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         const apiData = await response.json();
                         projects = mapApiDataToProjects(apiData);
                         
-                        renderUlokOptions("ALL"); 
+                        // Render ulang opsi Ulok
+                        renderUlokOptions(isHeadOffice ? "ALL" : targetCabang); 
                     } catch(err) {
                         console.error(err);
                         ulokSelect.innerHTML = '<option value="">Gagal memuat proyek</option>';
                     }
                     
                     ulokSelect.value = "";
-                    changeUlok();
+                    changeUlok(); // Reset chart
                 });
             }
         }
