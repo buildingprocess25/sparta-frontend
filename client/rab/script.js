@@ -23,15 +23,24 @@ const CONFIG = {
     ],
     BRANCH_GROUPS: {
         "LOMBOK": ["LOMBOK", "SUMBAWA"],
+        "SUMBAWA": ["LOMBOK", "SUMBAWA"],
         "MEDAN": ["MEDAN", "ACEH"],
+        "ACEH": ["MEDAN", "ACEH"],
         "LAMPUNG": ["LAMPUNG", "LAMPUNG_KOTABUMI"],
         "PALEMBANG": ["PALEMBANG", "BENGKULU", "BANGKA", "BELITUNG"],
+        "BENGKULU": ["PALEMBANG", "BENGKULU", "BANGKA", "BELITUNG"],
+        "BANGKA": ["PALEMBANG", "BENGKULU", "BANGKA", "BELITUNG"],
+        "BELITUNG": ["PALEMBANG", "BENGKULU", "BANGKA", "BELITUNG"],
         "SIDOARJO": ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"],
+        "SIDOARJO BPN_SMD": ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"],
+        "MANOKWARI": ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"],
+        "NTT": ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"],
+        "SORONG": ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"]
     },
     BRANCH_TO_ULOK: {
         "LUWU": "2VZ1", "KARAWANG": "1JZ1", "REMBANG": "2AZ1", "BANJARMASIN": "1GZ1",
         "PARUNG": "1MZ1", "TEGAL": "2PZ1", "GORONTALO": "2SZ1", "PONTIANAK": "1PZ1",
-        "LOMBOK": "1SZ1", "SERANG": "2GZ1", "CIANJUR": "2JZ1",
+        "LOMBOK": "1SZ1", "LAMPUNG_KOTABUMI": "LZ01", "SERANG": "2GZ1", "CIANJUR": "2JZ1",
         "BALARAJA": "TZ01", "SIDOARJO": "UZ01", "MEDAN": "WZ01", "BOGOR": "XZ01",
         "JEMBER": "YZ01", "BALI": "QZ01", "PALEMBANG": "PZ01", "KLATEN": "OZ01",
         "MAKASSAR": "RZ01", "PLUMBON": "VZ01", "PEKANBARU": "1AZ1", "JAMBI": "1DZ1",
@@ -651,40 +660,20 @@ const API = {
         UI.showMessage(`Memuat data harga untuk Cabang ${cabang} - ${lingkup}...`);
         
         try {
-            // 1. Bungkus dengan encodeURIComponent agar spasi menjadi %20 (misal: SIDOARJO%20BPN_SMD)
-            const encodedCabang = encodeURIComponent(cabang);
-            const encodedLingkup = encodeURIComponent(lingkup);
-
-            // 2. Tentukan URL endpoint (Pastikan apakah backend menggunakan /get-data atau /api/get-data)
-            const endpoint = `${CONFIG.API_URL}/get-data?cabang=${encodedCabang}&lingkup=${encodedLingkup}`;
-            
-            const res = await fetch(endpoint);
-            
-            if (!res.ok) {
-                // Tangkap error dengan lebih spesifik agar mudah di-debug
-                const errData = await res.json().catch(() => ({}));
-                throw new Error(errData.message || `Data tidak ditemukan (Status: ${res.status})`);
-            }
-            
+            const res = await fetch(`${CONFIG.API_URL}/get-data?cabang=${cabang}&lingkup=${lingkup}`);
+            if (!res.ok) throw new Error("Gagal mengambil data");
             const data = await res.json();
 
-            // Kosongkan dan buat ulang struktur tabel
+            // Rebuild skeleton tables
             TableManager.buildTables(lingkup);
 
-            // Simpan data ke State
-            if (lingkup === 'Sipil') {
-                State.categorizedPrices.categorizedSipilPrices = data;
-            } else {
-                State.categorizedPrices.categorizedMePrices = data;
-            }
+            if (lingkup === 'Sipil') State.categorizedPrices.categorizedSipilPrices = data;
+            else State.categorizedPrices.categorizedMePrices = data;
 
-            // Sembunyikan pesan loading
-            UI.showMessage(""); 
+            UI.showMessage(""); // Clear message
             document.getElementById("message").style.display = 'none';
-            
         } catch (err) {
-            console.error("Fetch Prices Error:", err);
-            UI.showMessage(`Error Harga: ${err.message}. Pastikan cabang ini ada di database.`, "error");
+            UI.showMessage(`Error: ${err.message}`, "error");
         }
     },
 
