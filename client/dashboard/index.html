@@ -11,7 +11,7 @@
 <body>
     <header class="main-header">
         <img src="/assets/Alfamart-Emblem.png" alt="Alfamart Logo" class="header-logo"/>
-        <h1>SPARTA</h1>
+        <h1>SPARTA DASHBOARD</h1>
         <img src="/assets/Building-Logo.png" alt="Building & Maintenance Logo" class="building-logo"/>
         <button id="logout-button-form" class="btn-logout-form">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -28,7 +28,7 @@
             
             <section class="monitoring-pane" id="monitoring-section" style="display: none;">
                 <div class="pane-header flex-header">
-                    <h2>Monitoring</h2>
+                    <h2>Live Monitoring</h2>
                     
                     <div class="controls filter-box">
                         <select id="filterCabang" class="filter-select">
@@ -54,6 +54,17 @@
                             </div>
                         </div>
                         <div id="mini-project-stats" class="mini-project-stats"></div>
+                    </div>
+
+                    <div class="stat-card" id="card-total-penawaran-wrapper" style="cursor: pointer;">
+                        <div class="stat-icon" style="background: #e0e7ff; color: #4338ca;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-label">Total Nilai Penawaran</div>
+                            <div class="stat-value" id="card-total-penawaran">Rp 0</div>
+                            <div class="stat-sub">RAB Final</div>
+                        </div>
                     </div>
 
                     <div class="stat-card" id="card-total-spk-wrapper" style="cursor: pointer;">

@@ -57,24 +57,26 @@ body {
 .btn-apply-filter { background: linear-gradient(135deg, var(--secondary-color) 0%, var(--secondary-hover) 100%); color: white; border: none; border-radius: 8px; padding: 8px 16px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: var(--transition-smooth); box-shadow: 0 4px 6px rgba(25, 118, 210, 0.2); }
 .btn-apply-filter:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(25, 118, 210, 0.3); }
 
-/* STATS GRID 2x2 DARI MON.CSS */
+/* STATS GRID 2x2 */
 .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 0; }
 .stat-card { background: #fff; padding: 16px 20px; border-radius: var(--radius); box-shadow: var(--card-shadow); display: flex; align-items: center; gap: 18px; border-left: 5px solid transparent; transition: var(--transition-smooth); position: relative; overflow: hidden; opacity: 0; animation: fadeInUp 0.6s ease-out forwards; }
 
 .stat-card:nth-child(1) { animation-delay: 0.2s; border-left-color: #3b82f6; } 
-.stat-card:nth-child(2) { animation-delay: 0.3s; border-left-color: #f97316; } 
-.stat-card:nth-child(3) { animation-delay: 0.4s; border-left-color: #10b981; } 
-.stat-card:nth-child(4) { animation-delay: 0.5s; border-left-color: #ef4444; } 
-.stat-card:nth-child(5) { animation-delay: 0.6s; border-left-color: #991b1b; } 
-.stat-card:nth-child(6) { animation-delay: 0.7s; border-left-color: #8b5cf6; } 
-.stat-card:nth-child(7) { animation-delay: 0.8s; border-left-color: #f59e0b; }
-.stat-card:nth-child(8) { animation-delay: 0.85s; border-left-color: #0ea5e9; }
+.stat-card:nth-child(2) { animation-delay: 0.25s; border-left-color: #4338ca; } /* Card Penawaran */
+.stat-card:nth-child(3) { animation-delay: 0.3s; border-left-color: #f97316; } 
+.stat-card:nth-child(4) { animation-delay: 0.4s; border-left-color: #10b981; } 
+.stat-card:nth-child(5) { animation-delay: 0.5s; border-left-color: #ef4444; } 
+.stat-card:nth-child(6) { animation-delay: 0.6s; border-left-color: #991b1b; } 
+.stat-card:nth-child(7) { animation-delay: 0.7s; border-left-color: #8b5cf6; } 
+.stat-card:nth-child(8) { animation-delay: 0.8s; border-left-color: #f59e0b; }
+.stat-card:nth-child(9) { animation-delay: 0.85s; border-left-color: #0ea5e9; }
 
 .stat-card[style*="cursor: pointer"]:hover { transform: translateY(-5px) scale(1.03); }
 .stat-card[style*="cursor: pointer"]:active { transform: translateY(0) scale(0.97); box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1) !important; transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1); }
 
-/* SPESIFIKASI HOVER EFEK WARNA MON.CSS */
+/* SPESIFIKASI HOVER EFEK WARNA */
 #card-total-proyek-wrapper:hover { border-color: #3b82f6; box-shadow: 0 20px 25px -5px rgba(59, 130, 246, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
+#card-total-penawaran-wrapper:hover { border-color: #4338ca; box-shadow: 0 20px 25px -5px rgba(67, 56, 202, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
 #card-total-spk-wrapper:hover { border-color: #f97316; box-shadow: 0 20px 25px -5px rgba(249, 115, 22, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
 #card-total-jhk-wrapper:hover { border-color: #10b981; box-shadow: 0 20px 25px -5px rgba(16, 185, 129, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
 #card-avg-cost-m2-wrapper:hover { border-color: #8b5cf6; box-shadow: 0 20px 25px -5px rgba(139, 92, 246, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
@@ -92,7 +94,7 @@ body {
 .stat-value { font-size: 1.5rem; font-weight: 800; color: #1a202c; line-height: 1.2; letter-spacing: -0.5px; }
 .stat-sub { font-size: 12px; color: #a0aec0; margin-top: 6px; font-weight: 500; }
 
-#card-total-proyek-wrapper { grid-column: 1 / -1; } /* TOTAL PROYEK FULL WIDTH */
+#card-total-proyek-wrapper { grid-column: 1 / -1; }
 
 .mini-project-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 0; padding-top: 0; border-top: none; border-left: 1px dashed var(--border-color); padding-left: 16px; flex-grow: 1; align-content: center; }
 .mini-stat-item { background: var(--background-color); padding: 6px 4px; border-radius: 6px; text-align: center; border: 1px solid var(--border-color); transition: var(--transition-smooth); }
@@ -100,7 +102,7 @@ body {
 .mini-stat-label { display: block; font-size: 10px; color: #64748b; font-weight: 600; margin-bottom: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mini-stat-value { display: block; font-size: 13px; font-weight: 700; color: var(--secondary-color); }
 
-/* ================= MODAL & DRILL-DOWN (DARI MON.CSS) ================= */
+/* ================= MODAL & DRILL-DOWN ================= */
 .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); z-index: 1000; align-items: center; justify-content: center; animation: fadeIn 0.3s ease-out forwards; }
 .modal-content { background: white; padding: 28px; border-radius: 20px; width: 90%; max-width: 600px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); animation: popInBouncy 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }

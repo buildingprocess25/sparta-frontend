@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ==========================================
-    // 3. LOGIC MONITORING PANE (SISI KIRI - DARI MON.JS)
+    // 3. LOGIC MONITORING PANE
     // ==========================================
     const dashboardLayout = document.getElementById('dashboard-layout');
     const monitoringSection = document.getElementById('monitoring-section');
@@ -89,12 +89,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const projectModal = document.getElementById('projectModal');
     const closeModal = document.getElementById('closeModal');
     const totalProyekCard = document.getElementById('card-total-proyek-wrapper');
+    const totalPenawaranCard = document.getElementById('card-total-penawaran-wrapper'); // NEW
     const totalSpkCard = document.getElementById('card-total-spk-wrapper'); 
     const totalJhkCard = document.getElementById('card-total-jhk-wrapper'); 
     const avgCostM2Card = document.getElementById('card-avg-cost-m2-wrapper'); 
     const avgKeterlambatanCard = document.getElementById('card-avg-keterlambatan-wrapper');
     const nilaiTokoCard = document.getElementById('card-nilai-toko-wrapper');
     const nilaiKontraktorCard = document.getElementById('card-nilai-kontraktor-wrapper');
+    
     const modalMainTitle = document.getElementById('modalMainTitle'); 
     const modalSummaryView = document.getElementById('modalSummaryView');
     const modalListView = document.getElementById('modalListView');
@@ -109,6 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let currentGroupedProjects = {}; 
     let currentModalContext = 'PROJECT';
+    let currentPenawaranGroups = []; // NEW
     let currentSpkGroups = [];
     let currentCostGroups = [];
     let currentKontraktorGroups = [];
@@ -163,7 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnApplyFilter')?.addEventListener('click', applyFilters);
 
     function renderKPI(data) {
-        let totalProyek = data.length, totalSPK = 0, totalJHK = 0, totalKeterlambatan = 0, totalDenda = 0, totalOpname = 0, totalLuasTerbangun = 0;
+        let totalProyek = data.length, totalPenawaran = 0, totalSPK = 0, totalJHK = 0, totalKeterlambatan = 0, totalDenda = 0, totalOpname = 0, totalLuasTerbangun = 0;
         let uniqueUlokLuas = {}, sumNilaiToko = 0, countNilaiToko = 0, countKeterlambatan = 0;
         let sumAvgKontraktor = 0, countKontraktorGroups = 0;
         const groupedKontraktorData = {};
@@ -171,7 +174,9 @@ document.addEventListener('DOMContentLoaded', () => {
         let miniStats = { 'Approval RAB': 0, 'Proses PJU': 0, 'Approval SPK': 0, 'Ongoing': 0, 'Proses Kerja Tambah Kurang': 0, 'Done': 0 };
 
         data.forEach(item => {
+            totalPenawaran += parseCurrency(item["Total Penawaran Final"]); // NEW
             totalSPK += parseCurrency(item["Nominal SPK"]);
+            
             const nt = parseScore(item["Nilai Toko"]);
             if (nt > 0) { sumNilaiToko += nt; countNilaiToko++; }
             
@@ -228,6 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const animDuration = 1500; 
         animateValue("card-total-proyek", 0, totalProyek, animDuration);
+        if(document.getElementById('card-total-penawaran')) animateValue("card-total-penawaran", 0, totalPenawaran, animDuration, formatRupiah); // NEW
         animateValue("card-total-spk", 0, totalSPK, animDuration, formatRupiah);
         animateValue("card-jhk", 0, avgJHK, animDuration, (val) => val + " Hari");
         animateValue("card-avg-keterlambatan", 0, avgKeterlambatan, animDuration, (val) => val + " Hari");
@@ -237,7 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if(document.getElementById('card-nilai-kontraktor')) animateValue("card-nilai-kontraktor", 0, avgNilaiKontraktor, animDuration, formatScore, true);
     }
 
-    // --- MODAL FUNCTIONS (Dari mon.js) ---
+    // --- MODAL FUNCTIONS ---
     const showProjectDetails = () => {
         currentModalContext = 'PROJECT'; 
         if(modalMainTitle) modalMainTitle.textContent = "Detail Status Proyek"; 
@@ -295,6 +301,65 @@ document.addEventListener('DOMContentLoaded', () => {
         if(modalSummaryView && modalListView && modalStoreDetailView) { modalSummaryView.style.display = 'none'; modalStoreDetailView.style.display = 'none'; modalListView.style.display = 'block'; }
     };
 
+    // --- NEW: FUNGSI TOTAL PENAWARAN ---
+    const showPenawaranDetails = () => {
+        if (!filteredData || filteredData.length === 0) return;
+        currentModalContext = 'PENAWARAN'; 
+        if (modalMainTitle) modalMainTitle.textContent = "Detail Nilai Penawaran (Grup by Ulok)";
+        if (btnBackToSummary) btnBackToSummary.style.display = 'none'; 
+
+        const groupedPenawaran = {};
+        filteredData.forEach(item => {
+            const penawaranVal = parseCurrency(item["Total Penawaran Final"]);
+            if (penawaranVal > 0) {
+                const ulok = item["Nomor Ulok"] || 'Tanpa Ulok';
+                if (!groupedPenawaran[ulok]) groupedPenawaran[ulok] = { ulok: ulok, namaToko: item.Nama_Toko || 'Tanpa Nama', cabang: item.Cabang || '-', totalPenawaran: 0, items: [] };
+                groupedPenawaran[ulok].totalPenawaran += penawaranVal;
+                groupedPenawaran[ulok].items.push(item); 
+            }
+        });
+        currentPenawaranGroups = Object.values(groupedPenawaran).sort((a, b) => b.totalPenawaran - a.totalPenawaran);
+        if(listStatusTitle) listStatusTitle.textContent = `Daftar Lokasi & Total Penawaran (${currentPenawaranGroups.length} Lokasi)`;
+
+        if (storeListContainer) {
+            storeListContainer.innerHTML = currentPenawaranGroups.length === 0 ? '<div style="text-align:center; color:#718096; padding: 30px;">Tidak ada data Penawaran.</div>' : currentPenawaranGroups.map((group, index) => {
+                const lingkupText = group.items.map(i => i.Lingkup_Pekerjaan).filter(Boolean).join(' & ') || '-';
+                return `
+                <div class="store-item" data-penawaran-index="${index}">
+                    <div class="store-info"><strong>${group.namaToko} <span style="font-weight: 500; color: #4338ca;">(${lingkupText})</span></strong>
+                    <span>Ulok: ${group.ulok} | ${group.cabang}</span></div>
+                    <div class="store-badge" style="background:#e0e7ff; color:#4338ca; border: 1px solid #c7d2fe;">${formatRupiah(group.totalPenawaran)}</div>
+                </div>`
+            }).join('');
+        }
+        if (modalSummaryView && modalListView && modalStoreDetailView) { modalSummaryView.style.display = 'none'; modalStoreDetailView.style.display = 'none'; modalListView.style.display = 'block'; }
+        if (projectModal) projectModal.style.display = 'flex';
+    };
+
+    const renderPenawaranDetail = (groupIndex) => {
+        const group = currentPenawaranGroups[groupIndex];
+        if (!group) return;
+        if (detailStoreTitle) detailStoreTitle.textContent = `Rincian Penawaran: ${group.namaToko} (Ulok: ${group.ulok})`;
+
+        if (storeDetailContainer) {
+            const itemSipil = group.items.find(i => i.Lingkup_Pekerjaan && i.Lingkup_Pekerjaan.toLowerCase().includes('sipil'));
+            const itemME = group.items.find(i => i.Lingkup_Pekerjaan && i.Lingkup_Pekerjaan.toLowerCase().includes('me'));
+            const refItem = itemSipil || itemME || group.items[0];
+
+            storeDetailContainer.innerHTML = `
+                <div class="detail-grid">
+                    <div class="detail-item"><span class="detail-label">Total Akumulasi Penawaran</span><span class="detail-value" style="color:#4338ca; font-size: 16px;">${formatRupiah(group.totalPenawaran)}</span></div>
+                    <div class="detail-item"><span class="detail-label">Rincian Per Lingkup</span><span class="detail-value" style="font-weight: 500; line-height: 1.5;">Sipil: <strong>${formatRupiah(itemSipil ? parseCurrency(itemSipil["Total Penawaran Final"]) : 0)}</strong> <br>ME: <strong>${formatRupiah(itemME ? parseCurrency(itemME["Total Penawaran Final"]) : 0)}</strong></span></div>
+                    <div class="detail-item"><span class="detail-label">Cabang</span><span class="detail-value">${group.cabang}</span></div>
+                    <div class="detail-item"><span class="detail-label">Kode Toko / Ulok</span><span class="detail-value">${refItem.Kode_Toko || '-'} / ${group.ulok}</span></div>
+                    <div class="detail-item"><span class="detail-label">Kontraktor Sipil</span><span class="detail-value">${itemSipil ? itemSipil.Kontraktor || '-' : '-'}</span></div>
+                    <div class="detail-item"><span class="detail-label">Kontraktor ME</span><span class="detail-value">${itemME ? itemME.Kontraktor || '-' : '-'}</span></div>
+                </div>
+            `;
+        }
+        if (modalListView && modalStoreDetailView) { modalListView.style.display = 'none'; modalStoreDetailView.style.display = 'block'; }
+    };
+
     const showSpkDetails = () => {
         if (!filteredData || filteredData.length === 0) return;
         currentModalContext = 'SPK'; 
@@ -319,7 +384,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const lingkupText = group.items.map(i => i.Lingkup_Pekerjaan).filter(Boolean).join(' & ') || '-';
                 return `
                 <div class="store-item" data-spk-index="${index}">
-                    <div class="store-info"><strong>${group.namaToko} <span style="font-weight: 500; color: #3b82f6;">(${lingkupText})</span></strong>
+                    <div class="store-info"><strong>${group.namaToko} <span style="font-weight: 500; color: #c05621;">(${lingkupText})</span></strong>
                     <span>Ulok: ${group.ulok} | ${group.cabang}</span></div>
                     <div class="store-badge" style="background:#fff7ed; color:#c05621; border: 1px solid #fed7aa;">${formatRupiah(group.totalSPK)}</div>
                 </div>`
@@ -635,6 +700,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- EVENT LISTENERS ---
     if(totalProyekCard) totalProyekCard.addEventListener('click', showProjectDetails);
+    if(totalPenawaranCard) totalPenawaranCard.addEventListener('click', showPenawaranDetails); // NEW
     if(totalSpkCard) totalSpkCard.addEventListener('click', showSpkDetails); 
     if(totalJhkCard) totalJhkCard.addEventListener('click', showJhkDetails); 
     if(avgCostM2Card) avgCostM2Card.addEventListener('click', showAvgCostM2Details); 
@@ -647,6 +713,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if(storeListContainer) storeListContainer.addEventListener('click', (e) => {
         const storeItem = e.target.closest('.store-item'); if (!storeItem) return;
         const itemIndex = storeItem.getAttribute('data-index'); if(itemIndex !== null) return renderStoreDetail(itemIndex);
+        const penawaranIndex = storeItem.getAttribute('data-penawaran-index'); if(penawaranIndex !== null) return renderPenawaranDetail(penawaranIndex); // NEW
         const spkIndex = storeItem.getAttribute('data-spk-index'); if (spkIndex !== null) return renderSpkDetail(spkIndex);
         const costIndex = storeItem.getAttribute('data-cost-index'); if (costIndex !== null) return renderCostDetail(costIndex);
         const kontraktorIndex = storeItem.getAttribute('data-kontraktor-index'); if (kontraktorIndex !== null) return renderKontraktorDetail(kontraktorIndex);
