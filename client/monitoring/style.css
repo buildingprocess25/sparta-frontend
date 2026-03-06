@@ -261,7 +261,7 @@ select:hover {
 .stat-card:nth-child(5) { animation-delay: 0.6s; border-left-color: #991b1b; } 
 .stat-card:nth-child(6) { animation-delay: 0.7s; border-left-color: #8b5cf6; } 
 .stat-card:nth-child(7) { animation-delay: 0.8s; border-left-color: #f59e0b; }
-.stat-card:nth-child(8) { animation-delay: 0.85s; border-left-color: #e90eba; }
+.stat-card:nth-child(8) { animation-delay: 0.85s; border-left-color: #0ea5e9; }
 
 .stat-card[style*="cursor: pointer"]:hover {
     transform: translateY(-5px) scale(1.03);
@@ -307,8 +307,8 @@ select:hover {
 }
 
 #card-nilai-kontraktor-wrapper:hover {
-    border-color: #c702a6;
-    box-shadow: 0 20px 25px -5px rgba(199, 2, 182, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    border-color: #0284c7;
+    box-shadow: 0 20px 25px -5px rgba(2, 132, 199, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 .stat-card::after {
