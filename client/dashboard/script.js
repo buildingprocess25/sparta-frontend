@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'menu-materai': { href: '../../materai/', title: 'Dokumen Termaterai', desc: 'Dokumen Termaterai RAB' },
         'menu-spk': { href: '../../spk/', title: 'SPK', desc: 'Surat Perintah Kerja' },
         'menu-pengawasan': { href: '../../inputpic/', title: 'PIC Pengawasan', desc: 'Input PIC Pekerjaan' },
-        'menu-opname': { href: '../../opname/', title: 'Opname', desc: 'Form Opname Pekerjaan.' },
+        'menu-opname': { href: '../../opname/', title: 'Opname', desc: 'Form Opname Pekerjaan' },
         'menu-dokumentasi': { href: '../../ftdokumen/', title: 'Dokumentasi Bangunan', desc: 'Foto Bangunan Toko Baru' },
         'menu-tambahspk': { href: '../../tambahspk/', title: 'Pertambahan SPK', desc: 'Form Pertambahan Hari SPK' },
         'menu-svdokumen': { href: '../../svdokumen/', title: 'Penyimpanan Dokumen', desc: 'Penyimpanan Dokumen Toko' },
