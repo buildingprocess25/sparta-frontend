@@ -36,7 +36,6 @@ const IMAGE_MAX_WIDTH = 1920;
 const IMAGE_MAX_HEIGHT = 1920;
 const IMAGE_TARGET_BYTES = 900 * 1024; // ~900KB per image
 const IMAGE_MIN_QUALITY = 0.55;
-const NON_IMAGE_MAX_BYTES = 15 * 1024 * 1024; // 15MB untuk PDF/dokumen
 
 document.addEventListener("DOMContentLoaded", () => {
     checkAuth();
@@ -962,10 +961,6 @@ async function compressImageFile(file) {
 async function prepareUploadFile(file) {
     if (file.type && file.type.startsWith("image/")) {
         return compressImageFile(file);
-    }
-
-    if (file.size > NON_IMAGE_MAX_BYTES) {
-        throw new Error(`Ukuran file ${file.name} melebihi batas 15MB`);
     }
 
     return {
