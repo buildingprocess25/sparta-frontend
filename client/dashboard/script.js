@@ -43,18 +43,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // 2. RENDER MENU SIDEBAR (Tanpa Asset Gambar)
     // ==========================================
     const MENU_CATALOG = {
-        'menu-rab': { href: '../../rab/', title: 'RAB Kontraktor', desc: 'Penawaran final kontraktor.' },
-        'menu-materai': { href: '../../materai/', title: 'RAB Termaterai', desc: 'Dokumen final RAB.' },
-        'menu-spk': { href: '../../spk/', title: 'SPK', desc: 'Surat perintah kerja.' },
-        'menu-pengawasan': { href: '../../inputpic/', title: 'PIC Pengawasan', desc: 'Input PIC proyek.' },
-        'menu-opname': { href: '../../opname/', title: 'Opname', desc: 'Form opname proyek.' },
-        'menu-dokumentasi': { href: '../../ftdokumen/', title: 'Dokumentasi', desc: 'Foto bangunan proyek.' },
-        'menu-tambahspk': { href: '../../tambahspk/', title: 'Tambahan SPK', desc: 'Pertambahan hari SPK.' },
-        'menu-svdokumen': { href: '../../svdokumen/', title: 'Arsip Dokumen', desc: 'Penyimpanan dokumen.' },
-        'menu-gantt': { href: '../../gantt/', title: 'Gantt Chart', desc: 'Progress pekerjaan.' },
-        'menu-userlog': { href: '../../userlog/', title: 'User Log', desc: 'Log aktivitas pengguna.' },
-        'menu-resend': { href: '../../resend/', title: 'Resend Email', desc: 'Kirim ulang email approval.' },
-        'menu-sp': { href: '../../dashboard/', title: 'Surat Peringatan', desc: 'Form SP.', onClick: (e) => { e.preventDefault(); alert('Fitur dalam pengembangan.'); } },
+        'menu-rab': { href: '../../rab/', title: 'RAB Kontraktor', desc: 'Penawaran Final Kontraktor' },
+        'menu-materai': { href: '../../materai/', title: 'Dokumen Termaterai', desc: 'Dokumen Termaterai RAB' },
+        'menu-spk': { href: '../../spk/', title: 'SPK', desc: 'Surat Perintah Kerja' },
+        'menu-pengawasan': { href: '../../inputpic/', title: 'PIC Pengawasan', desc: 'Input PIC Pekerjaan' },
+        'menu-opname': { href: '../../opname/', title: 'Opname', desc: 'Form Opname Pekerjaan.' },
+        'menu-dokumentasi': { href: '../../ftdokumen/', title: 'Dokumentasi Bangunan', desc: 'Foto Bangunan Toko Baru' },
+        'menu-tambahspk': { href: '../../tambahspk/', title: 'Pertambahan SPK', desc: 'Form Pertambahan Hari SPK' },
+        'menu-svdokumen': { href: '../../svdokumen/', title: 'Penyimpanan Dokumen', desc: 'Penyimpanan Dokumen Toko' },
+        'menu-gantt': { href: '../../gantt/', title: 'Gantt Chart', desc: 'Progress Pekerjaan' },
+        'menu-userlog': { href: '../../userlog/', title: 'User Log', desc: 'Pengguna Aplikasi' },
+        'menu-resend': { href: '../../resend/', title: 'Resend Email', desc: 'Kirim Ulang Email Persetujuan' },
+        'menu-sp': { href: '../../dashboard/', title: 'Surat Peringatan', desc: 'Form Surat Peringatan', onClick: (e) => { e.preventDefault(); alert('Fitur dalam pengembangan.'); } },
     };
 
     const roleConfig = {
