@@ -35,21 +35,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 2. RENDER MENU SIDEBAR
+    // 2. RENDER MENU SIDEBAR (Path Error 404 Diperbaiki)
     // ==========================================
     const MENU_CATALOG = {
-        'menu-rab': { href: '../../rab/', title: 'RAB Kontraktor', desc: 'Penawaran final kontraktor.', icon: '/assets/icons/rab.png' },
-        'menu-materai': { href: '../../materai/', title: 'RAB Termaterai', desc: 'Dokumen final RAB.', icon: '/assets/icons/materai.png' },
-        'menu-spk': { href: '../../spk/', title: 'SPK', desc: 'Surat perintah kerja.', icon: '/assets/icons/spk.png' },
-        'menu-pengawasan': { href: '../../inputpic/', title: 'PIC Pengawasan', desc: 'Input PIC proyek.', icon: '/assets/icons/pic.png' },
-        'menu-opname': { href: '../../opname/', title: 'Opname', desc: 'Form opname proyek.', icon: '/assets/icons/opname.png' },
-        'menu-dokumentasi': { href: '../../ftdokumen/', title: 'Dokumentasi', desc: 'Foto bangunan proyek.', icon: '/assets/icons/dokumentasi.png' },
-        'menu-tambahspk': { href: '../../tambahspk/', title: 'Tambahan SPK', desc: 'Pertambahan hari SPK.', icon: '/assets/icons/tambahspk.png' },
-        'menu-svdokumen': { href: '../../svdokumen/', title: 'Arsip Dokumen', desc: 'Penyimpanan dokumen.', icon: '/assets/icons/arsip.png' },
-        'menu-gantt': { href: '../../gantt/', title: 'Gantt Chart', desc: 'Progress pekerjaan.', icon: '/assets/icons/gantt.png' },
-        'menu-userlog': { href: '../../userlog/', title: 'User Log', desc: 'Log aktivitas pengguna.', icon: '/assets/icons/log.png' },
-        'menu-resend': { href: '../../resend/', title: 'Resend Email', desc: 'Kirim ulang email approval.', icon: '/assets/icons/email.png' },
-        'menu-sp': { href: '../../dashboard/', title: 'Surat Peringatan', desc: 'Form SP.', icon: '/assets/icons/sp.png', onClick: (e) => { e.preventDefault(); alert('Fitur dalam pengembangan.'); } },
+        'menu-rab': { href: '../../rab/', title: 'RAB Kontraktor', desc: 'Penawaran final kontraktor.', icon: '../../assets/icons/rab.png' },
+        'menu-materai': { href: '../../materai/', title: 'RAB Termaterai', desc: 'Dokumen final RAB.', icon: '../../assets/icons/materai.png' },
+        'menu-spk': { href: '../../spk/', title: 'SPK', desc: 'Surat perintah kerja.', icon: '../../assets/icons/spk.png' },
+        'menu-pengawasan': { href: '../../inputpic/', title: 'PIC Pengawasan', desc: 'Input PIC proyek.', icon: '../../assets/icons/pic.png' },
+        'menu-opname': { href: '../../opname/', title: 'Opname', desc: 'Form opname proyek.', icon: '../../assets/icons/opname.png' },
+        'menu-dokumentasi': { href: '../../ftdokumen/', title: 'Dokumentasi', desc: 'Foto bangunan proyek.', icon: '../../assets/icons/dokumentasi.png' },
+        'menu-tambahspk': { href: '../../tambahspk/', title: 'Tambahan SPK', desc: 'Pertambahan hari SPK.', icon: '../../assets/icons/tambahspk.png' },
+        'menu-svdokumen': { href: '../../svdokumen/', title: 'Arsip Dokumen', desc: 'Penyimpanan dokumen.', icon: '../../assets/icons/arsip.png' },
+        'menu-gantt': { href: '../../gantt/', title: 'Gantt Chart', desc: 'Progress pekerjaan.', icon: '../../assets/icons/gantt.png' },
+        'menu-userlog': { href: '../../userlog/', title: 'User Log', desc: 'Log aktivitas pengguna.', icon: '../../assets/icons/log.png' },
+        'menu-resend': { href: '../../resend/', title: 'Resend Email', desc: 'Kirim ulang email approval.', icon: '../../assets/icons/email.png' },
+        'menu-sp': { href: '../../dashboard/', title: 'Surat Peringatan', desc: 'Form SP.', icon: '../../assets/icons/sp.png', onClick: (e) => { e.preventDefault(); alert('Fitur dalam pengembangan.'); } },
     };
 
     const roleConfig = {
@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
         linkEl.className = 'menu-item';
         if (menuData.onClick) linkEl.addEventListener('click', menuData.onClick);
         linkEl.innerHTML = `
-            <img src="${menuData.icon ? menuData.icon : '/assets/default-icon.png'}" onerror="this.style.display='none'"/>
+            <img src="${menuData.icon}" onerror="this.style.display='none'"/>
             <div class="menu-text"><h3>${menuData.title}</h3><p>${menuData.desc}</p></div>
         `;
         menuContainer.appendChild(linkEl);
@@ -88,22 +88,18 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ==========================================
-    // 3. LOGIC MONITORING PANE VIEW
+    // 3. LOGIC MONITORING PANE VIEW (PERBAIKAN ERROR NULL)
     // ==========================================
     const monitoringSection = document.getElementById('monitoring-section');
-    const mainStatsGrid = document.getElementById('main-stats-grid');
-    const kontraktorStatsGrid = document.getElementById('kontraktor-stats-grid');
-    
-    // Tampilkan panel monitoring untuk semua role (termasuk KONTRAKTOR)
     monitoringSection.style.display = 'flex'; 
 
+    // Jika KONTRAKTOR, sembunyikan semua card kecuali Total Proyek
     if (isContractor) {
-        // Switch Grid: Kontraktor hanya melihat 6 grid khusus status proyek
-        mainStatsGrid.style.display = 'none';
-        kontraktorStatsGrid.style.display = 'grid';
-    } else {
-        mainStatsGrid.style.display = 'grid';
-        kontraktorStatsGrid.style.display = 'none';
+        document.querySelectorAll('.stat-card').forEach(card => {
+            if (card.id !== 'card-total-proyek-wrapper') {
+                card.style.display = 'none';
+            }
+        });
     }
 
     const projectModal = document.getElementById('projectModal');
@@ -160,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const cabangSelect = document.getElementById('filterCabang');
         const tahunSelect = document.getElementById('filterTahun');
 
-        // Jika bukan Head Office, sembunyikan dropdown filter Cabang
+        // Jika bukan Head Office (termasuk Kontraktor), sembunyikan dropdown filter Cabang
         if (!isHO) {
             cabangSelect.style.display = 'none';
         } else {
@@ -177,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function applyFilters() {
-        // User Internal & Kontraktor akan dikunci ke Cabang miliknya, HO bebas milih
+        // User Internal & Kontraktor dikunci ke Cabang miliknya, HO bebas milih
         const selectedCabang = isHO ? document.getElementById('filterCabang').value : userCabang;
         const selectedTahun = document.getElementById('filterTahun').value;
         
@@ -196,7 +192,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const sessionEmail = userEmail.toUpperCase().trim();
                 
                 matchKontraktor = false;
-                // Validasi data fleksibel (Mengantisipasi format "PT ABC" atau email "abc@gmail.com")
                 if (sessionNamaPT && vendorName.includes(sessionNamaPT)) {
                     matchKontraktor = true;
                 } else if (sessionEmail && vendorName.includes(sessionEmail)) {
@@ -277,23 +272,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const animDuration = 1500; 
 
-        if (isContractor) {
-            // Render khusus 6 stat card untuk layar Kontraktor
-            animateValue("stat-approval-rab", 0, miniStats['Approval RAB'], animDuration);
-            animateValue("stat-proses-pju", 0, miniStats['Proses PJU'], animDuration);
-            animateValue("stat-approval-spk", 0, miniStats['Approval SPK'], animDuration);
-            animateValue("stat-ongoing", 0, miniStats['Ongoing'], animDuration);
-            animateValue("stat-ktk", 0, miniStats['Proses Kerja Tambah Kurang'], animDuration);
-            animateValue("stat-done", 0, miniStats['Done'], animDuration);
-        } else {
-            // Render 9 card & mini stats normal untuk layar Internal (HO/Cabang)
-            const miniContainer = document.getElementById('mini-project-stats');
-            if (miniContainer) {
-                miniContainer.innerHTML = Object.entries(miniStats).map(([label, count]) => `
-                    <div class="mini-stat-item"><span class="mini-stat-label">${label}</span><span class="mini-stat-value">${count}</span></div>
-                `).join('');
-            }
-            animateValue("card-total-proyek", 0, totalProyek, animDuration);
+        // RENDER 6 MINI STATS DI DALAM CARD TOTAL PROYEK (Berlaku untuk semua)
+        const miniContainer = document.getElementById('mini-project-stats');
+        if (miniContainer) {
+            miniContainer.innerHTML = Object.entries(miniStats).map(([label, count]) => `
+                <div class="mini-stat-item"><span class="mini-stat-label">${label}</span><span class="mini-stat-value">${count}</span></div>
+            `).join('');
+        }
+
+        animateValue("card-total-proyek", 0, totalProyek, animDuration);
+        
+        // Render sisa kartu jika BUKAN Kontraktor
+        if (!isContractor) {
             if(document.getElementById('card-total-penawaran')) animateValue("card-total-penawaran", 0, totalPenawaran, animDuration, formatRupiah); 
             animateValue("card-total-spk", 0, totalSPK, animDuration, formatRupiah);
             animateValue("card-jhk", 0, avgJHK, animDuration, (val) => val + " Hari");
@@ -751,20 +741,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if(avgKeterlambatanCard) avgKeterlambatanCard.addEventListener('click', showKeterlambatanDetails); 
     if(nilaiTokoCard) nilaiTokoCard.addEventListener('click', showNilaiTokoDetails);
     if(nilaiKontraktorCard) nilaiKontraktorCard.addEventListener('click', showNilaiKontraktorDetails);
-
-    // Modal Cards Click KONTRAKTOR
-    document.querySelectorAll('.kontraktor-card').forEach(card => {
-        card.addEventListener('click', (e) => {
-            const status = card.getAttribute('data-status');
-            if (status) {
-                currentModalContext = 'PROJECT';
-                if(modalMainTitle) modalMainTitle.textContent = `Detail Toko: ${status}`;
-                if(btnBackToSummary) btnBackToSummary.style.display = 'none';
-                renderStoreList(status);
-                if(projectModal) projectModal.style.display = 'flex';
-            }
-        });
-    });
     
     if(grid) grid.addEventListener('click', (e) => { const statItem = e.target.closest('.modal-stat-item'); if (!statItem) return; const status = statItem.getAttribute('data-status'); if (status) renderStoreList(status); const costType = statItem.getAttribute('data-cost-type'); if (costType) renderCostList(costType); });
     
