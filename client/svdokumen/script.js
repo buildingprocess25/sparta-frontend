@@ -36,6 +36,7 @@ const IMAGE_MAX_WIDTH = 1920;
 const IMAGE_MAX_HEIGHT = 1920;
 const IMAGE_TARGET_BYTES = 900 * 1024; // ~900KB per image
 const IMAGE_MIN_QUALITY = 0.55;
+const PDF_COMPRESSION_ENABLED = true;
 
 document.addEventListener("DOMContentLoaded", () => {
     checkAuth();
@@ -903,6 +904,105 @@ function buildCompressedFileName(originalName) {
     return `${base}.jpg`;
 }
 
+function isPdfFile(file) {
+    const byMime = (file.type || "").toLowerCase().includes("pdf");
+    const byName = (file.name || "").toLowerCase().endsWith(".pdf");
+    return byMime || byName;
+}
+
+function formatBytes(bytes) {
+    if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
+    const units = ["B", "KB", "MB", "GB"];
+    let value = bytes;
+    let idx = 0;
+    while (value >= 1024 && idx < units.length - 1) {
+        value /= 1024;
+        idx += 1;
+    }
+    return `${value.toFixed(value >= 10 || idx === 0 ? 0 : 1)} ${units[idx]}`;
+}
+
+async function compressPdfFile(file) {
+    if (!PDF_COMPRESSION_ENABLED) {
+        return {
+            file,
+            filename: file.name,
+            mimeType: "application/pdf",
+            compressed: false,
+            compressionKind: null,
+            sizeBefore: file.size,
+            sizeAfter: file.size
+        };
+    }
+
+    if (!window.PDFLib || !window.PDFLib.PDFDocument) {
+        console.warn("PDFLib tidak tersedia, PDF dikirim tanpa kompresi");
+        return {
+            file,
+            filename: file.name,
+            mimeType: "application/pdf",
+            compressed: false,
+            compressionKind: null,
+            sizeBefore: file.size,
+            sizeAfter: file.size
+        };
+    }
+
+    try {
+        const source = await file.arrayBuffer();
+        const pdfDoc = await window.PDFLib.PDFDocument.load(source, {
+            updateMetadata: false,
+            ignoreEncryption: true
+        });
+
+        const saved = await pdfDoc.save({
+            useObjectStreams: true,
+            addDefaultPage: false,
+            objectsPerTick: 50
+        });
+
+        const blob = new Blob([saved], { type: "application/pdf" });
+
+        if (blob.size >= file.size) {
+            return {
+                file,
+                filename: file.name,
+                mimeType: "application/pdf",
+                compressed: false,
+                compressionKind: null,
+                sizeBefore: file.size,
+                sizeAfter: file.size
+            };
+        }
+
+        const compressedFile = new File([blob], file.name, {
+            type: "application/pdf",
+            lastModified: Date.now()
+        });
+
+        return {
+            file: compressedFile,
+            filename: compressedFile.name,
+            mimeType: compressedFile.type,
+            compressed: true,
+            compressionKind: "pdf",
+            sizeBefore: file.size,
+            sizeAfter: compressedFile.size
+        };
+    } catch (err) {
+        console.warn("Kompresi PDF gagal, fallback ke file asli:", err);
+        return {
+            file,
+            filename: file.name,
+            mimeType: "application/pdf",
+            compressed: false,
+            compressionKind: null,
+            sizeBefore: file.size,
+            sizeAfter: file.size
+        };
+    }
+}
+
 async function compressImageFile(file) {
     const objectUrl = URL.createObjectURL(file);
     try {
@@ -937,7 +1037,10 @@ async function compressImageFile(file) {
                 file,
                 filename: file.name,
                 mimeType: file.type || "image/jpeg",
-                compressed: false
+                compressed: false,
+                compressionKind: null,
+                sizeBefore: file.size,
+                sizeAfter: file.size
             };
         }
 
@@ -951,7 +1054,10 @@ async function compressImageFile(file) {
             file: compressedFile,
             filename: compressedFile.name,
             mimeType: compressedFile.type,
-            compressed: true
+            compressed: true,
+            compressionKind: "image",
+            sizeBefore: file.size,
+            sizeAfter: compressedFile.size
         };
     } finally {
         URL.revokeObjectURL(objectUrl);
@@ -963,11 +1069,18 @@ async function prepareUploadFile(file) {
         return compressImageFile(file);
     }
 
+    if (isPdfFile(file)) {
+        return compressPdfFile(file);
+    }
+
     return {
         file,
         filename: file.name,
         mimeType: file.type || "application/octet-stream",
-        compressed: false
+        compressed: false,
+        compressionKind: null,
+        sizeBefore: file.size,
+        sizeAfter: file.size
     };
 }
 
@@ -1048,7 +1161,10 @@ async function handleFormSubmit(e) {
             );
 
             if (prepared.compressed) {
-                console.log(`Compressed: ${task.file.name} -> ${prepared.filename} (${task.file.size} -> ${prepared.file.size} bytes)`);
+                const kindLabel = prepared.compressionKind === "pdf" ? "PDF" : "IMAGE";
+                console.log(
+                    `${kindLabel} compressed: ${task.file.name} (${formatBytes(prepared.sizeBefore)} -> ${formatBytes(prepared.sizeAfter)})`
+                );
             }
         }
 
