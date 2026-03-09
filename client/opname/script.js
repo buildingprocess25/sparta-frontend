@@ -399,20 +399,40 @@ const PDFGenerator = {
         
         // --- FETCH DATA ---
         // 1. Data Utama
-        const rabData = await fetchRabData(selectedStore.kode_toko, selectedUlok, lingkupFix);
+        let rabData = await fetchRabData(selectedStore.kode_toko, selectedUlok, lingkupFix);
+        
+        if (user.role === 'kontraktor') {
+            const currentIdent = user.email || sessionStorage.getItem("loggedInUserEmail") || user.username;
+            
+            rabData = rabData.filter(rabItem => {
+                if (rabItem.kontraktor_username || rabItem.kontraktor_email || rabItem.email) {
+                    return rabItem.kontraktor_username === user.username || 
+                        rabItem.kontraktor_email === currentIdent ||
+                        rabItem.email === currentIdent;
+                }
+                return submissions.some(sub => 
+                    sub.jenis_pekerjaan === rabItem.jenis_pekerjaan && 
+                    sub.kategori_pekerjaan === rabItem.kategori_pekerjaan
+                );
+            });
+        }
         const picKontraktorData = await fetchPicKontraktorData(selectedUlok);
-        const fromOpname = await fetchPicKontraktorOpnameData(selectedUlok);
-        const picList = await fetchPicList({ noUlok: selectedUlok, lingkup: lingkupFix, kodeToko: selectedStore.kode_toko });
 
         // 2. Data Keterlambatan (Denda)
         let penaltyData = { days: 0, amount: 0, isLate: false };
         try {
-            const penaltyRes = await fetch(`${API_BASE_URL}/api/cek_keterlambatan?no_ulok=${encodeURIComponent(selectedUlok)}&lingkup_pekerjaan=${encodeURIComponent(selectedLingkup)}`);
+            let penaltyUrl = `${API_BASE_URL}/api/cek_keterlambatan?no_ulok=${encodeURIComponent(selectedUlok)}&lingkup_pekerjaan=${encodeURIComponent(selectedLingkup)}`;
+            
+            if (user.role === 'kontraktor') {
+                const currentIdent = user.email || sessionStorage.getItem("loggedInUserEmail") || user.username;
+                penaltyUrl += `&kontraktor=${encodeURIComponent(currentIdent)}`;
+            }
+
+            const penaltyRes = await fetch(penaltyUrl);
             const penaltyJson = await penaltyRes.json();
             if (penaltyJson.terlambat) {
                 penaltyData.isLate = true;
                 penaltyData.days = penaltyJson.hari_terlambat;
-                // Gunakan helper calculateLatePenalty yang ada di script.js
                 penaltyData.amount = calculateLatePenalty(penaltyJson.hari_terlambat);
             }
         } catch (err) {
@@ -1083,10 +1103,16 @@ const Render = {
             const res = await fetch(base);
             let data = await res.json();
             
-            // 2. [BARU] Fetch Data Keterlambatan
+            // 2. Fetch Data Keterlambatan
             let penaltyData = { terlambat: false, hari_terlambat: 0, denda_nominal: 0 };
             try {
-                const penaltyUrl = `${API_BASE_URL}/api/cek_keterlambatan?no_ulok=${encodeURIComponent(AppState.selectedUlok)}&lingkup_pekerjaan=${encodeURIComponent(AppState.selectedLingkup)}`;
+                let penaltyUrl = `${API_BASE_URL}/api/cek_keterlambatan?no_ulok=${encodeURIComponent(AppState.selectedUlok)}&lingkup_pekerjaan=${encodeURIComponent(AppState.selectedLingkup)}`;
+                
+                if (AppState.user.role === 'kontraktor') {
+                    const currentIdent = AppState.user.email || sessionStorage.getItem("loggedInUserEmail") || AppState.user.username;
+                    penaltyUrl += `&kontraktor=${encodeURIComponent(currentIdent)}`;
+                }
+
                 const penaltyRes = await fetch(penaltyUrl);
                 const penaltyJson = await penaltyRes.json();
                 
@@ -1642,14 +1668,30 @@ const Render = {
         container.innerHTML = '<div class="container text-center" style="padding-top:40px;"><div class="card"><h3>Memuat Data Opname Final...</h3></div></div>';
         
         try {
-            const url = `${API_BASE_URL}/api/opname/final?kode_toko=${encodeURIComponent(AppState.selectedStore.kode_toko)}&no_ulok=${encodeURIComponent(AppState.selectedUlok)}&lingkup=${encodeURIComponent(AppState.selectedLingkup)}`;
-            
+            let url = `${API_BASE_URL}/api/opname/final?kode_toko=${encodeURIComponent(AppState.selectedStore.kode_toko)}&no_ulok=${encodeURIComponent(AppState.selectedUlok)}&lingkup=${encodeURIComponent(AppState.selectedLingkup)}`;
+            if (AppState.user.role === 'kontraktor') {
+                const currentIdent = AppState.user.email || sessionStorage.getItem("loggedInUserEmail") || AppState.user.username;
+                url += `&kontraktor=${encodeURIComponent(currentIdent)}`;
+            }
+
             const res = await fetch(url);
             const rawData = await res.json();
-            const submissions = Array.isArray(rawData) ? rawData : [];
+            let submissions = Array.isArray(rawData) ? rawData : [];
+
+            if (AppState.user.role === 'kontraktor') {
+                const currentUsername = AppState.user.username;
+                const currentEmail = AppState.user.email || sessionStorage.getItem("loggedInUserEmail");
+                
+                submissions = submissions.filter(item => 
+                    item.kontraktor_username === currentUsername || 
+                    item.kontraktor_name === currentUsername ||
+                    item.kontraktor_email === currentEmail ||
+                    item.email === currentEmail
+                );
+            }
 
             if (submissions.length === 0) {
-                 container.innerHTML = `
+                container.innerHTML = `
                     <div class="container" style="padding-top:40px;">
                         <div class="card text-center">
                             <div style="font-size:50px; margin-bottom:20px;">📭</div>
@@ -1859,10 +1901,27 @@ const Render = {
         container.innerHTML = '<div class="container text-center" style="padding-top:40px;"><div class="card"><h3>Memuat Data Opname Pending...</h3></div></div>';
         
         try {
-            const url = `${API_BASE_URL}/api/opname/pending?kode_toko=${AppState.selectedStore.kode_toko}&no_ulok=${AppState.selectedUlok}&lingkup=${AppState.selectedLingkup}`;
+            let url = `${API_BASE_URL}/api/opname/pending?kode_toko=${AppState.selectedStore.kode_toko}&no_ulok=${AppState.selectedUlok}&lingkup=${AppState.selectedLingkup}`;
+            if (AppState.user.role === 'kontraktor') {
+                const currentIdent = AppState.user.email || sessionStorage.getItem("loggedInUserEmail") || AppState.user.username;
+                url += `&kontraktor=${encodeURIComponent(currentIdent)}`;
+            }
+
             const res = await fetch(url);
             const rawData = await res.json();
-            const pendingItems = Array.isArray(rawData) ? rawData : [];
+            let pendingItems = Array.isArray(rawData) ? rawData : [];
+
+            if (AppState.user.role === 'kontraktor') {
+                const currentUsername = AppState.user.username;
+                const currentEmail = AppState.user.email || sessionStorage.getItem("loggedInUserEmail");
+                
+                pendingItems = pendingItems.filter(item => 
+                    item.kontraktor_username === currentUsername || 
+                    item.kontraktor_name === currentUsername ||
+                    item.kontraktor_email === currentEmail ||
+                    item.email === currentEmail
+                );
+            }
             
             const renderApprovalTable = () => {
                 let html = `
