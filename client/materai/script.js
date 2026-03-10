@@ -4,6 +4,15 @@
 const SHEETS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyUpg_II5NKNw1YFSyWiTiVBLKuNdnawunFRJJCJeCs4sWwjX3fB7sKi-tefj8-lSn8mQ/exec"; 
 const LOCAL_KEY_DOCS = "materai_docs";
 
+// Konfigurasi Branch Group
+const BRANCH_GROUPS = {
+    "LOMBOK": ["LOMBOK", "SUMBAWA"],
+    "MEDAN": ["MEDAN", "ACEH"],
+    "LAMPUNG": ["LAMPUNG", "LAMPUNG_KOTABUMI"],
+    "PALEMBANG": ["PALEMBANG", "BENGKULU", "BANGKA", "BELITUNG"],
+    "SIDOARJO": ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"]
+};
+
 /* =========================================
    UTILS
    ========================================= */
@@ -66,12 +75,13 @@ const Api = {
     },
 
     async listDocuments(filters = {}) {
-        const sessionCabang = getSessionCabang();
-        if (!sessionCabang) throw new Error("Cabang belum diinput.");
+        // Gunakan cabang dari filter (jika ada) atau cabang session
+        const targetCabang = filters.cabang || getSessionCabang();
+        if (!targetCabang) throw new Error("Cabang belum diinput.");
 
         const url = new URL(SHEETS_WEB_APP_URL);
         url.searchParams.set("action", "list");
-        url.searchParams.set("cabang", sessionCabang);
+        url.searchParams.set("cabang", targetCabang);
         if (filters.ulok) url.searchParams.set("ulok", filters.ulok);
         if (filters.lingkup) url.searchParams.set("lingkup", filters.lingkup);
 
@@ -85,12 +95,26 @@ const Api = {
         const sessionCabang = getSessionCabang();
         if (!sessionCabang) throw new Error("Cabang belum diinput.");
         
-        if (mode === 'cabang') return [sessionCabang];
+        // Handle Branch Group atau multiple cabang dengan koma
+        let userBranches = [];
+        if (sessionCabang.includes(',')) {
+            userBranches = sessionCabang.split(',').map(c => c.trim()).filter(c => c);
+        } else {
+            userBranches = BRANCH_GROUPS[sessionCabang] || [sessionCabang];
+        }
+        
+        // Return daftar cabang jika mode adalah 'cabang'
+        if (mode === 'cabang') {
+            return userBranches;
+        }
+        
+        // Untuk fetch ulok/lingkup, gunakan cabang yang spesifik (dari dropdown)
+        const targetCabang = extraParams.cabang || sessionCabang;
         
         const url = new URL(SHEETS_WEB_APP_URL);
         url.searchParams.set("action", "options");
         url.searchParams.set("mode", mode);
-        url.searchParams.set("cabang", sessionCabang);
+        url.searchParams.set("cabang", targetCabang);
         if (extraParams.ulok) url.searchParams.set("ulok", extraParams.ulok);
 
         const res = await fetch(url.toString());
@@ -136,9 +160,8 @@ function render() {
    COMPONENT RENDERERS
    ========================================= */
 
-// 1. Header & User Pill (Mirip Opname)
+// 1. Header & User Pill
 function getHeaderHTML(user) {
-    // Tombol di header mengarah ke Dashboard Utama aplikasi (luar fitur materai)
     return `
     <header class="app-header">
         <img src="../../assets/Alfamart-Emblem.png" alt="Logo" class="header-logo">
@@ -177,7 +200,7 @@ function renderLayout(user, path) {
     else navigate("/dashboard", true);
 }
 
-// 3. Dashboard Page (Menu Grid di Body)
+// 3. Dashboard Page
 function renderDashboard(container) {
     container.innerHTML = `
     <div class="menu-grid">
@@ -224,10 +247,10 @@ function renderCreateDocument(container) {
                 </div>
             </div>
 
-             <div style="margin-top: 12px; margin-bottom: 20px;">
+            <div style="margin-top: 12px; margin-bottom: 20px;">
                 <a href="https://pdf-combine-beta.vercel.app/" target="_blank" 
-                   style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 8px; background-color: #f57c00; color: #fff; text-decoration: none; font-weight: 500;">
-                   <span>🔗 Gabungkan PDF (RAB + SPH)</span>
+                    style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 8px; background-color: #f57c00; color: #fff; text-decoration: none; font-weight: 500;">
+                    <span>🔗 Gabungkan PDF (RAB + SPH)</span>
                 </a>
             </div>
 
@@ -245,7 +268,6 @@ function renderCreateDocument(container) {
         </form>
     </div>`;
 
-    // Logic form sama seperti sebelumnya...
     const selCabang = document.getElementById("selCabang");
     const selUlok = document.getElementById("selUlok");
     const selLingkup = document.getElementById("selLingkup");
@@ -256,21 +278,37 @@ function renderCreateDocument(container) {
     const btnSubmit = document.getElementById("btnSubmit");
     let rabFileObj = null;
 
+    // Inisialisasi Dropdown Cabang
     (async () => {
         try {
             const opts = await Api.getOptions('cabang');
-            selCabang.innerHTML = opts.map(c => `<option value="${c}">${c}</option>`).join('');
-            selCabang.disabled = true;
-            if (opts.length > 0) loadUlok();
+            if (opts.length > 1) {
+                // Branch Group: Bisa pilih cabang
+                selCabang.innerHTML = '<option value="">Pilih Cabang…</option>' + opts.map(c => `<option value="${c}">${c}</option>`).join('');
+                selCabang.disabled = false;
+                
+                selCabang.addEventListener('change', () => {
+                    selUlok.innerHTML = '<option value="">Pilih nomor ulok…</option>';
+                    selLingkup.innerHTML = '<option value="">Pilih lingkup…</option>';
+                    selUlok.disabled = true;
+                    selLingkup.disabled = true;
+                    if (selCabang.value) loadUlok(selCabang.value);
+                });
+            } else {
+                // Single Cabang: Terkunci
+                selCabang.innerHTML = opts.map(c => `<option value="${c}">${c}</option>`).join('');
+                selCabang.disabled = true;
+                if (opts.length > 0) loadUlok(opts[0]);
+            }
         } catch (e) {
             msg.textContent = e.message; msg.style.display = "block";
         }
     })();
 
-    async function loadUlok() {
+    async function loadUlok(cabangValue) {
         try {
             selUlok.innerHTML = '<option value="">Loading...</option>';
-            const opts = await Api.getOptions('ulok');
+            const opts = await Api.getOptions('ulok', { cabang: cabangValue });
             selUlok.innerHTML = '<option value="">Pilih nomor ulok…</option>' + opts.map(u => `<option value="${u}">${u}</option>`).join('');
             selUlok.disabled = false;
         } catch (e) { console.error(e); }
@@ -278,12 +316,13 @@ function renderCreateDocument(container) {
 
     selUlok.addEventListener("change", async () => {
         const val = selUlok.value;
+        const currentCabang = selCabang.value;
         selLingkup.innerHTML = '<option value="">Pilih lingkup…</option>';
         selLingkup.disabled = true;
         if (!val) return;
         try {
             selLingkup.innerHTML = '<option value="">Loading...</option>';
-            const opts = await Api.getOptions('lingkup', { ulok: val });
+            const opts = await Api.getOptions('lingkup', { ulok: val, cabang: currentCabang });
             selLingkup.innerHTML = '<option value="">Pilih lingkup…</option>' + opts.map(l => `<option value="${l}">${l}</option>`).join('');
             selLingkup.disabled = false;
         } catch (e) { console.error(e); }
@@ -298,6 +337,11 @@ function renderCreateDocument(container) {
     form.addEventListener("submit", async (e) => {
         e.preventDefault();
         msg.style.display = "none";
+        
+        // Validasi Branch Group
+        if (!selCabang.disabled && !selCabang.value) {
+            return alert("Silakan pilih Cabang terlebih dahulu.");
+        }
         if (!rabFileObj) return alert("Pilih file PDF.");
         
         overlay.style.display = "flex";
@@ -372,12 +416,26 @@ function renderViewResults(container) {
     const loader = document.getElementById("loadingTable");
     const content = document.getElementById("tableContent");
 
-    // Init Logic
+    // Init Logic & Branch Group Handling
     (async () => {
         try {
             const ops = await Api.getOptions('cabang');
-            fCabang.innerHTML = ops.map(v => `<option value="${v}">${v}</option>`).join('');
-            if (ops.length) loadUlokFilter();
+            if (ops.length > 1) {
+                fCabang.innerHTML = '<option value="">Pilih Cabang…</option>' + ops.map(v => `<option value="${v}">${v}</option>`).join('');
+                fCabang.disabled = false;
+                
+                fCabang.addEventListener('change', () => {
+                    fUlok.innerHTML = '<option value="">Semua</option>';
+                    fLingkup.innerHTML = '<option value="">Semua</option>';
+                    fUlok.disabled = true;
+                    fLingkup.disabled = true;
+                    if (fCabang.value) loadUlokFilter(fCabang.value);
+                });
+            } else {
+                fCabang.innerHTML = ops.map(v => `<option value="${v}">${v}</option>`).join('');
+                fCabang.disabled = true;
+                if (ops.length) loadUlokFilter(ops[0]);
+            }
         } catch (e) { alert(e.message); }
 
         setInterval(() => {
@@ -391,10 +449,10 @@ function renderViewResults(container) {
         }, 300000);
     })();
 
-    async function loadUlokFilter() {
+    async function loadUlokFilter(cabangValue) {
         fUlok.innerHTML = '<option>Loading...</option>';
         fUlok.disabled = true;
-        const ops = await Api.getOptions('ulok');
+        const ops = await Api.getOptions('ulok', { cabang: cabangValue });
         fUlok.innerHTML = '<option value="">Semua</option>' + ops.map(v => `<option value="${v}">${v}</option>`).join('');
         fUlok.disabled = false;
     }
@@ -406,7 +464,8 @@ function renderViewResults(container) {
             return;
         }
         fLingkup.disabled = true;
-        const ops = await Api.getOptions('lingkup', { ulok: fUlok.value });
+        const currentCabang = fCabang.value;
+        const ops = await Api.getOptions('lingkup', { ulok: fUlok.value, cabang: currentCabang });
         fLingkup.innerHTML = '<option value="">Semua</option>' + ops.map(v => `<option value="${v}">${v}</option>`).join('');
         fLingkup.disabled = false;
     });
@@ -415,17 +474,24 @@ function renderViewResults(container) {
         fUlok.value = "";
         fLingkup.innerHTML = '<option value="">Semua</option>';
         fLingkup.disabled = true;
+        if (!fCabang.disabled) fCabang.value = ""; // Reset branch group jika ada
         wrapper.style.display = "none";
         content.innerHTML = "";
     });
 
     btnApply.addEventListener("click", async () => {
+        if (!fCabang.disabled && !fCabang.value) {
+            alert("Silakan pilih cabang terlebih dahulu.");
+            return;
+        }
+
         wrapper.style.display = "block";
         loader.style.display = "flex";
         content.innerHTML = ""; 
         
         try {
             const data = await Api.listDocuments({
+                cabang: fCabang.disabled ? fCabang.options[0].value : fCabang.value,
                 ulok: fUlok.value,
                 lingkup: fLingkup.value
             });
@@ -437,7 +503,7 @@ function renderViewResults(container) {
         }
     });
 
-    // --- FUNGSI RENDER TABEL YANG DIPERBARUI ---
+    // Render Tabel
     function renderTable(items) {
         if (!items.length) {
             content.innerHTML = '<div style="padding:20px; text-align:center; color:#666;">Tidak ada data.</div>';
@@ -451,7 +517,6 @@ function renderViewResults(container) {
 
             if (!viewUrl) return '-';
 
-            // Menggunakan class btn-action yang baru dibuat di CSS
             return `
                 <div class="action-buttons-wrapper">
                     <a href="${viewUrl}" target="_blank" class="btn-action view" title="Lihat Dokumen">
@@ -484,7 +549,7 @@ function renderViewResults(container) {
             </tbody>
         </table>`;
 
-        // Mobile Cards (juga disesuaikan tombolnya)
+        // Mobile Cards
         html += `<div class="mobile-cards">
             ${items.map(it => `
                 <div class="m-card">
