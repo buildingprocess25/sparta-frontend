@@ -872,8 +872,25 @@ async function init() {
         UI.checkRejectedData();
     });
 
-    document.getElementById("cabang").addEventListener("change", () => {
-        if (document.getElementById("lingkup_pekerjaan").value) API.fetchPrices();
+    document.getElementById("cabang").addEventListener("change", async (e) => {
+        const selectedCabang = e.target.value;
+        const lingkup = document.getElementById("lingkup_pekerjaan").value;
+        const userEmail = sessionStorage.getItem('loggedInUserEmail');
+
+        // 1. Perbarui harga secara real-time ke API berdasarkan cabang yang baru dipilih
+        if (lingkup) {
+            await API.fetchPrices();
+        }
+        
+        // 2. Cek status revisi/reject secara spesifik untuk cabang pilihan yang baru
+        if (userEmail && selectedCabang) {
+            await API.checkStatus(userEmail, selectedCabang);
+            
+            // 3. Trigger fungsi pengecekan agar langsung memunculkan alert jika terdeteksi data revisi
+            UI.checkRejectedData();
+        }
+
+        // 4. Hitung ulang total
         Calculator.calculateGrandTotal();
     });
 
