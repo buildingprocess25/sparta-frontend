@@ -2,9 +2,13 @@
 // 1. CONFIG & AUTHENTICATION
 // ==========================================
 const BASE_URL = "https://sparta-backend-5hdj.onrender.com";
+const TARGET_API_URL = "https://script.google.com/macros/s/AKfycbw9m4ckqXZIjIwFIqJUYz7CGxSgX-ONmhcDeTEPo_VA6D7kI3VEjvYAww2Gn_eHCA_u/exec";
+
 let currentUser = null;
 let allDocuments = [];
 let filteredDocuments = [];
+let targetDataDb = []; // State untuk menampung data Target dari Sheets
+
 let isEditing = false;
 let currentEditId = null;
 let currentPage = 1;
@@ -31,10 +35,10 @@ const UPLOAD_CATEGORIES = [
     { key: "pendukung", label: "Dokumen Pendukung (NIDI, SLO, dll)" },
 ];
 
-// Upload tunables untuk menjaga browser tetap ringan saat mengirim banyak file.
+// Upload tunables
 const IMAGE_MAX_WIDTH = 1920;
 const IMAGE_MAX_HEIGHT = 1920;
-const IMAGE_TARGET_BYTES = 900 * 1024; // ~900KB per image
+const IMAGE_TARGET_BYTES = 900 * 1024;
 const IMAGE_MIN_QUALITY = 0.55;
 const PDF_COMPRESSION_ENABLED = true;
 
@@ -99,7 +103,6 @@ function initApp() {
         const input = document.getElementById(id);
         if (input) {
             input.addEventListener('input', function () {
-                // Memaksa value menjadi uppercase dan menjaga posisi kursor agar nyaman
                 const start = this.selectionStart;
                 const end = this.selectionEnd;
                 this.value = this.value.toUpperCase();
@@ -151,7 +154,91 @@ function initApp() {
 
     // Load Data Awal
     renderUploadSections();
+    fetchTargetsFromSheets(); // <-- Call Target Fetch
     fetchDocuments();
+}
+
+// ==========================================
+// FITUR TARGET DASHBOARD
+// ==========================================
+async function fetchTargetsFromSheets() {
+    try {
+        const res = await fetch(TARGET_API_URL);
+        const data = await res.json();
+        targetDataDb = data;
+        updateTargetDashboard();
+    } catch (err) {
+        console.error("Gagal mengambil data target dari Sheets:", err);
+    }
+}
+
+function updateTargetDashboard() {
+    const dashboard = document.getElementById("target-dashboard");
+    if (!dashboard || targetDataDb.length === 0) return;
+
+    if (!currentUser || !currentUser.cabang) return;
+
+    dashboard.style.display = "flex";
+
+    let targetReguler = 0;
+    let targetFranchise = 0;
+    let targetTotal = 0;
+
+    const isHeadOffice = currentUser.cabang.toLowerCase() === "head office";
+    const filterSelect = document.getElementById("filter-cabang");
+    const selectedCabang = filterSelect ? filterSelect.value.toUpperCase() : "";
+
+    if (isHeadOffice) {
+        if (selectedCabang === "") {
+            // Semua Cabang
+            targetDataDb.forEach(item => {
+                targetReguler += item.reguler || 0;
+                targetFranchise += item.franchise || 0;
+                targetTotal += item.total || 0;
+            });
+        } else {
+            // Berdasarkan filter
+            const found = targetDataDb.find(item => item.cabang === selectedCabang);
+            if (found) {
+                targetReguler = found.reguler || 0;
+                targetFranchise = found.franchise || 0;
+                targetTotal = found.total || 0;
+            }
+        }
+    } else {
+        // User biasa
+        const myCabang = currentUser.cabang.toUpperCase();
+        const found = targetDataDb.find(item => item.cabang === myCabang);
+        if (found) {
+            targetReguler = found.reguler || 0;
+            targetFranchise = found.franchise || 0;
+            targetTotal = found.total || 0;
+        }
+    }
+
+    document.getElementById("ui-target-reguler").textContent = targetReguler;
+    document.getElementById("ui-target-franchise").textContent = targetFranchise;
+    document.getElementById("ui-target-total").textContent = targetTotal;
+
+    const currentInputted = filteredDocuments.length;
+    let persentase = 0;
+    
+    if (targetTotal > 0) {
+        persentase = Math.round((currentInputted / targetTotal) * 100);
+    }
+
+    const displayPersentase = persentase > 100 ? 100 : persentase;
+
+    const progressText = document.getElementById("ui-progress-text");
+    if(progressText) progressText.textContent = `${currentInputted} / ${targetTotal} Toko (${persentase}%)`;
+    
+    const fillBar = document.getElementById("ui-progress-fill");
+    if(fillBar) {
+        fillBar.style.width = `${displayPersentase}%`;
+        if(displayPersentase < 50) fillBar.style.backgroundColor = "#ef4444";
+        else if(displayPersentase < 80) fillBar.style.backgroundColor = "#f59e0b";
+        else fillBar.style.backgroundColor = "#10b981";
+    }
 }
 
 // ==========================================
@@ -163,7 +250,6 @@ function setupAutoCalculation() {
 
     const parseLocalFloat = (val) => {
         if (!val) return 0;
-        // Hapus titik (pemisah ribuan jika ada) dan ganti koma dengan titik
         const cleanStr = val.toString().replace(/\./g, '').replace(',', '.');
         return parseFloat(cleanStr) || 0;
     };
@@ -219,7 +305,6 @@ function showTable() {
     isEditing = false;
     currentEditId = null;
 
-    // Refresh data saat kembali ke tabel
     fetchDocuments();
 }
 
@@ -242,7 +327,6 @@ function showForm(data = null) {
     if (data) {
         // === MODE EDIT ===
         isEditing = true;
-        // Prioritas ID: _id (Mongo), id (SQL), doc_id, kode_toko
         currentEditId = data._id || data.id || data.doc_id || data.kode_toko;
 
         document.getElementById("kodeToko").value = data.kode_toko || "";
@@ -257,9 +341,7 @@ function showForm(data = null) {
         document.getElementById("luasAreaTerbuka").value = formatDecimalInput(data.luas_area_terbuka);
         document.getElementById("tinggiPlafon").value = formatDecimalInput(data.tinggi_plafon);
 
-        // PENTING: Simpan file_links asli SEKARANG, bukan saat submit
         originalFileLinks = data.file_links || "";
-        console.log("Original File Links saved:", originalFileLinks);
 
         if (data.file_links) {
             renderExistingFiles(data.file_links);
@@ -298,7 +380,6 @@ function renderUploadSections(isReadOnly = false) {
     ];
 
     groups.forEach(group => {
-        // Wrapper per Kelompok (Misal: Foto, Gambar, Dokumen)
         const groupWrapper = document.createElement("div");
         groupWrapper.className = "upload-section-group";
         groupWrapper.innerHTML = `<h4 class="upload-section-title">${group.title}</h4>`;
@@ -313,9 +394,8 @@ function renderUploadSections(isReadOnly = false) {
             if (!newFilesBuffer[key]) newFilesBuffer[key] = [];
 
             const section = document.createElement("div");
-            section.className = "upload-card"; // Class baru untuk container per item
+            section.className = "upload-card";
 
-            // Logic display jika Read Only (Head Office)
             const dropzoneStyle = isReadOnly ? 'style="display:none;"' : '';
 
             section.innerHTML = `
@@ -343,7 +423,6 @@ function renderUploadSections(isReadOnly = false) {
         container.appendChild(groupWrapper);
     });
 
-    // Event Listener (Sama seperti sebelumnya, hanya target ID-nya yang penting ada)
     if (!isReadOnly) {
         UPLOAD_CATEGORIES.forEach(cat => {
             const input = document.getElementById(`file-${cat.key}`);
@@ -360,7 +439,7 @@ function renderUploadSections(isReadOnly = false) {
                     });
 
                     updatePreviewUI(cat.key);
-                    input.value = ""; // Reset agar bisa pilih file yang sama jika perlu
+                    input.value = "";
                 });
             }
         });
@@ -413,9 +492,7 @@ function renderExistingFiles(fileLinksString) {
     const entries = fileLinksString.split(",").map(s => s.trim()).filter(Boolean);
     const isHeadOffice = currentUser.cabang?.toLowerCase() === "head office";
 
-    // BACKUP: Simpan entries asli ke existingFilesFromUI
     existingFilesFromUI = [...entries];
-    console.log("Rendered existing files (backup):", existingFilesFromUI);
 
     entries.forEach(entry => {
         const parts = entry.split("|");
@@ -423,7 +500,6 @@ function renderExistingFiles(fileLinksString) {
         let name = "File";
         let url = "#";
 
-        // Logic parsing nama file
         if (parts.length === 3) {
             category = parts[0].trim();
             name = parts[1].trim();
@@ -441,8 +517,7 @@ function renderExistingFiles(fileLinksString) {
             const fileItem = document.createElement("div");
             fileItem.className = "existing-file-item";
 
-            // Tentukan Ikon berdasarkan ekstensi (simple logic)
-            let iconCode = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>`; // Default File Icon
+            let iconCode = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>`;
 
             if (url.toLowerCase().match(/\.(jpg|jpeg|png|gif)$/)) {
                 iconCode = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>`;
@@ -454,7 +529,6 @@ function renderExistingFiles(fileLinksString) {
                 const safeName = name.replace(/'/g, "\\'");
                 const safeUrl = url.trim().replace(/'/g, "\\'");
 
-                // Menggunakan icon trash SVG untuk tombol hapus
                 deleteBtnHtml = `
                 <button type="button" class="btn-delete-existing" onclick="markFileForDeletion(this, '${safeCategory}', '${safeName}', '${safeUrl}')">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
@@ -475,21 +549,18 @@ function renderExistingFiles(fileLinksString) {
 }
 
 window.markFileForDeletion = function (btnElement, category, fileName, fileUrl) {
-    // Validasi URL tidak kosong atau invalid
     if (!fileUrl || fileUrl === "#" || fileUrl.trim() === "") {
         alert("URL file tidak valid, tidak dapat dihapus.");
         return;
     }
 
     if (confirm(`Hapus file "${fileName}"?\nFile akan hilang permanen setelah Anda klik tombol Simpan.`)) {
-        // Simpan object untuk dikirim ke backend dengan flag deleted: true
         const deleteItem = {
             category: category.trim(),
             filename: fileName.trim(),
             url: fileUrl.trim()
         };
 
-        // Cegah duplikasi
         const isDuplicate = deletedFilesList.some(item =>
             item.url === deleteItem.url && item.filename === deleteItem.filename
         );
@@ -500,8 +571,6 @@ window.markFileForDeletion = function (btnElement, category, fileName, fileUrl) 
 
         const parent = btnElement.closest(".existing-file-item");
         if (parent) parent.style.display = "none";
-
-        console.log("List Delete:", deletedFilesList);
     }
 };
 
@@ -516,18 +585,10 @@ async function fetchDocuments() {
             url += `?cabang=${encodeURIComponent(currentUser.cabang)}`;
         }
 
-        console.log("Fetching from URL:", url);
-
         const res = await fetch(url);
         if (!res.ok) throw new Error("Gagal mengambil data dari server");
 
         const rawData = await res.json();
-        console.log("Data received:", rawData);
-
-        // DEBUG: Cek apakah file_links ada di response
-        if (Array.isArray(rawData) && rawData.length > 0) {
-            console.log("Sample file_links from first doc:", rawData[0]?.file_links);
-        }
 
         if (Array.isArray(rawData)) {
             allDocuments = rawData;
@@ -560,11 +621,9 @@ function handleSearch(keyword) {
 
     const term = keyword.toLowerCase();
 
-    // Ambil value dari filter cabang
     const filterSelect = document.getElementById("filter-cabang");
     const filterCabang = filterSelect ? filterSelect.value : "";
 
-    // Ambil value dari filter status (TAMBAHAN BARU)
     const filterStatusSelect = document.getElementById("filter-status");
     const filterStatus = filterStatusSelect ? filterStatusSelect.value : "";
 
@@ -573,13 +632,9 @@ function handleSearch(keyword) {
         const nama = (doc.nama_toko || "").toString().toLowerCase();
         const cabang = (doc.cabang || "").toString();
 
-        // 1. Cek Text Search
         const matchText = kode.includes(term) || nama.includes(term);
-
-        // 2. Cek Filter Cabang
         const matchCabang = filterCabang === "" || cabang === filterCabang;
 
-        // 3. Cek Filter Status Kelengkapan (LOGIKA BARU)
         let matchStatus = true;
         let statusValue = "";
         const statusCheck = checkDocumentCompleteness(doc.file_links);
@@ -595,14 +650,17 @@ function handleSearch(keyword) {
                 matchStatus = statusCheck.complete;
             }
         }
-        // Simpan status kelengkapan di dokumen
         doc._exportStatus = statusValue;
         return matchText && matchCabang && matchStatus;
     });
+    
     filteredDocuments.reverse();
     currentPage = 1;
     renderTable();
-    // Simpan data ke localStorage dengan field yang sesuai
+
+    // UPDATE DASHBOARD TARGET TIAP KALI FILTER BERUBAH
+    updateTargetDashboard();
+
     try {
         const exportData = filteredDocuments.map((doc) => ({
             kodeToko: doc.kode_toko || "",
@@ -614,7 +672,6 @@ function handleSearch(keyword) {
     } catch (e) { }
 }
 
-// Fungsi Helper: Cek Kelengkapan Dokumen
 function checkDocumentCompleteness(fileLinksString) {
     const mandatoryKeys = [
         "fotoExisting",
@@ -641,7 +698,7 @@ function checkDocumentCompleteness(fileLinksString) {
 
     const uploadedLower = fileLinksString.toLowerCase();
     const missingLabels = mandatoryKeys
-        .filter(key => !uploadedLower.includes(key.toLowerCase())) // Cek key hilang
+        .filter(key => !uploadedLower.includes(key.toLowerCase()))
         .map(key => {
             const cat = UPLOAD_CATEGORIES.find(c => c.key === key);
             return cat ? cat.label : key;
@@ -746,7 +803,6 @@ function renderPagination() {
 
     const totalPages = Math.ceil(filteredDocuments.length / itemsPerPage);
 
-    // Jika tidak ada data atau cuma 1 halaman, sembunyikan pagination tapi tetap rapi
     if (totalPages <= 1) {
         container.style.display = "none";
         return;
@@ -754,18 +810,15 @@ function renderPagination() {
 
     container.style.display = "flex";
 
-    // Update Info Halaman
     const pageInfo = document.getElementById("page-info");
     if (pageInfo) pageInfo.textContent = `Halaman ${currentPage} dari ${totalPages}`;
 
-    // Update State Tombol Prev
     const btnPrev = document.getElementById("btn-prev");
     if (btnPrev) {
         btnPrev.disabled = currentPage === 1;
         btnPrev.onclick = () => changePage(currentPage - 1);
     }
 
-    // Update State Tombol Next
     const btnNext = document.getElementById("btn-next");
     if (btnNext) {
         btnNext.disabled = currentPage === totalPages;
@@ -782,7 +835,6 @@ function changePage(newPage) {
 }
 
 window.handleEditClick = function (idOrCode) {
-    // Kita gunakan String() untuk memastikan perbandingan aman (misal "123" vs 123)
     const doc = allDocuments.find(d =>
         String(d._id) === String(idOrCode) ||
         String(d.id) === String(idOrCode) ||
@@ -797,7 +849,6 @@ window.handleEditClick = function (idOrCode) {
 };
 
 window.handleDeleteClick = async function (kode_toko) {
-
     if (!kode_toko) {
         alert("Kode Toko tidak valid.");
         return;
@@ -809,29 +860,20 @@ window.handleDeleteClick = async function (kode_toko) {
     showLoading(true);
 
     try {
-
         const url = `${BASE_URL}/api/doc/delete/${encodeURIComponent(kode_toko)}`;
-
         const res = await fetch(url, {
             method: "DELETE",
-            headers: {
-                "Content-Type": "application/json"
-            }
+            headers: { "Content-Type": "application/json" }
         });
 
         const result = await res.json();
-
-        if (!res.ok) {
-            throw new Error(result.message || result.detail || "Gagal menghapus data.");
-        }
+        if (!res.ok) throw new Error(result.message || result.detail || "Gagal menghapus data.");
 
         showToast("Data berhasil dihapus");
-
         await fetchDocuments();
 
     } catch (err) {
         console.error("Delete Error:", err);
-        // Tampilkan modal error yang sudah ada di script.js
         document.getElementById("error-msg").textContent = err.message;
         showModal("modal-error");
     } finally {
@@ -865,7 +907,7 @@ function updateCabangFilterOptions() {
 }
 
 // ==========================================
-// 5. SUBMIT HANDLER (PERBAIKAN UTAMA: TYPE SAFE)
+// 5. SUBMIT HANDLER 
 // ==========================================
 
 function fileToDataURL(file) {
@@ -925,80 +967,49 @@ function formatBytes(bytes) {
 async function compressPdfFile(file) {
     if (!PDF_COMPRESSION_ENABLED) {
         return {
-            file,
-            filename: file.name,
-            mimeType: "application/pdf",
-            compressed: false,
-            compressionKind: null,
-            sizeBefore: file.size,
-            sizeAfter: file.size
+            file, filename: file.name, mimeType: "application/pdf",
+            compressed: false, compressionKind: null, sizeBefore: file.size, sizeAfter: file.size
         };
     }
 
     if (!window.PDFLib || !window.PDFLib.PDFDocument) {
-        console.warn("PDFLib tidak tersedia, PDF dikirim tanpa kompresi");
         return {
-            file,
-            filename: file.name,
-            mimeType: "application/pdf",
-            compressed: false,
-            compressionKind: null,
-            sizeBefore: file.size,
-            sizeAfter: file.size
+            file, filename: file.name, mimeType: "application/pdf",
+            compressed: false, compressionKind: null, sizeBefore: file.size, sizeAfter: file.size
         };
     }
 
     try {
         const source = await file.arrayBuffer();
         const pdfDoc = await window.PDFLib.PDFDocument.load(source, {
-            updateMetadata: false,
-            ignoreEncryption: true
+            updateMetadata: false, ignoreEncryption: true
         });
 
         const saved = await pdfDoc.save({
-            useObjectStreams: true,
-            addDefaultPage: false,
-            objectsPerTick: 50
+            useObjectStreams: true, addDefaultPage: false, objectsPerTick: 50
         });
 
         const blob = new Blob([saved], { type: "application/pdf" });
 
         if (blob.size >= file.size) {
             return {
-                file,
-                filename: file.name,
-                mimeType: "application/pdf",
-                compressed: false,
-                compressionKind: null,
-                sizeBefore: file.size,
-                sizeAfter: file.size
+                file, filename: file.name, mimeType: "application/pdf",
+                compressed: false, compressionKind: null, sizeBefore: file.size, sizeAfter: file.size
             };
         }
 
         const compressedFile = new File([blob], file.name, {
-            type: "application/pdf",
-            lastModified: Date.now()
+            type: "application/pdf", lastModified: Date.now()
         });
 
         return {
-            file: compressedFile,
-            filename: compressedFile.name,
-            mimeType: compressedFile.type,
-            compressed: true,
-            compressionKind: "pdf",
-            sizeBefore: file.size,
-            sizeAfter: compressedFile.size
+            file: compressedFile, filename: compressedFile.name, mimeType: compressedFile.type,
+            compressed: true, compressionKind: "pdf", sizeBefore: file.size, sizeAfter: compressedFile.size
         };
     } catch (err) {
-        console.warn("Kompresi PDF gagal, fallback ke file asli:", err);
         return {
-            file,
-            filename: file.name,
-            mimeType: "application/pdf",
-            compressed: false,
-            compressionKind: null,
-            sizeBefore: file.size,
-            sizeAfter: file.size
+            file, filename: file.name, mimeType: "application/pdf",
+            compressed: false, compressionKind: null, sizeBefore: file.size, sizeAfter: file.size
         };
     }
 }
@@ -1034,30 +1045,19 @@ async function compressImageFile(file) {
 
         if (outputBlob.size >= file.size) {
             return {
-                file,
-                filename: file.name,
-                mimeType: file.type || "image/jpeg",
-                compressed: false,
-                compressionKind: null,
-                sizeBefore: file.size,
-                sizeAfter: file.size
+                file, filename: file.name, mimeType: file.type || "image/jpeg",
+                compressed: false, compressionKind: null, sizeBefore: file.size, sizeAfter: file.size
             };
         }
 
         const compressedFile = new File(
-            [outputBlob],
-            buildCompressedFileName(file.name),
+            [outputBlob], buildCompressedFileName(file.name),
             { type: "image/jpeg", lastModified: Date.now() }
         );
 
         return {
-            file: compressedFile,
-            filename: compressedFile.name,
-            mimeType: compressedFile.type,
-            compressed: true,
-            compressionKind: "image",
-            sizeBefore: file.size,
-            sizeAfter: compressedFile.size
+            file: compressedFile, filename: compressedFile.name, mimeType: compressedFile.type,
+            compressed: true, compressionKind: "image", sizeBefore: file.size, sizeAfter: compressedFile.size
         };
     } finally {
         URL.revokeObjectURL(objectUrl);
@@ -1074,13 +1074,8 @@ async function prepareUploadFile(file) {
     }
 
     return {
-        file,
-        filename: file.name,
-        mimeType: file.type || "application/octet-stream",
-        compressed: false,
-        compressionKind: null,
-        sizeBefore: file.size,
-        sizeAfter: file.size
+        file, filename: file.name, mimeType: file.type || "application/octet-stream",
+        compressed: false, compressionKind: null, sizeBefore: file.size, sizeAfter: file.size
     };
 }
 
@@ -1091,7 +1086,6 @@ async function handleFormSubmit(e) {
     document.getElementById("error-msg").textContent = "";
 
     try {
-        // === PAYLOAD SETUP ===
         const payload = {
             kode_toko: document.getElementById("kodeToko").value,
             nama_toko: document.getElementById("namaToko").value,
@@ -1107,39 +1101,27 @@ async function handleFormSubmit(e) {
             cabang: currentUser.cabang || "",
             email: currentUser.email || "",
             pic_name: currentUser.email || "",
-            email: currentUser.email || "",
-            files: [] // Array untuk file baru dan file yang dihapus
+            files: [] 
         };
 
-        console.log("=== DEBUG SUBMIT ===");
-        console.log("Is Editing:", isEditing);
-        console.log("Deleted Files List:", deletedFilesList);
-
-        // === TAMBAHKAN FILE YANG DIHAPUS (dengan flag deleted: true) ===
         deletedFilesList.forEach(item => {
             payload.files.push({
-                category: item.category,
-                filename: item.filename,
-                deleted: true
+                category: item.category, filename: item.filename, deleted: true
             });
         });
 
         const uploadTasks = [];
         for (const cat of UPLOAD_CATEGORIES) {
             const filesInBuffer = newFilesBuffer[cat.key] || [];
-            filesInBuffer.forEach(file => {
-                uploadTasks.push({ category: cat.key, file });
-            });
+            filesInBuffer.forEach(file => { uploadTasks.push({ category: cat.key, file }); });
         }
 
         beginUploadProgress(uploadTasks.length);
 
-        // === PROSES FILE BARU BERTAHAP AGAR MEMORY TIDAK LONJAK ===
         let processedFiles = 0;
         for (const task of uploadTasks) {
             setUploadProgress(
-                processedFiles,
-                uploadTasks.length,
+                processedFiles, uploadTasks.length,
                 `Memproses ${task.file.name} (${processedFiles + 1}/${uploadTasks.length})`
             );
 
@@ -1147,25 +1129,12 @@ async function handleFormSubmit(e) {
             const base64String = await fileToDataURL(prepared.file);
 
             payload.files.push({
-                category: task.category,
-                filename: prepared.filename,
-                type: prepared.mimeType,
-                data: base64String
+                category: task.category, filename: prepared.filename,
+                type: prepared.mimeType, data: base64String
             });
 
             processedFiles += 1;
-            setUploadProgress(
-                processedFiles,
-                uploadTasks.length,
-                `Siap kirim: ${prepared.filename}`
-            );
-
-            if (prepared.compressed) {
-                const kindLabel = prepared.compressionKind === "pdf" ? "PDF" : "IMAGE";
-                console.log(
-                    `${kindLabel} compressed: ${task.file.name} (${formatBytes(prepared.sizeBefore)} -> ${formatBytes(prepared.sizeAfter)})`
-                );
-            }
+            setUploadProgress(processedFiles, uploadTasks.length, `Siap kirim: ${prepared.filename}`);
         }
 
         if (uploadTasks.length === 0) {
@@ -1174,15 +1143,6 @@ async function handleFormSubmit(e) {
             setUploadProgress(uploadTasks.length, uploadTasks.length, "Semua file siap. Mengirim data ke server...");
         }
 
-        console.log("Payload files count:", payload.files.length);
-        console.log("Payload files:", payload.files.map(f => ({
-            category: f.category,
-            filename: f.filename,
-            deleted: f.deleted || false,
-            hasData: !!f.data
-        })));
-
-        // === KIRIM KE SERVER ===
         let url = `${BASE_URL}/api/doc/save`;
         let method = "POST";
 
@@ -1198,8 +1158,6 @@ async function handleFormSubmit(e) {
         });
 
         const result = await res.json();
-        console.log("Server response:", result);
-
         if (!res.ok) throw new Error(result.detail || result.message || "Gagal menyimpan data");
 
         showModal("modal-success");
@@ -1229,27 +1187,19 @@ function formatDecimalInput(value) {
 function showModal(id) { document.getElementById(id).style.display = "flex"; }
 function hideModal(id) {
     document.getElementById(id).style.display = "none";
-    if (id === "modal-success") {
-        showTable();
-    }
+    if (id === "modal-success") { showTable(); }
 }
 
 function showLoading(show) {
     const el = document.getElementById("loading-overlay");
     if (!el) return;
-
-    if (!show) {
-        resetUploadProgressUI();
-    }
-
+    if (!show) resetUploadProgressUI();
     el.style.display = show ? "flex" : "none";
 }
 
 function setLoadingMessage(message) {
     const textEl = document.getElementById("loading-text");
-    if (textEl) {
-        textEl.textContent = message || "Memuat...";
-    }
+    if (textEl) textEl.textContent = message || "Memuat...";
 }
 
 function beginUploadProgress(totalFiles) {
@@ -1313,30 +1263,17 @@ function setupAutoLogout() {
     ['mousemove', 'keypress', 'click', 'scroll'].forEach(evt => document.addEventListener(evt, () => idleTime = 0));
 }
 
-// ==========================================
-// Fitur Export to CSV (Dari Table/Filtered Data)
-// ==========================================
 function handleExportData() {
-    // 1. Cek apakah ada data
     if (!filteredDocuments || filteredDocuments.length === 0) {
         alert('Tidak ada data untuk diexport (Tabel kosong)!');
         return;
     }
 
-    // 2. Tentukan Header CSV
     const headers = [
-        'No',
-        'Kode Toko',
-        'Nama Toko',
-        'Cabang',
-        'Status Kelengkapan', // Kolom status hasil kalkulasi
-        'Jumlah Kekurangan',
-        'Waktu Update',
-        'Terakhir Diedit',
-        'Link Folder'
+        'No', 'Kode Toko', 'Nama Toko', 'Cabang', 'Status Kelengkapan',
+        'Jumlah Kekurangan', 'Waktu Update', 'Terakhir Diedit', 'Link Folder'
     ];
 
-    // 3. Map data dari filteredDocuments (sesuai filter user)
     const rows = filteredDocuments.map((doc, index) => {
         const statusCheck = checkDocumentCompleteness(doc.file_links);
         const statusText = statusCheck.complete ? "Sudah Lengkap" : "Belum Lengkap";
@@ -1356,17 +1293,9 @@ function handleExportData() {
         ];
     });
 
-    // 4. Gabungkan Header dan Rows menjadi String CSV
-    const csvContent = [
-        headers.join(','),
-        ...rows.map(row => row.join(','))
-    ].join('\n');
-
-    // 5. Buat Blob dan Download
+    const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-
-    // Format nama file dengan tanggal hari ini
     const date = new Date().toISOString().slice(0, 10);
     const filename = `Data_Dokumen_Toko_${date}.csv`;
 
@@ -1379,68 +1308,41 @@ function handleExportData() {
     URL.revokeObjectURL(url);
 }
 
-
-// ==========================================
-// Fitur Export to PDF (With Totals & Details)
-// ==========================================
 function handleExportToPDF() {
-    // 1. Cek Ketersediaan Library
     if (!window.jspdf) {
         alert("Library PDF belum dimuat. Pastikan Anda terhubung ke internet.");
         return;
     }
 
-    // 2. Cek Data
     if (!filteredDocuments || filteredDocuments.length === 0) {
         alert('Tidak ada data untuk diexport (Tabel kosong)!');
         return;
     }
 
     const { jsPDF } = window.jspdf;
-    // Gunakan orientasi 'l' (landscape) agar tabel muat banyak kolom
     const doc = new jsPDF('l', 'mm', 'a4');
 
-    // --- HITUNG TOTAL ---
     const totalData = filteredDocuments.length;
     let completeCount = 0;
     let incompleteCount = 0;
 
     const tableRows = filteredDocuments.map((docItem, index) => {
         const statusCheck = checkDocumentCompleteness(docItem.file_links);
-
-        if (statusCheck.complete) {
-            completeCount++;
-        } else {
-            incompleteCount++;
-        }
+        if (statusCheck.complete) completeCount++;
+        else incompleteCount++;
 
         const statusText = statusCheck.complete ? "Sudah Lengkap" : "Belum Lengkap";
-
-        // PERUBAHAN 1: Tampilkan list item kekurangan dipisah koma/baris baru
-        // Jika lengkap, strip (-). Jika kurang, gabungkan listnya.
         const missingText = statusCheck.complete ? "-" : statusCheck.missingList.join(', ');
-
-        // PERUBAHAN 2: Perbaiki pengambilan field Waktu Update (biasanya 'timestamp')
         const waktuUpdate = docItem.timestamp || docItem.updated_at || "-";
         const editor = docItem.last_edit || docItem.pic_name || "-";
 
-        // Format data untuk baris tabel
         return [
-            index + 1,
-            docItem.kode_toko || "-",
-            docItem.nama_toko || "-",
-            docItem.cabang || "-",
-            statusText,
-            missingText,   // Kolom 5: Sekarang berisi teks detail
-            waktuUpdate,   // Kolom 6: Sudah diperbaiki
-            editor
+            index + 1, docItem.kode_toko || "-", docItem.nama_toko || "-",
+            docItem.cabang || "-", statusText, missingText, waktuUpdate, editor
         ];
     });
 
-    // --- HEADER PDF ---
-    const today = new Date().toLocaleDateString('id-ID', {
-        day: 'numeric', month: 'long', year: 'numeric'
-    });
+    const today = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
 
     doc.setFontSize(16);
     doc.text("Laporan Status Dokumen Toko", 14, 15);
@@ -1448,11 +1350,9 @@ function handleExportToPDF() {
     doc.setFontSize(10);
     doc.text(`Tanggal Cetak: ${today}`, 14, 22);
 
-    // Tampilkan Filter Info
     const activeCabang = document.getElementById("filter-cabang")?.value || "Semua Cabang";
     doc.text(`Filter Cabang: ${activeCabang}`, 14, 27);
 
-    // --- BAGIAN TOTAL (SUMMARY) ---
     doc.setDrawColor(0);
     doc.setFillColor(240, 240, 240);
     doc.rect(14, 32, 100, 20, 'F');
@@ -1461,35 +1361,32 @@ function handleExportToPDF() {
     doc.setTextColor(0, 0, 0);
     doc.text(`Total Toko: ${totalData}`, 18, 38);
 
-    doc.setTextColor(0, 100, 0); // Hijau
+    doc.setTextColor(0, 100, 0); 
     doc.text(`Sudah Lengkap: ${completeCount}`, 18, 43);
 
-    doc.setTextColor(200, 0, 0); // Merah
+    doc.setTextColor(200, 0, 0); 
     doc.text(`Belum Lengkap: ${incompleteCount}`, 18, 48);
 
-    doc.setTextColor(0, 0, 0); // Reset Hitam
+    doc.setTextColor(0, 0, 0); 
 
-    // --- GENERATE TABEL ---
     doc.autoTable({
         startY: 55,
-        // Update header kolom ke-6 jadi 'Detail Kekurangan'
         head: [['No', 'Kode', 'Nama Toko', 'Cabang', 'Status', 'Detail Kekurangan', 'Update Terakhir', 'Editor']],
         body: tableRows,
         theme: 'grid',
         headStyles: { fillColor: [41, 128, 185], valign: 'middle', halign: 'center' },
-        styles: { fontSize: 8, valign: 'top' }, // Font dikecilkan sedikit agar muat
+        styles: { fontSize: 8, valign: 'top' }, 
         columnStyles: {
-            0: { cellWidth: 10, halign: 'center' }, // No
-            1: { cellWidth: 15 }, // Kode
-            2: { cellWidth: 40 }, // Nama Toko
-            3: { cellWidth: 20 }, // Cabang
-            4: { cellWidth: 25 }, // Status
-            5: { cellWidth: 80 }, // Detail Kekurangan (Dibuat LEBAR agar muat list item)
-            6: { cellWidth: 35 }, // Update Terakhir
-            7: { cellWidth: 'auto' } // Editor (Sisa ruang)
+            0: { cellWidth: 10, halign: 'center' }, 
+            1: { cellWidth: 15 }, 
+            2: { cellWidth: 40 }, 
+            3: { cellWidth: 20 }, 
+            4: { cellWidth: 25 }, 
+            5: { cellWidth: 80 }, 
+            6: { cellWidth: 35 }, 
+            7: { cellWidth: 'auto' } 
         },
         didParseCell: function (data) {
-            // Warnai teks status
             if (data.section === 'body' && data.column.index === 4) {
                 if (data.cell.raw === 'Belum Lengkap') {
                     data.cell.styles.textColor = [200, 0, 0];
@@ -1499,12 +1396,9 @@ function handleExportToPDF() {
                     data.cell.styles.fontStyle = 'bold';
                 }
             }
-            // Khusus kolom 'Detail Kekurangan', jika teks panjang otomatis akan wrap (turun baris)
-            // karena sifat default autoTable.
         }
     });
 
-    // --- SAVE FILE ---
     const dateStr = new Date().toISOString().slice(0, 10);
     doc.save(`Laporan_Dokumen_${dateStr}.pdf`);
 }
