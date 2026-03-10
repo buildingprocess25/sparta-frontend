@@ -190,14 +190,18 @@ function updateTargetDashboard() {
 
     if (isHeadOffice) {
         if (selectedCabang === "") {
-            // Semua Cabang
+            // Jika filter "Semua Cabang", jumlahkan semuanya
             targetDataDb.forEach(item => {
-                targetReguler += item.reguler || 0;
-                targetFranchise += item.franchise || 0;
-                targetTotal += item.total || 0;
+                const namaCabang = (item.cabang || "").toUpperCase();
+                // PENTING: Abaikan baris di Sheets yang bernama "TOTAL" atau "JUMLAH" agar tidak double
+                if (!namaCabang.includes("TOTAL") && !namaCabang.includes("JUMLAH") && !namaCabang.includes("GRAND")) {
+                    targetReguler += item.reguler || 0;
+                    targetFranchise += item.franchise || 0;
+                    targetTotal += item.total || 0;
+                }
             });
         } else {
-            // Berdasarkan filter
+            // Berdasarkan filter cabang yang dipilih
             const found = targetDataDb.find(item => item.cabang === selectedCabang);
             if (found) {
                 targetReguler = found.reguler || 0;
@@ -206,7 +210,7 @@ function updateTargetDashboard() {
             }
         }
     } else {
-        // User biasa
+        // User cabang biasa
         const myCabang = currentUser.cabang.toUpperCase();
         const found = targetDataDb.find(item => item.cabang === myCabang);
         if (found) {
@@ -216,10 +220,12 @@ function updateTargetDashboard() {
         }
     }
 
+    // Update Angka di UI Dashboard
     document.getElementById("ui-target-reguler").textContent = targetReguler;
     document.getElementById("ui-target-franchise").textContent = targetFranchise;
     document.getElementById("ui-target-total").textContent = targetTotal;
 
+    // Kalkulasi Progress Bar
     const currentInputted = filteredDocuments.length;
     let persentase = 0;
     
