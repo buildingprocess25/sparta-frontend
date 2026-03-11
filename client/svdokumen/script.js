@@ -1434,7 +1434,6 @@ function handleExportToExcel() {
         const waktuUpdate = docItem.timestamp || docItem.updated_at || "-";
         const editor = docItem.last_edit || docItem.pic_name || "-";
 
-        // Object ini akan otomatis menjadi header dan isian baris di Excel
         return {
             "No": index + 1,
             "Kode Toko": docItem.kode_toko || "-",
@@ -1448,10 +1447,10 @@ function handleExportToExcel() {
         };
     });
 
-    // 2. Buat Worksheet (lembar kerja) dari data JSON di atas
+    // 2. Buat Worksheet (lembar kerja)
     const worksheet = XLSX.utils.json_to_sheet(excelData);
 
-    // 3. Atur lebar kolom (width characters/wch) agar rapi dan tidak berantakan
+    // 3. Atur lebar kolom (width characters/wch)
     const colWidths = [
         { wch: 5 },   // No
         { wch: 15 },  // Kode Toko
@@ -1465,11 +1464,52 @@ function handleExportToExcel() {
     ];
     worksheet['!cols'] = colWidths;
 
-    // 4. Buat Workbook (file Excel-nya) dan masukkan worksheet
+    // 4. Tambahkan STYLING (Garis Tabel & Warna Header)
+    const range = XLSX.utils.decode_range(worksheet['!ref']);
+
+    // Looping ke setiap sel yang ada datanya
+    for (let R = range.s.r; R <= range.e.r; ++R) {
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+            const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+            if (!worksheet[cellAddress]) continue;
+
+            // Buat default style jika belum ada
+            worksheet[cellAddress].s = worksheet[cellAddress].s || {};
+
+            // Tambahkan Garis (Border) Tipis untuk semua sel
+            worksheet[cellAddress].s.border = {
+                top: { style: "thin", color: { rgb: "000000" } },
+                bottom: { style: "thin", color: { rgb: "000000" } },
+                left: { style: "thin", color: { rgb: "000000" } },
+                right: { style: "thin", color: { rgb: "000000" } }
+            };
+
+            // Atur alignment teks (Vertical center)
+            worksheet[cellAddress].s.alignment = { vertical: "center", wrapText: true };
+
+            // STYLING KHUSUS HEADER (Baris ke-0)
+            if (R === 0) {
+                worksheet[cellAddress].s.fill = {
+                    patternType: "solid",
+                    fgColor: { rgb: "E2E8F0" } // Warna abu-abu kebiruan muda (kalem)
+                };
+                worksheet[cellAddress].s.font = { 
+                    bold: true, 
+                    color: { rgb: "1E293B" } // Warna teks abu-abu gelap
+                };
+                worksheet[cellAddress].s.alignment = { horizontal: "center", vertical: "center" };
+            } 
+            // Opsional: Buat teks "No" dan "Status Kelengkapan" rata tengah
+            else if (C === 0 || C === 4) {
+                worksheet[cellAddress].s.alignment = { horizontal: "center", vertical: "center" };
+            }
+        }
+    }
+
+    // 5. Buat Workbook dan mulai proses download
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Status Dokumen");
 
-    // 5. Generate file dan mulai proses download
     const dateStr = new Date().toISOString().slice(0, 10);
     XLSX.writeFile(workbook, `Data_Dokumen_Toko_${dateStr}.xlsx`);
 }
