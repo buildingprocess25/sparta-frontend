@@ -1481,18 +1481,20 @@ function handleExportToExcel() {
         ];
     });
 
-    // Susun worksheet menggunakan Array of Arrays (agar bisa menyisipkan Kop / Header Laporan di baris awal)
+    // Susun worksheet dengan menambahkan string kosong "" agar library dapat membaca cell untuk diberi garis
     const aoa = [
-        ["LAPORAN STATUS DOKUMEN TOKO"],
-        [`Tanggal Cetak: ${today}`],
-        [`Filter Cabang: ${activeCabang}`],
-        [],
-        ["RINGKASAN DATA", "", "", "TARGET TOKO"], 
-        [`Total Data: ${filteredDocuments.length}`, "", "", `Target Reguler: ${targets.reguler}`],
-        [`Sudah Lengkap: ${completeCount}`, "", "", `Target Franchise: ${targets.franchise}`],     
-        [`Belum Lengkap: ${incompleteCount}`, "", "", `Target Total: ${targets.total}`],           
-        [],
-        ["No", "Kode Toko", "Nama Toko", "Cabang", "Status Kelengkapan", "Detail Kekurangan", "Waktu Update", "Terakhir Diedit", "Link Folder"], // Header Tabel
+        ["LAPORAN STATUS DOKUMEN TOKO", "", "", "", "", "", "", "", ""],
+        [`Tanggal Cetak: ${today}`, "", "", "", "", "", "", "", ""],
+        [`Filter Cabang: ${activeCabang}`, "", "", "", "", "", "", "", ""],
+        ["", "", "", "", "", "", "", "", ""],
+        // Baris Header Ringkasan & Target
+        ["RINGKASAN DATA", "", "", "TARGET TOKO", "", "", "", "", ""], 
+        [`Total Data: ${filteredDocuments.length}`, "", "", `Target Reguler: ${targets.reguler}`, "", "", "", "", ""],
+        [`Sudah Lengkap: ${completeCount}`, "", "", `Target Franchise: ${targets.franchise}`, "", "", "", "", ""],     
+        [`Belum Lengkap: ${incompleteCount}`, "", "", `Target Total: ${targets.total}`, "", "", "", "", ""],           
+        ["", "", "", "", "", "", "", "", ""],
+        // Header Tabel Utama
+        ["No", "Kode Toko", "Nama Toko", "Cabang", "Status Kelengkapan", "Detail Kekurangan", "Waktu Update", "Terakhir Diedit", "Link Folder"],
         ...excelDataRows
     ];
 
@@ -1511,16 +1513,28 @@ function handleExportToExcel() {
         { wch: 45 }   // Link Folder
     ];
 
-    // Merge/gabungkan kolom untuk kerapihan Kop Laporan
+    // Merge/gabungkan kolom agar layout informasi atas presisi
     worksheet['!merges'] = [
         { s: { r: 0, c: 0 }, e: { r: 0, c: 8 } }, // Judul
-        { s: { r: 4, c: 0 }, e: { r: 4, c: 1 } }, // Header Ringkasan Data
-        { s: { r: 4, c: 3 }, e: { r: 4, c: 4 } }  // Header Target Toko
+        { s: { r: 1, c: 0 }, e: { r: 1, c: 2 } }, // Tanggal
+        { s: { r: 2, c: 0 }, e: { r: 2, c: 2 } }, // Filter
+        
+        // Merge Kotak Ringkasan Data (Kolom 0 sampai 1)
+        { s: { r: 4, c: 0 }, e: { r: 4, c: 1 } },
+        { s: { r: 5, c: 0 }, e: { r: 5, c: 1 } },
+        { s: { r: 6, c: 0 }, e: { r: 6, c: 1 } },
+        { s: { r: 7, c: 0 }, e: { r: 7, c: 1 } },
+
+        // Merge Kotak Target Toko (Kolom 3 sampai 4)
+        { s: { r: 4, c: 3 }, e: { r: 4, c: 4 } },
+        { s: { r: 5, c: 3 }, e: { r: 5, c: 4 } },
+        { s: { r: 6, c: 3 }, e: { r: 6, c: 4 } },
+        { s: { r: 7, c: 3 }, e: { r: 7, c: 4 } }
     ];
 
     const range = XLSX.utils.decode_range(worksheet['!ref']);
 
-    // Looping styling
+    // Looping styling cell
     for (let R = range.s.r; R <= range.e.r; ++R) {
         for (let C = range.s.c; C <= range.e.c; ++C) {
             const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
@@ -1529,28 +1543,51 @@ function handleExportToExcel() {
             worksheet[cellAddress].s = worksheet[cellAddress].s || {};
             worksheet[cellAddress].s.alignment = { vertical: "center", wrapText: true };
 
-            // Styling Judul Laporan
+            // 1. Styling Judul Laporan Utama
             if (R === 0 && C === 0) {
-                worksheet[cellAddress].s.font = { bold: true, sz: 14 };
+                worksheet[cellAddress].s.font = { bold: true, sz: 14, color: { rgb: "1E293B" } };
                 worksheet[cellAddress].s.alignment = { horizontal: "center", vertical: "center" };
             }
-            
-            // Styling Header Ringkasan & Target
-            if (R === 4 && (C === 0 || C === 3)) {
-                worksheet[cellAddress].s.font = { bold: true, color: { rgb: "1E293B" } };
+
+            // 2. Styling Khusus Kotak Ringkasan & Target (Baris 4 sampai 7)
+            if (R >= 4 && R <= 7) {
+                const isRingkasanArea = (C === 0 || C === 1);
+                const isTargetArea = (C === 3 || C === 4);
+
+                if (isRingkasanArea || isTargetArea) {
+                    // Garis border kalem untuk kotak info
+                    worksheet[cellAddress].s.border = {
+                        top: { style: "thin", color: { rgb: "CBD5E1" } },
+                        bottom: { style: "thin", color: { rgb: "CBD5E1" } },
+                        left: { style: "thin", color: { rgb: "CBD5E1" } },
+                        right: { style: "thin", color: { rgb: "CBD5E1" } }
+                    };
+
+                    // Header di dalam kotak info (Baris 4)
+                    if (R === 4) {
+                        worksheet[cellAddress].s.fill = { patternType: "solid", fgColor: { rgb: "F1F5F9" } }; // Abu-abu sangat muda/kalem
+                        worksheet[cellAddress].s.font = { bold: true, color: { rgb: "334155" } };
+                        worksheet[cellAddress].s.alignment = { horizontal: "center", vertical: "center" };
+                    } else {
+                        // Perataan teks kiri untuk isi data
+                        if (C === 0 || C === 3) {
+                            worksheet[cellAddress].s.alignment = { horizontal: "left", vertical: "center" };
+                        }
+                    }
+                }
             }
 
-            // Styling khusus area Tabel Data (Baris ke-9 ke bawah)
+            // 3. Styling area Tabel Data (Baris 9 ke bawah)
             if (R >= 9) {
                 worksheet[cellAddress].s.border = {
-                    top: { style: "thin", color: { rgb: "000000" } },
-                    bottom: { style: "thin", color: { rgb: "000000" } },
-                    left: { style: "thin", color: { rgb: "000000" } },
-                    right: { style: "thin", color: { rgb: "000000" } }
+                    top: { style: "thin", color: { rgb: "94A3B8" } }, // Border tabel sedikit lebih gelap dari border info
+                    bottom: { style: "thin", color: { rgb: "94A3B8" } },
+                    left: { style: "thin", color: { rgb: "94A3B8" } },
+                    right: { style: "thin", color: { rgb: "94A3B8" } }
                 };
             }
 
-            // Styling Header Tabel (Baris ke-9)
+            // Styling Header Tabel Data (Baris 9)
             if (R === 9) { 
                 worksheet[cellAddress].s.fill = { patternType: "solid", fgColor: { rgb: "E2E8F0" } };
                 worksheet[cellAddress].s.font = { bold: true, color: { rgb: "1E293B" } };
