@@ -1273,11 +1273,22 @@ function setupAutoLogout() {
     ['mousemove', 'keypress', 'click', 'scroll'].forEach(evt => document.addEventListener(evt, () => idleTime = 0));
 }
 
+function getUIDashboardTargets() {
+    return {
+        reguler: document.getElementById("ui-target-reguler")?.textContent || "0",
+        franchise: document.getElementById("ui-target-franchise")?.textContent || "0",
+        total: document.getElementById("ui-target-total")?.textContent || "0"
+    };
+}
+
 function handleExportData() {
     if (!filteredDocuments || filteredDocuments.length === 0) {
         alert('Tidak ada data untuk diexport (Tabel kosong)!');
         return;
     }
+
+    const targets = getUIDashboardTargets();
+    const activeCabang = document.getElementById("filter-cabang")?.value || (currentUser.cabang.toLowerCase() === 'head office' ? 'Semua Cabang' : currentUser.cabang);
 
     const headers = [
         'No', 'Kode Toko', 'Nama Toko', 'Cabang', 'Status Kelengkapan',
@@ -1303,7 +1314,17 @@ function handleExportData() {
         ];
     });
 
-    const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+    // Tambahkan Data Target di atas tabel pada file CSV
+    const infoLines = [
+        `"Laporan Status Dokumen Toko"`,
+        `"Filter Cabang:","${activeCabang}"`,
+        `"Target Reguler:","${targets.reguler}"`,
+        `"Target Franchise:","${targets.franchise}"`,
+        `"Target Total:","${targets.total}"`,
+        `` // Baris kosong pemisah
+    ];
+
+    const csvContent = infoLines.join('\n') + '\n' + headers.join(',') + '\n' + rows.map(row => row.join(',')).join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const date = new Date().toISOString().slice(0, 10);
@@ -1353,34 +1374,40 @@ function handleExportToPDF() {
     });
 
     const today = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+    const activeCabang = document.getElementById("filter-cabang")?.value || (currentUser.cabang.toLowerCase() === 'head office' ? 'Semua Cabang' : currentUser.cabang);
+    const targets = getUIDashboardTargets();
 
     doc.setFontSize(16);
     doc.text("Laporan Status Dokumen Toko", 14, 15);
 
     doc.setFontSize(10);
     doc.text(`Tanggal Cetak: ${today}`, 14, 22);
-
-    const activeCabang = document.getElementById("filter-cabang")?.value || "Semua Cabang";
     doc.text(`Filter Cabang: ${activeCabang}`, 14, 27);
 
+    // Box ringkasan diperlebar untuk memuat data Target
     doc.setDrawColor(0);
     doc.setFillColor(240, 240, 240);
-    doc.rect(14, 32, 100, 20, 'F');
+    doc.rect(14, 32, 160, 20, 'F'); 
 
+    // Kolom Kiri: Status Kelengkapan
     doc.setFontSize(10);
     doc.setTextColor(0, 0, 0);
     doc.text(`Total Toko: ${totalData}`, 18, 38);
-
     doc.setTextColor(0, 100, 0); 
     doc.text(`Sudah Lengkap: ${completeCount}`, 18, 43);
-
     doc.setTextColor(200, 0, 0); 
     doc.text(`Belum Lengkap: ${incompleteCount}`, 18, 48);
+
+    // Kolom Kanan: Target Toko
+    doc.setTextColor(0, 0, 0); 
+    doc.text(`Target Reguler: ${targets.reguler}`, 90, 38);
+    doc.text(`Target Franchise: ${targets.franchise}`, 90, 43);
+    doc.text(`Target Total: ${targets.total}`, 90, 48);
 
     doc.setTextColor(0, 0, 0); 
 
     doc.autoTable({
-        startY: 55,
+        startY: 57,
         head: [['No', 'Kode', 'Nama Toko', 'Cabang', 'Status', 'Detail Kekurangan', 'Update Terakhir', 'Editor']],
         body: tableRows,
         theme: 'grid',
@@ -1424,34 +1451,55 @@ function handleExportToExcel() {
         return;
     }
 
-    // 1. Siapkan data baris per baris
-    const excelData = filteredDocuments.map((docItem, index) => {
+    const activeCabang = document.getElementById("filter-cabang")?.value || (currentUser.cabang.toLowerCase() === 'head office' ? 'Semua Cabang' : currentUser.cabang);
+    const targets = getUIDashboardTargets();
+    const today = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    let completeCount = 0;
+    let incompleteCount = 0;
+
+    const excelDataRows = filteredDocuments.map((docItem, index) => {
         const statusCheck = checkDocumentCompleteness(docItem.file_links);
+        if (statusCheck.complete) completeCount++; else incompleteCount++;
+        
         const statusText = statusCheck.complete ? "Sudah Lengkap" : "Belum Lengkap";
         const missingText = statusCheck.complete ? "-" : statusCheck.missingList.join(', ');
-        
         const folderUrl = docItem.folder_link || docItem.folder_drive || docItem.folder_url || "-";
         const waktuUpdate = docItem.timestamp || docItem.updated_at || "-";
         const editor = docItem.last_edit || docItem.pic_name || "-";
 
-        return {
-            "No": index + 1,
-            "Kode Toko": docItem.kode_toko || "-",
-            "Nama Toko": docItem.nama_toko || "-",
-            "Cabang": docItem.cabang || "-",
-            "Status Kelengkapan": statusText,
-            "Detail Kekurangan": missingText,
-            "Waktu Update": waktuUpdate,
-            "Terakhir Diedit": editor,
-            "Link Folder": folderUrl
-        };
+        return [
+            index + 1,
+            docItem.kode_toko || "-",
+            docItem.nama_toko || "-",
+            docItem.cabang || "-",
+            statusText,
+            missingText,
+            waktuUpdate,
+            editor,
+            folderUrl
+        ];
     });
 
-    // 2. Buat Worksheet (lembar kerja)
-    const worksheet = XLSX.utils.json_to_sheet(excelData);
+    // Susun worksheet menggunakan Array of Arrays (agar bisa menyisipkan Kop / Header Laporan di baris awal)
+    const aoa = [
+        ["LAPORAN STATUS DOKUMEN TOKO"],
+        [`Tanggal Cetak: ${today}`],
+        [`Filter Cabang: ${activeCabang}`],
+        [],
+        ["RINGKASAN DATA", "", "", "TARGET TOKO"], 
+        [`Total Data: ${filteredDocuments.length}`, "", "", `Target Reguler: ${targets.reguler}`],
+        [`Sudah Lengkap: ${completeCount}`, "", "", `Target Franchise: ${targets.franchise}`],     
+        [`Belum Lengkap: ${incompleteCount}`, "", "", `Target Total: ${targets.total}`],           
+        [],
+        ["No", "Kode Toko", "Nama Toko", "Cabang", "Status Kelengkapan", "Detail Kekurangan", "Waktu Update", "Terakhir Diedit", "Link Folder"], // Header Tabel
+        ...excelDataRows
+    ];
 
-    // 3. Atur lebar kolom (width characters/wch)
-    const colWidths = [
+    const worksheet = XLSX.utils.aoa_to_sheet(aoa);
+
+    // Lebar Kolom
+    worksheet['!cols'] = [
         { wch: 5 },   // No
         { wch: 15 },  // Kode Toko
         { wch: 35 },  // Nama Toko
@@ -1462,51 +1510,59 @@ function handleExportToExcel() {
         { wch: 25 },  // Terakhir Diedit
         { wch: 45 }   // Link Folder
     ];
-    worksheet['!cols'] = colWidths;
 
-    // 4. Tambahkan STYLING (Garis Tabel & Warna Header)
+    // Merge/gabungkan kolom untuk kerapihan Kop Laporan
+    worksheet['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 8 } }, // Judul
+        { s: { r: 4, c: 0 }, e: { r: 4, c: 1 } }, // Header Ringkasan Data
+        { s: { r: 4, c: 3 }, e: { r: 4, c: 4 } }  // Header Target Toko
+    ];
+
     const range = XLSX.utils.decode_range(worksheet['!ref']);
 
-    // Looping ke setiap sel yang ada datanya
+    // Looping styling
     for (let R = range.s.r; R <= range.e.r; ++R) {
         for (let C = range.s.c; C <= range.e.c; ++C) {
             const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
             if (!worksheet[cellAddress]) continue;
 
-            // Buat default style jika belum ada
             worksheet[cellAddress].s = worksheet[cellAddress].s || {};
-
-            // Tambahkan Garis (Border) Tipis untuk semua sel
-            worksheet[cellAddress].s.border = {
-                top: { style: "thin", color: { rgb: "000000" } },
-                bottom: { style: "thin", color: { rgb: "000000" } },
-                left: { style: "thin", color: { rgb: "000000" } },
-                right: { style: "thin", color: { rgb: "000000" } }
-            };
-
-            // Atur alignment teks (Vertical center)
             worksheet[cellAddress].s.alignment = { vertical: "center", wrapText: true };
 
-            // STYLING KHUSUS HEADER (Baris ke-0)
-            if (R === 0) {
-                worksheet[cellAddress].s.fill = {
-                    patternType: "solid",
-                    fgColor: { rgb: "E2E8F0" } // Warna abu-abu kebiruan muda (kalem)
+            // Styling Judul Laporan
+            if (R === 0 && C === 0) {
+                worksheet[cellAddress].s.font = { bold: true, sz: 14 };
+                worksheet[cellAddress].s.alignment = { horizontal: "center", vertical: "center" };
+            }
+            
+            // Styling Header Ringkasan & Target
+            if (R === 4 && (C === 0 || C === 3)) {
+                worksheet[cellAddress].s.font = { bold: true, color: { rgb: "1E293B" } };
+            }
+
+            // Styling khusus area Tabel Data (Baris ke-9 ke bawah)
+            if (R >= 9) {
+                worksheet[cellAddress].s.border = {
+                    top: { style: "thin", color: { rgb: "000000" } },
+                    bottom: { style: "thin", color: { rgb: "000000" } },
+                    left: { style: "thin", color: { rgb: "000000" } },
+                    right: { style: "thin", color: { rgb: "000000" } }
                 };
-                worksheet[cellAddress].s.font = { 
-                    bold: true, 
-                    color: { rgb: "1E293B" } // Warna teks abu-abu gelap
-                };
+            }
+
+            // Styling Header Tabel (Baris ke-9)
+            if (R === 9) { 
+                worksheet[cellAddress].s.fill = { patternType: "solid", fgColor: { rgb: "E2E8F0" } };
+                worksheet[cellAddress].s.font = { bold: true, color: { rgb: "1E293B" } };
                 worksheet[cellAddress].s.alignment = { horizontal: "center", vertical: "center" };
             } 
-            // Opsional: Buat teks "No" dan "Status Kelengkapan" rata tengah
-            else if (C === 0 || C === 4) {
-                worksheet[cellAddress].s.alignment = { horizontal: "center", vertical: "center" };
+            // Posisi tengah untuk kolom No(0) & Status Kelengkapan(4) di body tabel
+            else if (R > 9 && (C === 0 || C === 4)) {
+                worksheet[cellAddress].s.alignment = { horizontal: "center", vertical: "center", wrapText: true };
             }
         }
     }
 
-    // 5. Buat Workbook dan mulai proses download
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Status Dokumen");
 
