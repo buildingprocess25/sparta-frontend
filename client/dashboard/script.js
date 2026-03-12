@@ -125,7 +125,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const totalProyekCard = document.getElementById('card-total-proyek-wrapper');
     const totalPenawaranCard = document.getElementById('card-total-penawaran-wrapper'); 
     const totalSpkCard = document.getElementById('card-total-spk-wrapper'); 
-    const totalJhkCard = document.getElementById('card-total-jhk-wrapper'); 
+    const totalJhkCard = document.getElementById('card-total-jhk-wrapper');
+    const totalDendaCard = document.getElementById('card-total-denda-wrapper');
     const avgCostM2Card = document.getElementById('card-avg-cost-m2-wrapper'); 
     const avgKeterlambatanCard = document.getElementById('card-avg-keterlambatan-wrapper');
     const nilaiTokoCard = document.getElementById('card-nilai-toko-wrapper');
@@ -151,6 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentCostGroups = [];
     let currentKontraktorGroups = [];
     let currentBeanspotItems = [];
+    let currentDendaItems = [];
 
     // --- FETCH & FILTER LOGIC ---
     async function initDashboardData() {
@@ -257,6 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const groupedKontraktorData = {};
         let sumBeanspot = 0, countBeanspot = 0;
         currentBeanspotItems = [];
+        currentDendaItems = [];
         
         let miniStats = { 'Approval RAB': 0, 'Proses PJU': 0, 'Approval SPK': 0, 'Ongoing': 0, 'Proses Kerja Tambah Kurang': 0, 'Done': 0 };
         currentGroupedProjects = { 'Approval RAB': [], 'Proses PJU': [], 'Approval SPK': [], 'Ongoing': [], 'Proses Kerja Tambah Kurang': [], 'Done': [] };
@@ -276,6 +279,9 @@ document.addEventListener('DOMContentLoaded', () => {
             totalJHK += (durasiSpk + tambahSpk + keterlambatan);
             totalKeterlambatan += keterlambatan;
             totalDenda += parseCurrency(item["Denda"]);
+            if (parseCurrency(item["Denda"]) > 0) {
+                currentDendaItems.push(item);
+            }
             totalOpname += parseCurrency(item["Grand Total Opname Final"]);
             
             const ulok = item["Nomor Ulok"] || 'Tanpa Ulok-' + Math.random();
@@ -872,11 +878,53 @@ document.addEventListener('DOMContentLoaded', () => {
         if (projectModal) projectModal.style.display = 'flex';
     };
 
+    const showTotalDendaDetails = () => {
+        if (!filteredData || filteredData.length === 0) return; 
+        
+        currentModalContext = 'DENDA';
+        if (modalMainTitle) modalMainTitle.textContent = "Daftar Toko Terkena Denda";
+        if (btnBackToSummary) btnBackToSummary.style.display = 'none';
+
+        // Urutkan dari nominal denda terbesar ke terkecil
+        const sortedItems = [...currentDendaItems].sort((a, b) => parseCurrency(b["Denda"]) - parseCurrency(a["Denda"]));
+
+        if(listStatusTitle) listStatusTitle.textContent = `Total Toko Terkena Denda (${sortedItems.length})`;
+
+        if (storeListContainer) {
+            if (sortedItems.length === 0) {
+                storeListContainer.innerHTML = '<div style="text-align:center; color:#718096; padding: 30px;">Tidak ada data proyek yang terkena denda.</div>';
+            } else {
+                storeListContainer.innerHTML = sortedItems.map((item) => {
+                    const dendaVal = parseCurrency(item["Denda"]);
+                    const telat = parseFloat(item["Keterlambatan"]) || 0;
+                    return `
+                    <div class="store-item" style="cursor: default; border-color: #fecaca;">
+                        <div class="store-info">
+                            <strong>${item.Nama_Toko || 'Tanpa Nama'}</strong>
+                            <span>Ulok: ${item["Nomor Ulok"] || '-'} | Telat: <b style="color: #e53e3e;">${telat} Hari</b></span>
+                        </div>
+                        <div class="store-badge" style="background:#fee2e2; color:#b91c1c; border: 1px solid #fecaca; font-size: 13px;">
+                            ${formatRupiah(dendaVal)}
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+        }
+        
+        if (modalSummaryView && modalListView && modalStoreDetailView) { 
+            modalSummaryView.style.display = 'none'; 
+            modalStoreDetailView.style.display = 'none'; 
+            modalListView.style.display = 'block'; 
+        }
+        if (projectModal) projectModal.style.display = 'flex';
+    };
+
     // --- EVENT LISTENERS ---
     if(totalProyekCard) totalProyekCard.addEventListener('click', showProjectDetails);
     if(totalPenawaranCard) totalPenawaranCard.addEventListener('click', showPenawaranDetails); 
     if(totalSpkCard) totalSpkCard.addEventListener('click', showSpkDetails); 
-    if(totalJhkCard) totalJhkCard.addEventListener('click', showJhkDetails); 
+    if(totalJhkCard) totalJhkCard.addEventListener('click', showJhkDetails);
+    if(totalDendaCard) totalDendaCard.addEventListener('click', showTotalDendaDetails);
     if(avgCostM2Card) avgCostM2Card.addEventListener('click', showAvgCostM2Details); 
     if(avgKeterlambatanCard) avgKeterlambatanCard.addEventListener('click', showKeterlambatanDetails); 
     if(nilaiTokoCard) nilaiTokoCard.addEventListener('click', showNilaiTokoDetails);
