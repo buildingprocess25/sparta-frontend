@@ -130,6 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const avgKeterlambatanCard = document.getElementById('card-avg-keterlambatan-wrapper');
     const nilaiTokoCard = document.getElementById('card-nilai-toko-wrapper');
     const nilaiKontraktorCard = document.getElementById('card-nilai-kontraktor-wrapper');
+    const avgBeanspotCard = document.getElementById('card-avg-beanspot-wrapper');
     
     const modalMainTitle = document.getElementById('modalMainTitle'); 
     const modalSummaryView = document.getElementById('modalSummaryView');
@@ -254,7 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let uniqueUlokLuas = {}, sumNilaiToko = 0, countNilaiToko = 0, countKeterlambatan = 0;
         let sumAvgKontraktor = 0, countKontraktorGroups = 0;
         const groupedKontraktorData = {};
-        let sumBeanspot = 0, countBeanspot = 0;U
+        let sumBeanspot = 0, countBeanspot = 0;
         currentBeanspotItems = [];
         
         let miniStats = { 'Approval RAB': 0, 'Proses PJU': 0, 'Approval SPK': 0, 'Ongoing': 0, 'Proses Kerja Tambah Kurang': 0, 'Done': 0 };
