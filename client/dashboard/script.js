@@ -32,6 +32,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const isHO = userCabang.toUpperCase() === 'HEAD OFFICE'; 
     const currentRole = userRole.toUpperCase();
     const isContractor = currentRole === 'KONTRAKTOR';
+
+    const BRANCH_GROUPS = {
+        "LOMBOK": ["LOMBOK", "SUMBAWA"],
+        "MEDAN": ["MEDAN", "ACEH"],
+        "LAMPUNG": ["LAMPUNG", "LAMPUNG_KOTABUMI"],
+        "PALEMBANG": ["PALEMBANG", "BENGKULU", "BANGKA", "BELITUNG"],
+        "SIDOARJO": ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"]
+    };
+    const userBranchGroup = BRANCH_GROUPS[userCabang.toUpperCase()] || null;
     
     if (!userRole) {
         alert("Sesi Anda telah habis. Silakan login kembali.");
@@ -143,7 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- FETCH & FILTER LOGIC ---
     async function initDashboardData() {
-        const API_URL = "https://sparta-backend-5hdj.onrender.com/api/opname/summary-data";
+        const API_URL = "https://sparta-be.onrender.com/api/opname/summary-data";
         if(document.getElementById('card-total-proyek')) document.getElementById('card-total-proyek').textContent = "...";
         
         try {
@@ -164,14 +173,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const cabangSelect = document.getElementById('filterCabang');
         const tahunSelect = document.getElementById('filterTahun');
 
-        // Jika bukan Head Office (termasuk Kontraktor), sembunyikan dropdown filter Cabang
-        if (!isHO) {
-            cabangSelect.style.display = 'none';
-        } else {
+        if (isHO) {
+            // HO melihat semua cabang
             cabangSelect.style.display = 'inline-block';
             const uniqueCabang = [...new Set(data.map(item => item.Cabang))].filter(c => c && c.trim() !== "").sort();
             cabangSelect.innerHTML = '<option value="ALL">Semua Cabang</option>';
             uniqueCabang.forEach(cab => { cabangSelect.innerHTML += `<option value="${cab}">${cab}</option>`; });
+        } else if (userBranchGroup && !isContractor) {
+            // Head Branch melihat anggota grupnya
+            cabangSelect.style.display = 'inline-block';
+            cabangSelect.innerHTML = '<option value="ALL_GROUP">Semua Cabang (Grup)</option>';
+            userBranchGroup.forEach(cab => {
+                cabangSelect.innerHTML += `<option value="${cab}">${cab}</option>`;
+            });
+        } else {
+            // Cabang biasa atau Kontraktor tidak bisa melihat filter cabang
+            cabangSelect.style.display = 'none';
         }
 
         const uniqueTahun = [...new Set(data.map(item => getYearFromDate(item["Timestamp"])))].filter(y => y).sort((a, b) => b - a);
@@ -181,18 +198,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function applyFilters() {
-        // User Internal & Kontraktor dikunci ke Cabang miliknya, HO bebas milih
-        const selectedCabang = isHO ? document.getElementById('filterCabang').value : userCabang;
         const selectedTahun = document.getElementById('filterTahun').value;
         
         filteredData = rawData.filter(item => {
-            const matchCabang = (selectedCabang === 'ALL') || 
-                                (item.Cabang && item.Cabang.toUpperCase() === selectedCabang.toUpperCase());
+            // 1. Logika Filtering Cabang
+            let matchCabang = false;
+
+            if (isHO) {
+                const selectedCabang = document.getElementById('filterCabang').value;
+                matchCabang = (selectedCabang === 'ALL') || (item.Cabang && item.Cabang.toUpperCase() === selectedCabang.toUpperCase());
+            } else if (userBranchGroup && !isContractor) {
+                const selectedCabang = document.getElementById('filterCabang').value;
+                if (selectedCabang === 'ALL_GROUP') {
+                    // Jika pilih semua cabang grup, cek apakah cabang item ada di dalam array grup
+                    matchCabang = item.Cabang && userBranchGroup.includes(item.Cabang.toUpperCase());
+                } else {
+                    matchCabang = item.Cabang && item.Cabang.toUpperCase() === selectedCabang.toUpperCase();
+                }
+            } else {
+                matchCabang = item.Cabang && item.Cabang.toUpperCase() === userCabang.toUpperCase();
+            }
             
+            // 2. Logika Filtering Tahun
             const itemYear = getYearFromDate(item["Timestamp"]);
             const matchTahun = (selectedTahun === 'ALL') || (itemYear == selectedTahun);
             
-            // Logika Filtering Terisolasi khusus KONTRAKTOR
+            // 3. Logika Filtering Khusus KONTRAKTOR
             let matchKontraktor = true;
             if (isContractor) {
                 const vendorName = item.Kontraktor ? item.Kontraktor.toUpperCase().trim() : '';
@@ -211,7 +242,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             return matchCabang && matchTahun && matchKontraktor;
         });
-        
         renderKPI(filteredData);
     }
 
