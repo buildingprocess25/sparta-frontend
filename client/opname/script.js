@@ -67,32 +67,25 @@ const AppState = {
 /* ======================== AUTH SYSTEM (INTEGRATED) ======================== */
 const Auth = {
     init: async () => {
-        // Ganti pengambilan ke localStorage agar terbaca meski beda tab
-        const savedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
-        const mainAuthEmail = localStorage.getItem("loggedInUserEmail");
-        const mainAuthCabang = localStorage.getItem("loggedInUserCabang");
-        const mainAuthRole = localStorage.getItem("userRole"); // Ambil data role
+        const savedUser = sessionStorage.getItem("user");
+        const mainAuthEmail = sessionStorage.getItem("loggedInUserEmail");
+        const mainAuthCabang = sessionStorage.getItem("loggedInUserCabang");
 
         if (savedUser) {
             try {
                 AppState.user = JSON.parse(savedUser);
                 Auth.startIdleTimer();
             } catch {
-                localStorage.removeItem("user");
                 sessionStorage.removeItem("user");
             }
         } 
         else if (mainAuthEmail && mainAuthCabang) {
             console.log("Mendeteksi sesi Sparta Utama. Mencoba login otomatis ke Opname...");
             try {
-                // Di sini login otomatis Opname akan berjalan menggunakan data localStorage
+                // Mencoba login menggunakan data dari Session Storage (Integrasi)
                 const result = await Auth.login(mainAuthEmail, mainAuthCabang);
                 if (result.success) {
                     console.log("Auto-login Opname berhasil.");
-                    // Opsional: Jika backend Opname butuh inject role manual
-                    if (mainAuthRole && !AppState.user.role) {
-                        AppState.user.role = mainAuthRole;
-                    }
                 } else {
                     console.warn("Auto-login Opname gagal:", result.message);
                 }
