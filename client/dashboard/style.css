@@ -144,6 +144,7 @@ body {
 .stat-card:nth-child(7) { border-left-color: #8b5cf6; } 
 .stat-card:nth-child(8) { border-left-color: #f59e0b; }
 .stat-card:nth-child(9) { border-left-color: #0ea5e9; }
+.stat-card:nth-child(10) { border-left-color: #db2777; }
 
 .stat-card[style*="cursor: pointer"]:hover { transform: translateY(-3px) scale(1.02); box-shadow: var(--card-shadow-hover); }
 .stat-card[style*="cursor: pointer"]:active { transform: translateY(0) scale(0.98); }

@@ -149,6 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentSpkGroups = [];
     let currentCostGroups = [];
     let currentKontraktorGroups = [];
+    let currentBeanspotItems = [];
 
     // --- FETCH & FILTER LOGIC ---
     async function initDashboardData() {
@@ -253,6 +254,8 @@ document.addEventListener('DOMContentLoaded', () => {
         let uniqueUlokLuas = {}, sumNilaiToko = 0, countNilaiToko = 0, countKeterlambatan = 0;
         let sumAvgKontraktor = 0, countKontraktorGroups = 0;
         const groupedKontraktorData = {};
+        let sumBeanspot = 0, countBeanspot = 0;U
+        currentBeanspotItems = [];
         
         let miniStats = { 'Approval RAB': 0, 'Proses PJU': 0, 'Approval SPK': 0, 'Ongoing': 0, 'Proses Kerja Tambah Kurang': 0, 'Done': 0 };
         currentGroupedProjects = { 'Approval RAB': [], 'Proses PJU': [], 'Approval SPK': [], 'Ongoing': [], 'Proses Kerja Tambah Kurang': [], 'Done': [] };
@@ -299,6 +302,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 groupedKontraktorData[kontraktor].total += nt;
                 groupedKontraktorData[kontraktor].count++;
             }
+
+            const beanspotVal = parseCurrency(item["Pekerjaan Beanspot"]);
+            if (beanspotVal > 0) {
+                sumBeanspot += beanspotVal;
+                countBeanspot++;
+                currentBeanspotItems.push(item);
+            }
         });
 
         const avgKeterlambatan = countKeterlambatan > 0 ? Math.round(totalKeterlambatan / countKeterlambatan) : 0;
@@ -308,6 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         Object.values(groupedKontraktorData).forEach(g => { sumAvgKontraktor += (g.total / g.count); countKontraktorGroups++; });
         const avgNilaiKontraktor = countKontraktorGroups > 0 ? (sumAvgKontraktor / countKontraktorGroups) : 0;
+        const avgBeanspot = countBeanspot > 0 ? (sumBeanspot / countBeanspot) : 0;
 
         const animDuration = 1500; 
 
@@ -331,6 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
             animateValue("card-avg-cost-m2", 0, avgCostM2, animDuration, formatRupiah);
             if(document.getElementById('card-nilai-toko')) animateValue("card-nilai-toko", 0, avgNilaiToko, animDuration, formatScore, true);
             if(document.getElementById('card-nilai-kontraktor')) animateValue("card-nilai-kontraktor", 0, avgNilaiKontraktor, animDuration, formatScore, true);
+            if(document.getElementById('card-avg-beanspot')) animateValue("card-avg-beanspot", 0, avgBeanspot, animDuration, formatRupiah);
         }
     }
 
@@ -820,6 +832,41 @@ document.addEventListener('DOMContentLoaded', () => {
         if (modalListView && modalStoreDetailView) { modalListView.style.display = 'none'; modalStoreDetailView.style.display = 'block'; }
     };
 
+    const showAvgBeanspotDetails = () => {
+        if (!currentBeanspotItems || currentBeanspotItems.length === 0) return;
+        currentModalContext = 'BEANSPOT';
+        if (modalMainTitle) modalMainTitle.textContent = "Daftar Toko Pekerjaan Beanspot";
+        if (btnBackToSummary) btnBackToSummary.style.display = 'none';
+
+        // Urutkan dari nilai Beanspot terbesar ke terkecil
+        const sortedItems = [...currentBeanspotItems].sort((a, b) => parseCurrency(b["Pekerjaan Beanspot"]) - parseCurrency(a["Pekerjaan Beanspot"]));
+
+        if(listStatusTitle) listStatusTitle.textContent = `Total Toko Beanspot (${sortedItems.length})`;
+
+        if (storeListContainer) {
+            storeListContainer.innerHTML = sortedItems.map((item) => {
+                const val = parseCurrency(item["Pekerjaan Beanspot"]);
+                return `
+                <div class="store-item" style="cursor: default; border-color: #fbcfe8;">
+                    <div class="store-info">
+                        <strong>${item.Nama_Toko || 'Tanpa Nama'}</strong>
+                        <span>Ulok: ${item["Nomor Ulok"] || '-'} | ${item.Cabang || '-'}</span>
+                    </div>
+                    <div class="store-badge" style="background:#fdf2f8; color:#db2777; border: 1px solid #fbcfe8; font-size: 13px;">
+                        ${formatRupiah(val)}
+                    </div>
+                </div>`;
+            }).join('');
+        }
+        
+        if (modalSummaryView && modalListView && modalStoreDetailView) { 
+            modalSummaryView.style.display = 'none'; 
+            modalStoreDetailView.style.display = 'none'; 
+            modalListView.style.display = 'block'; 
+        }
+        if (projectModal) projectModal.style.display = 'flex';
+    };
+
     // --- EVENT LISTENERS ---
     if(totalProyekCard) totalProyekCard.addEventListener('click', showProjectDetails);
     if(totalPenawaranCard) totalPenawaranCard.addEventListener('click', showPenawaranDetails); 
@@ -829,6 +876,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if(avgKeterlambatanCard) avgKeterlambatanCard.addEventListener('click', showKeterlambatanDetails); 
     if(nilaiTokoCard) nilaiTokoCard.addEventListener('click', showNilaiTokoDetails);
     if(nilaiKontraktorCard) nilaiKontraktorCard.addEventListener('click', showNilaiKontraktorDetails);
+    if(avgBeanspotCard) avgBeanspotCard.addEventListener('click', showAvgBeanspotDetails);
     
     if(grid) grid.addEventListener('click', (e) => { const statItem = e.target.closest('.modal-stat-item'); if (!statItem) return; const status = statItem.getAttribute('data-status'); if (status) renderStoreList(status); const costType = statItem.getAttribute('data-cost-type'); if (costType) renderCostList(costType); });
     
