@@ -67,34 +67,27 @@ const AppState = {
 /* ======================== AUTH SYSTEM (INTEGRATED) ======================== */
 const Auth = {
     init: async () => {
-        // 1. Ambil data dengan KEY yang benar sesuai dengan yang di-set di file login utama
         const mainAuthEmail = sessionStorage.getItem("loggedInUserEmail");
         const mainAuthCabang = sessionStorage.getItem("loggedInUserCabang");
         const isAuthenticated = sessionStorage.getItem("authenticated");
-        const userRole = sessionStorage.getItem("userRole");
 
-        // 2. Cek apakah user sudah terautentikasi dari halaman utama
         if (isAuthenticated === "true" && mainAuthEmail && mainAuthCabang) {
             // Berhasil mengambil session login utama
             // Set state user di opname menggunakan data ini
             AppState.user = {
                 email: mainAuthEmail,
                 cabang: mainAuthCabang,
-                role: userRole,
-                // Tambahkan field username/name jika backend membutuhkannya untuk query
-                // Karena login utama pakai email sebagai username, kita set email ke username
-                username: mainAuthEmail 
+                role: sessionStorage.getItem("userRole")
             };
             
             // Lanjutkan render atau load data opname
-            AppState.loading = false;
-            Render.app();
-
         } else {
             // Data tidak ada, kembalikan ke halaman login utama
-            // Sesuaikan dengan struktur folder kamu
-            window.location.href = "../../auth/index.html"; 
+            window.location.href = "/"; // sesuaikan dengan path login kamu
         }
+
+        AppState.loading = false;
+        Render.app();
     },
 
     login: async (username, password) => {
@@ -108,7 +101,6 @@ const Auth = {
                 throw new Error(`Sesi habis. Login 06.00–24.00 WIB. (Saat ini: ${currentTime})`);
             }
 
-            // Ganti URL API lama menjadi sparta-be.onrender.com
             const res = await fetch(`${API_BASE_URL}/api/login`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -118,7 +110,6 @@ const Auth = {
             if (!res.ok) throw new Error(userData.message || "Login failed");
 
             AppState.user = userData;
-            // Jika fitur auto-login dalam opname ini masih ingin digunakan, simpan datanya
             sessionStorage.setItem("user", JSON.stringify(userData));
             Auth.startIdleTimer();
             return { success: true };
@@ -129,19 +120,13 @@ const Auth = {
 
     logout: () => {
         AppState.user = null;
-        // Bersihkan semua kemungkinan key session
         sessionStorage.removeItem("user");
-        sessionStorage.removeItem("loggedInUserEmail");
-        sessionStorage.removeItem("loggedInUserCabang");
-        sessionStorage.removeItem("userRole");
-        sessionStorage.removeItem("authenticated");
-        
         clearTimeout(AppState.idleTimer);
         AppState.activeView = 'dashboard';
         AppState.selectedStore = null;
 
         // Redirect ke Dashboard Utama karena tidak ada login page lokal
-        window.location.href = "../../auth/index.html";
+        window.location.href = "../../dashboard/index.html";
     },
 
     startIdleTimer: () => {
