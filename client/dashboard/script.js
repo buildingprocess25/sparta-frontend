@@ -514,9 +514,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const groupedCost = {};
         filteredData.forEach(item => {
-            const opname = parseCurrency(item["Grand Total Opname Final"]), lTerbangun = parseFloat(item["Luas Terbangunan"]) || 0, lBangunan = parseFloat(item["Luas Bangunan"]) || 0, lTerbuka = parseFloat(item["Luas Area Terbuka"]) || 0, ulok = item["Nomor Ulok"] || 'Tanpa Ulok';
-            if (!groupedCost[ulok]) groupedCost[ulok] = { ulok: ulok, namaToko: item.Nama_Toko || 'Tanpa Nama', cabang: item.Cabang || '-', totalOpname: 0, luasTerbangun: lTerbangun, luasBangunan: lBangunan, luasTerbuka: lTerbuka, items: [] };
-            groupedCost[ulok].totalOpname += opname; groupedCost[ulok].items.push(item);
+            const opname = parseCurrency(item["Grand Total Opname Final"]);
+            const pekTerbuka = parseCurrency(item["Pekerjaan Area Terbuka"]); // KODE BARU: Ambil nilai Pek. Area Terbuka
+            
+            const lTerbangun = parseFloat(item["Luas Terbangunan"]) || 0;
+            const lBangunan = parseFloat(item["Luas Bangunan"]) || 0;
+            const lTerbuka = parseFloat(item["Luas Area Terbuka"]) || 0;
+            const ulok = item["Nomor Ulok"] || 'Tanpa Ulok';
+
+            if (!groupedCost[ulok]) {
+                groupedCost[ulok] = { 
+                    ulok: ulok, 
+                    namaToko: item.Nama_Toko || 'Tanpa Nama', 
+                    cabang: item.Cabang || '-', 
+                    totalOpname: 0, 
+                    totalPekerjaanTerbuka: 0, // Variabel penampung baru
+                    luasTerbangun: lTerbangun, 
+                    luasBangunan: lBangunan, 
+                    luasTerbuka: lTerbuka, 
+                    items: [] 
+                };
+            }
+            groupedCost[ulok].totalOpname += opname; 
+            groupedCost[ulok].totalPekerjaanTerbuka += pekTerbuka; // Akumulasi Pek. Area Terbuka
+            groupedCost[ulok].items.push(item);
+
             if (groupedCost[ulok].luasTerbangun === 0 && lTerbangun > 0) groupedCost[ulok].luasTerbangun = lTerbangun;
             if (groupedCost[ulok].luasBangunan === 0 && lBangunan > 0) groupedCost[ulok].luasBangunan = lBangunan;
             if (groupedCost[ulok].luasTerbuka === 0 && lTerbuka > 0) groupedCost[ulok].luasTerbuka = lTerbuka;
@@ -524,22 +546,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
         currentCostGroups = Object.values(groupedCost).map(group => {
             group.costTerbangun = group.luasTerbangun > 0 ? group.totalOpname / group.luasTerbangun : 0;
-            group.costBangunan = group.luasBangunan > 0 ? group.totalOpname / group.luasBangunan : 0;
-            group.costTerbuka = group.luasTerbuka > 0 ? group.totalOpname / group.luasTerbuka : 0;
+            
+            group.costBangunan = group.luasBangunan > 0 ? (group.totalOpname - group.totalPekerjaanTerbuka) / group.luasBangunan : 0; 
+            
+            group.costTerbuka = group.luasTerbuka > 0 ? group.totalPekerjaanTerbuka / group.luasTerbuka : 0;
+            
             return group;
         });
 
-        let sumOpTer=0, sumTer=0, sumOpBan=0, sumBan=0, sumOpTerb=0, sumTerb=0;
+        let sumOpTer=0, sumTer=0, sumOpBan=0, sumBan=0, sumPekTerb=0, sumTerb=0;
         currentCostGroups.forEach(g => {
             if (g.luasTerbangun > 0) { sumOpTer += g.totalOpname; sumTer += g.luasTerbangun; }
-            if (g.luasBangunan > 0) { sumOpBan += g.totalOpname; sumBan += g.luasBangunan; }
-            if (g.luasTerbuka > 0) { sumOpTerb += g.totalOpname; sumTerb += g.luasTerbuka; }
+            if (g.luasBangunan > 0) { sumOpBan += (g.totalOpname - g.totalPekerjaanTerbuka); sumBan += g.luasBangunan; }
+            if (g.luasTerbuka > 0) { sumPekTerb += g.totalPekerjaanTerbuka; sumTerb += g.luasTerbuka; }
         });
 
         const summaryData = [
             { label: 'Luas Terbangun', value: formatRupiah(Math.round(sumTer > 0 ? sumOpTer / sumTer : 0)) + ' /m²', type: 'TERBANGUN' },
             { label: 'Luas Bangunan', value: formatRupiah(Math.round(sumBan > 0 ? sumOpBan / sumBan : 0)) + ' /m²', type: 'BANGUNAN' },
-            { label: 'Luas Area Terbuka', value: formatRupiah(Math.round(sumTerb > 0 ? sumOpTerb / sumTerb : 0)) + ' /m²', type: 'TERBUKA' }
+            { label: 'Luas Area Terbuka', value: formatRupiah(Math.round(sumTerb > 0 ? sumPekTerb / sumTerb : 0)) + ' /m²', type: 'TERBUKA' }
         ];
 
         if(grid) {
@@ -683,18 +708,29 @@ document.addEventListener('DOMContentLoaded', () => {
             const itemME = group.items.find(i => i.Lingkup_Pekerjaan && i.Lingkup_Pekerjaan.toLowerCase().includes('me'));
             const refItem = itemSipil || itemME || group.items[0];
 
+            const pekTerbukaSipil = itemSipil ? parseCurrency(itemSipil["Pekerjaan Area Terbuka"]) : 0;
+            const pekTerbukaME = itemME ? parseCurrency(itemME["Pekerjaan Area Terbuka"]) : 0;
+
             storeDetailContainer.innerHTML = `
                 <div class="detail-grid">
                     <div class="detail-item"><span class="detail-label">Grand Total Opname Final</span><span class="detail-value" style="color:#2f855a; font-size: 16px;">${formatRupiah(group.totalOpname)}</span></div>
+                    <div class="detail-item"><span class="detail-label">Pekerjaan Area Terbuka</span><span class="detail-value" style="color:#c05621; font-size: 16px;">${formatRupiah(group.totalPekerjaanTerbuka)}</span></div>
+                    
                     <div class="detail-item"><span class="detail-label">Rincian Opname</span><span class="detail-value" style="font-weight: 500; line-height: 1.5;">Sipil: <strong>${formatRupiah(itemSipil ? parseCurrency(itemSipil["Grand Total Opname Final"]) : 0)}</strong> <br>ME: <strong>${formatRupiah(itemME ? parseCurrency(itemME["Grand Total Opname Final"]) : 0)}</strong></span></div>
+                    <div class="detail-item"><span class="detail-label">Rincian Area Terbuka</span><span class="detail-value" style="font-weight: 500; line-height: 1.5;">Sipil: <strong>${formatRupiah(pekTerbukaSipil)}</strong> <br>ME: <strong>${formatRupiah(pekTerbukaME)}</strong></span></div>
+                    
                     <div class="detail-item"><span class="detail-label">Cost /m² (Luas Terbangun)</span><span class="detail-value" style="color:#805ad5; font-size: 15px;">${formatRupiah(Math.round(group.costTerbangun))}</span></div>
                     <div class="detail-item"><span class="detail-label">Cost /m² (Luas Bangunan)</span><span class="detail-value" style="color:#805ad5; font-size: 15px;">${formatRupiah(Math.round(group.costBangunan))}</span></div>
+                    
                     <div class="detail-item"><span class="detail-label">Cost /m² (Luas Area Terbuka)</span><span class="detail-value" style="color:#805ad5; font-size: 15px;">${formatRupiah(Math.round(group.costTerbuka))}</span></div>
                     <div class="detail-item"><span class="detail-label">Cabang</span><span class="detail-value">${group.cabang}</span></div>
+                    
                     <div class="detail-item"><span class="detail-label">Luas Bangunan</span><span class="detail-value">${refItem["Luas Bangunan"] || 0} m²</span></div>
                     <div class="detail-item"><span class="detail-label">Luas Terbangun</span><span class="detail-value">${refItem["Luas Terbangunan"] || 0} m²</span></div>
+                    
                     <div class="detail-item"><span class="detail-label">Luas Area Terbuka</span><span class="detail-value">${refItem["Luas Area Terbuka"] || 0} m²</span></div>
                     <div class="detail-item"><span class="detail-label">Luas Area Parkir</span><span class="detail-value">${refItem["Luas Area Parkir"] || 0} m²</span></div>
+                    
                     <div class="detail-item"><span class="detail-label">Luas Area Sales</span><span class="detail-value">${refItem["Luas Area Sales"] || 0} m²</span></div>
                     <div class="detail-item"><span class="detail-label">Luas Gudang</span><span class="detail-value">${refItem["Luas Gudang"] || 0} m²</span></div>
                 </div>
