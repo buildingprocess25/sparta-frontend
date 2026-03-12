@@ -67,23 +67,31 @@ const AppState = {
 /* ======================== AUTH SYSTEM (INTEGRATED) ======================== */
 const Auth = {
     init: async () => {
+        const savedUser = sessionStorage.getItem("user");
         const mainAuthEmail = sessionStorage.getItem("loggedInUserEmail");
         const mainAuthCabang = sessionStorage.getItem("loggedInUserCabang");
-        const isAuthenticated = sessionStorage.getItem("authenticated");
 
-        if (isAuthenticated === "true" && mainAuthEmail && mainAuthCabang) {
-            // Berhasil mengambil session login utama
-            // Set state user di opname menggunakan data ini
-            AppState.user = {
-                email: mainAuthEmail,
-                cabang: mainAuthCabang,
-                role: sessionStorage.getItem("userRole")
-            };
-            
-            // Lanjutkan render atau load data opname
-        } else {
-            // Data tidak ada, kembalikan ke halaman login utama
-            window.location.href = "/"; // sesuaikan dengan path login kamu
+        if (savedUser) {
+            try {
+                AppState.user = JSON.parse(savedUser);
+                Auth.startIdleTimer();
+            } catch {
+                sessionStorage.removeItem("user");
+            }
+        } 
+        else if (mainAuthEmail && mainAuthCabang) {
+            console.log("Mendeteksi sesi Sparta Utama. Mencoba login otomatis ke Opname...");
+            try {
+                // Mencoba login menggunakan data dari Session Storage (Integrasi)
+                const result = await Auth.login(mainAuthEmail, mainAuthCabang);
+                if (result.success) {
+                    console.log("Auto-login Opname berhasil.");
+                } else {
+                    console.warn("Auto-login Opname gagal:", result.message);
+                }
+            } catch (e) {
+                console.error("Kesalahan saat auto-login:", e);
+            }
         }
 
         AppState.loading = false;
