@@ -26,7 +26,7 @@ Setiap fitur dalam SPARTA dibangun secara terisolasi di dalam direktori `client/
 * **RAB (Rencana Anggaran Biaya) :** Kalkulator otomatis untuk volume dan harga item pekerjaan untuk sipil maupun mekanikal/elektrikal.
 * **Dokumen Termaterai :** Dokumen dari kontraktor yang sudah termaterai lalu diserahkan ke Manager.
 
-### 3. RAB, SPK, & Tambah SPK
+### 3. SPK, Tambah SPK, Input PIC Pengawasan, & User Log
 * **SPK (Surat Perintah Kerja) & Tambah SPK :** Surat perintah kerja untuk kontraktor dengan ditentukannya tanggal awal dan akhir.
 * **Tambah SPK (Surat Perintah Kerja) :** Tambahn hari pekerjaan jika diperlukan dalam suatu pekerjaan.
 * **Input PIC Pengawasan :** Manager memilih salah satu Support untuk mengawasi pekerjaan toko yang akan berjalan sesuai dengan hari yang ditentukan.
@@ -37,7 +37,7 @@ Setiap fitur dalam SPARTA dibangun secara terisolasi di dalam direktori `client/
 * **Opname :** Laporan progress pekerjaan apakah sesuai dengan yang di lapangan dengan dokumentasi.
 * **Instruksi Lapangan :** Form tambahan pekerjaan jika ada kekurangan pekerjaan di luar RAB yang sudah dibuat.
 
-### 5. Penyimpan & Dokumentasi Bangunan Toko
+### 5. Penyimpanan & Dokumentasi Bangunan Toko
 * **Penyimpanan Dokumen Toko :** Upload dokumen pembangunan toko di setiap cabang.
 * **Dokumentasi Bangunan Toko Baru :** Dokumentasi untuk setiap bangunan toko baru.
 
