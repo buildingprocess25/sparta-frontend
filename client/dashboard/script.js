@@ -132,6 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeModal = document.getElementById('closeModal');
     
     const totalProyekCard = document.getElementById('card-total-proyek-wrapper');
+    const perluPerhatianCard = document.getElementById('card-perlu-perhatian-wrapper');
     const totalPenawaranCard = document.getElementById('card-total-penawaran-wrapper'); 
     const totalSpkCard = document.getElementById('card-total-spk-wrapper'); 
     const totalJhkCard = document.getElementById('card-total-jhk-wrapper');
@@ -162,6 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentKontraktorGroups = [];
     let currentBeanspotItems = [];
     let currentDendaItems = [];
+    let currentPerhatianItems = [];
     let currentGroupedPerhatian = {};
 
     // --- FETCH & FILTER LOGIC ---
