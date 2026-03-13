@@ -7,11 +7,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const ulokSearch = document.getElementById("ulok_search");
     let allUlokOptions = []; // [{value, text} untuk dropdown]
 
-    // const PYTHON_API_BASE_URL = "https://building-alfamart.onrender.com";
     const PYTHON_API_BASE_URL = "https://sparta-backend-5hdj.onrender.com"
 
-    if (!sessionStorage.getItem('loggedInUserCabang')) {
+    const userCabang = sessionStorage.getItem('loggedInUserCabang');
+    const userRole = sessionStorage.getItem('userRole');
+    if (!userCabang) {
         window.location.replace('../../auth/pic/login.html');
+    }
+
+    const isManagerOrSupport = ['BRANCH BUILDING & MAINTENANCE MANAGER', 'BRANCH BUILDING SUPPORT DOKUMENTASI'].includes(userRole);
+    const isSpecialBatam = (userRole === 'BRANCH BUILDING COORDINATOR' && userCabang.toUpperCase() === 'BATAM');
+
+    if (!isManagerOrSupport && !isSpecialBatam) {
+        alert("Anda tidak memiliki hak akses ke halaman ini.");
+        window.location.replace('../../dashboard/index.html');
     }
 
     // Render opsi ke <select> sesuai teks pencarian
