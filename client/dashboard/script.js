@@ -77,6 +77,15 @@ document.addEventListener('DOMContentLoaded', () => {
     let allowedMenuIds = roleConfig[currentRole] ? [...roleConfig[currentRole]] : [];
     if (isHO && !isContractor) allowedMenuIds.push('menu-userlog', 'menu-resend', 'menu-sp');
 
+    if (currentRole === 'BRANCH BUILDING COORDINATOR' && userCabang.toUpperCase() === 'BATAM') {
+        const specialBatamMenus = ['menu-spk', 'menu-pengawasan', 'menu-tambahspk'];
+        specialBatamMenus.forEach(menuId => {
+            if (!allowedMenuIds.includes(menuId)) {
+                allowedMenuIds.push(menuId);
+            }
+        });
+    }
+
     const menuContainer = document.getElementById('menu-container');
     menuContainer.innerHTML = ''; 
     allowedMenuIds.forEach(id => {
