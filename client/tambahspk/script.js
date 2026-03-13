@@ -109,28 +109,22 @@ async function populateUlokDropdown(cabang) {
 }
 
 document.addEventListener("DOMContentLoaded", function() {
-    // --- MODIFIKASI 2: Cek Auth Menggunakan SessionStorage ---
     (function checkAuth() {
         const isAuthenticated = sessionStorage.getItem("authenticated");
         const userCabang = sessionStorage.getItem("loggedInUserCabang");
         const userEmail = sessionStorage.getItem("loggedInUserEmail");
 
-        // Jika tidak login atau data cabang hilang
         if (isAuthenticated !== "true" || !userCabang) {
             alert("Sesi tidak valid atau telah berakhir. Silakan login kembali.");
             window.location.href = LOGIN_PAGE_URL;
             return;
         }
-
-        // Set currentUser dari data sesi
-        // Karena login auth sederhana, kita gunakan email sebagai nama jika nama tidak tersedia
         currentUser = {
             cabang: userCabang,
             email: userEmail,
             nama: userEmail ? userEmail.split('@')[0] : "User"
         };
         
-        // Load data dropdown berdasarkan cabang user yang login
         populateUlokDropdown(currentUser.cabang);
     })();
 
