@@ -9,8 +9,9 @@ body {
 
 /* Header style menyesuaikan index.html */
 header {
-    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); /* Gradasi Merah */
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
     color: white;
+    text-align: center;
     padding: 1rem 1.5rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
@@ -18,28 +19,22 @@ header {
     justify-content: center;
     position: relative;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.header-logo {
+    width: 140px;
     height: auto;
-    min-height: 60px;
+    position: absolute;
+    left: 25px;
+    top: 50%;
+    transform: translateY(-50%);
 }
 
 header h1 {
     margin: 0;
     font-size: 1.5rem;
     font-weight: 700;
-    letter-spacing: -0.5px;
-    color: white;
     text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    text-align: center;
-}
-
-/* Style Logo Header */
-.header-logo {
-    width: 100px;
-    height: auto;
-    position: absolute;
-    left: 25px;
-    top: 50%;
-    transform: translateY(-50%);
 }
 
 /* Style Tombol Logout di Header */
@@ -51,21 +46,21 @@ header h1 {
     display: flex;
     align-items: center;
     gap: 8px;
-    background: rgba(255, 255, 255, 0.2);
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 6px;
     color: white;
     text-decoration: none;
-    padding: 8px 16px;
-    border-radius: 8px;
     font-size: 0.9rem;
     font-weight: 500;
     backdrop-filter: blur(4px);
-    transition: all 0.2s ease;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
 }
 
 .btn-header-logout:hover {
-    background: rgba(255, 255, 255, 0.3);
-    transform: translateY(-50%) scale(1.05);
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-50%) scale(1.02);
 }
 
 /* Container Form */
@@ -227,23 +222,27 @@ header h1 {
     }
     header {
         flex-direction: column;
-        padding: 1.5rem;
+        height: auto;
+        padding: 1.5rem 1rem;
         gap: 1rem;
     }
     header h1 {
-        margin-top: 0.5rem;
+        font-size: 1.3rem; 
+        margin: 0;
+        line-height: 1.4;
     }
     .header-logo {
         position: static;
         transform: none;
-        margin: 0 auto;
-        width: 120px;
+        width: 100px;
+        margin-bottom: 0.5rem;
     }
     .btn-header-logout {
         position: static;
         transform: none;
-        width: 100%;
+        width: 100%; 
         justify-content: center;
-        box-sizing: border-box;
+        margin-top: 0.5rem;
+        background: rgba(255, 255, 255, 0.2);
     }
 }
