@@ -162,6 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentKontraktorGroups = [];
     let currentBeanspotItems = [];
     let currentDendaItems = [];
+    let currentGroupedPerhatian = {};
 
     // --- FETCH & FILTER LOGIC ---
     async function initDashboardData() {
@@ -279,6 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let miniPerhatianStats = { 
             'Apprv RAB': 0, 'Pros PJU': 0, 'Apprv SPK': 0, 'Ongoing': 0, 'Tambah Krg': 0 
         };
+        currentGroupedPerhatian = { 'Apprv RAB': [], 'Pros PJU': [], 'Apprv SPK': [], 'Ongoing': [], 'Tambah Krg': [] };
 
         data.forEach(item => {
             totalPenawaran += parseCurrency(item["Total Penawaran Final"]); 
@@ -355,7 +357,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isPerhatian) {
                 countPerhatian++;
                 miniPerhatianStats[kategoriSLA]++; 
-                currentPerhatianItems.push({ ...item, alasanSLA: alasanSLA });
+                const itemSLA = { ...item, alasanSLA: alasanSLA };
+                currentPerhatianItems.push(itemSLA);
+                currentGroupedPerhatian[kategoriSLA].push(itemSLA);
             }
 
             const kontraktor = item["Kontraktor"] && item["Kontraktor"].trim() !== "" ? item["Kontraktor"] : 'Tanpa Kontraktor';
@@ -986,8 +990,60 @@ document.addEventListener('DOMContentLoaded', () => {
         if (projectModal) projectModal.style.display = 'flex';
     };
 
+    const showPerluPerhatianDetails = () => {
+        if (!filteredData || filteredData.length === 0) return;
+        currentModalContext = 'PERHATIAN'; 
+        if(modalMainTitle) modalMainTitle.textContent = "Detail Proyek Melebihi SLA"; 
+        if(btnBackToSummary) btnBackToSummary.style.display = 'flex'; 
+        
+        if(modalSummaryView && modalListView && modalStoreDetailView) { 
+            modalSummaryView.style.display = 'block'; 
+            modalListView.style.display = 'none'; 
+            modalStoreDetailView.style.display = 'none'; 
+        }
+
+        if(grid) {
+            grid.innerHTML = Object.entries(currentGroupedPerhatian).map(([label, items]) => `
+                <div class="modal-stat-item" data-perhatian-status="${label}" style="border-color: ${items.length > 0 ? '#fca5a5' : 'var(--border-color)'}; background: ${items.length > 0 ? '#fef2f2' : '#f8fafc'};">
+                    <span class="modal-stat-label" style="color: ${items.length > 0 ? '#b91c1c' : '#64748b'};">${label}</span>
+                    <span class="modal-stat-value" style="color: ${items.length > 0 ? '#ef4444' : '#1e293b'};">${items.length}</span>
+                </div>
+            `).join('');
+        }
+        if(projectModal) projectModal.style.display = 'flex';
+    };
+
+    const renderPerhatianList = (status) => {
+        const items = currentGroupedPerhatian[status] || [];
+        if(listStatusTitle) listStatusTitle.textContent = `Daftar Toko: ${status} (${items.length})`;
+        
+        if (storeListContainer) {
+            if (items.length === 0) {
+                storeListContainer.innerHTML = '<div style="text-align:center; color:#718096; padding: 30px;">Tidak ada toko yang melebihi SLA di tahap ini.</div>';
+            } else {
+                storeListContainer.innerHTML = items.map(item => `
+                    <div class="store-item" style="cursor: default; border-color: #fca5a5;">
+                        <div class="store-info">
+                            <strong>${item.Nama_Toko || 'Tanpa Nama'}</strong>
+                            <span>Ulok: ${item["Nomor Ulok"] || '-'} | Cabang: ${item.Cabang || '-'}</span>
+                            <span style="display: block; margin-top: 4px; color: #ef4444; font-weight: 600; font-size: 11px;">
+                                ⚠️ ${item.alasanSLA}
+                            </span>
+                        </div>
+                    </div>`
+                ).join('');
+            }
+        }
+        if(modalSummaryView && modalListView && modalStoreDetailView) { 
+            modalSummaryView.style.display = 'none'; 
+            modalStoreDetailView.style.display = 'none'; 
+            modalListView.style.display = 'block'; 
+        }
+    };
+
     // --- EVENT LISTENERS ---
     if(totalProyekCard) totalProyekCard.addEventListener('click', showProjectDetails);
+    if(perluPerhatianCard) perluPerhatianCard.addEventListener('click', showPerluPerhatianDetails);
     if(totalPenawaranCard) totalPenawaranCard.addEventListener('click', showPenawaranDetails); 
     if(totalSpkCard) totalSpkCard.addEventListener('click', showSpkDetails); 
     if(totalJhkCard) totalJhkCard.addEventListener('click', showJhkDetails);
@@ -998,7 +1054,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if(nilaiKontraktorCard) nilaiKontraktorCard.addEventListener('click', showNilaiKontraktorDetails);
     if(avgBeanspotCard) avgBeanspotCard.addEventListener('click', showAvgBeanspotDetails);
     
-    if(grid) grid.addEventListener('click', (e) => { const statItem = e.target.closest('.modal-stat-item'); if (!statItem) return; const status = statItem.getAttribute('data-status'); if (status) renderStoreList(status); const costType = statItem.getAttribute('data-cost-type'); if (costType) renderCostList(costType); });
+    if(grid) grid.addEventListener('click', (e) => {
+        const statItem = e.target.closest('.modal-stat-item');
+        if (!statItem) return;
+        const status = statItem.getAttribute('data-status');
+        if (status) renderStoreList(status);
+        const costType = statItem.getAttribute('data-cost-type');
+        if (costType) renderCostList(costType);
+        const perhatianStatus = statItem.getAttribute('data-perhatian-status');
+        if (perhatianStatus) renderPerhatianList(perhatianStatus);
+    });
     
     if(storeListContainer) storeListContainer.addEventListener('click', (e) => {
         const storeItem = e.target.closest('.store-item'); if (!storeItem) return;
