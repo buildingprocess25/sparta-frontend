@@ -280,9 +280,9 @@ document.addEventListener('DOMContentLoaded', () => {
         currentPerhatianItems = [];
         const todayDate = new Date();
         let miniPerhatianStats = { 
-            'Apprv RAB': 0, 'Pros PJU': 0, 'Apprv SPK': 0, 'Ongoing': 0, 'Tambah Krg': 0 
+            'Approval RAB': 0, 'Proses PJU': 0, 'Approval SPK': 0, 'Ongoing': 0, 'Proses Kerja Tambah Kurang': 0 
         };
-        currentGroupedPerhatian = { 'Apprv RAB': [], 'Pros PJU': [], 'Apprv SPK': [], 'Ongoing': [], 'Tambah Krg': [] };
+        currentGroupedPerhatian = { 'Approval RAB': [], 'Proses PJU': [], 'Approval SPK': [], 'Ongoing': [], 'Proses Kerja Tambah Kurang': [] };
 
         data.forEach(item => {
             totalPenawaran += parseCurrency(item["Total Penawaran Final"]); 
@@ -331,11 +331,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const getDiffDays = (date1, date2) => Math.floor((date1 - date2) / (1000 * 60 * 60 * 24));
 
             if (hasOpnameFinal) {
-                // Done, abaikan
             } else if (hasSerahTerima && !hasOpnameFinal) {
                 const tglSerahTerima = new Date(item["tanggal_serah_terima"] || item["Tgl Serah Terima"]);
                 if (!isNaN(tglSerahTerima) && getDiffDays(todayDate, tglSerahTerima) > 14) {
-                    isPerhatian = true; alasanSLA = `Kerja Tambah Kurang melebihi 14 hari (${getDiffDays(todayDate, tglSerahTerima)} hari)`; kategoriSLA = 'Tambah Krg';
+                    isPerhatian = true; alasanSLA = `Kerja Tambah Kurang melebihi 14 hari (${getDiffDays(todayDate, tglSerahTerima)} hari)`; kategoriSLA = 'Proses Kerja Tambah Kurang';
                 }
             } else if (hasSPK && !hasSerahTerima) {
                 const akhirSpk = new Date(item["Akhir_SPK_Setelah"] || item["Akhir_SPK"]);
@@ -344,15 +343,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } else if (hasStatus && !hasSPK) {
                 if (!isNaN(itemTimestamp) && getDiffDays(todayDate, itemTimestamp) > 2) {
-                    isPerhatian = true; alasanSLA = `Approval SPK melebihi 2 hari (${getDiffDays(todayDate, itemTimestamp)} hari)`; kategoriSLA = 'Apprv SPK';
+                    isPerhatian = true; alasanSLA = `Approval SPK melebihi 2 hari (${getDiffDays(todayDate, itemTimestamp)} hari)`; kategoriSLA = 'Approval SPK';
                 }
             } else if (hasPenawaranFinal && !hasSPK) {
                 if (!isNaN(itemTimestamp) && getDiffDays(todayDate, itemTimestamp) > 7) {
-                    isPerhatian = true; alasanSLA = `Proses PJU melebihi 7 hari (${getDiffDays(todayDate, itemTimestamp)} hari)`; kategoriSLA = 'Pros PJU';
+                    isPerhatian = true; alasanSLA = `Proses PJU melebihi 7 hari (${getDiffDays(todayDate, itemTimestamp)} hari)`; kategoriSLA = 'Proses PJU';
                 }
             } else if (hasStatusRab && !hasPenawaranFinal) {
                 if (!isNaN(itemTimestamp) && getDiffDays(todayDate, itemTimestamp) > 2) {
-                    isPerhatian = true; alasanSLA = `Approval RAB melebihi 2 hari (${getDiffDays(todayDate, itemTimestamp)} hari)`; kategoriSLA = 'Apprv RAB';
+                    isPerhatian = true; alasanSLA = `Approval RAB melebihi 2 hari (${getDiffDays(todayDate, itemTimestamp)} hari)`; kategoriSLA = 'Approval RAB';
                 }
             }
 
