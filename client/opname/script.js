@@ -1096,26 +1096,12 @@ const Render = {
         }
 
         container.innerHTML = '<div class="loading-screen"><h3>Memuat Data...</h3></div>';
-
-        let debugUrl = "";
-        let debugRawData = null;
         
         try {
             // 1. Fetch Data Opname Item
             const base = `${API_BASE_URL}/api/opname?kode_toko=${encodeURIComponent(AppState.selectedStore.kode_toko)}&no_ulok=${encodeURIComponent(AppState.selectedUlok)}&lingkup=${encodeURIComponent(AppState.selectedLingkup)}`;
-            
-            debugUrl = base; // Simpan URL ke variabel debug
-
             const res = await fetch(base);
             let data = await res.json();
-
-            debugRawData = data; // Simpan Data JSON ke variabel debug
-            
-            // Log ke console browser
-            console.log("=== 🐞 DEBUG API OPNAME ===");
-            console.log("URL:", debugUrl);
-            console.log("DATA:", debugRawData);
-            console.log("===========================");
             
             // 2. Fetch Data Keterlambatan
             let penaltyData = { terlambat: false, hari_terlambat: 0, denda_nominal: 0 };
@@ -1251,17 +1237,6 @@ const Render = {
                             <div>
                                 <h2 style="color:var(--primary); margin:0;">Input Opname</h2>
                                 <span style="color:#666;">${AppState.selectedStore.nama_toko} (ULOK: ${AppState.selectedUlok})</span>
-                            </div>
-                        </div>
-                        <div style="margin-bottom: 15px;">
-                            <button onclick="const el = document.getElementById('debug-box-pic'); el.style.display = el.style.display === 'none' ? 'block' : 'none';" 
-                                class="btn btn-outline" style="font-size: 11px; padding: 4px 8px; border-color: #94a3b8; color: #64748b;">
-                                🐞 Cek Data API (Debug)
-                            </button>
-                            <div id="debug-box-pic" style="display:none; margin-top: 10px; background: #1e293b; color: #10b981; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 11px; overflow-x: auto; max-height: 250px;">
-                                <div style="color: #cbd5e1; margin-bottom: 5px;"><b>URL Endpoint:</b><br><a href="${debugUrl}" target="_blank" style="color:#38bdf8">${debugUrl}</a></div>
-                                <div style="color: #cbd5e1; margin-bottom: 5px;"><b>Jumlah Data:</b> ${Array.isArray(debugRawData) ? debugRawData.length : 'Bukan Array/Error'} items</div>
-                                <div><b>Response JSON:</b><br>${JSON.stringify(debugRawData, null, 2)}</div>
                             </div>
                         </div>
                         <div class="table-container" style="overflow-x:auto;">
