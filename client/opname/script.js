@@ -968,9 +968,15 @@ const Render = {
             });
 
             combinedList.sort((a, b) => {
-                const nameCompare = a.store.nama_toko.localeCompare(b.store.nama_toko);
-                if (nameCompare !== 0) return nameCompare;
-                return a.ulok.localeCompare(b.ulok);
+                const kodeA = (a.store.kode_toko || "").toUpperCase();
+                const kodeB = (b.store.kode_toko || "").toUpperCase();
+                const kodeCompare = kodeA.localeCompare(kodeB);
+                
+                if (kodeCompare !== 0) return kodeCompare;
+                
+                const ulokA = (a.ulok || "").toUpperCase();
+                const ulokB = (b.ulok || "").toUpperCase();
+                return ulokA.localeCompare(ulokB);
             });
 
             // --- FILTER STATE ---
@@ -994,19 +1000,23 @@ const Render = {
 
             const renderList = () => {
                 const f = currentSearch.toLowerCase();
+                
                 const filtered = combinedList.filter(item => {
-                    // Filter Teks (Pencarian)
-                    const matchSearch = item.store.nama_toko.toLowerCase().includes(f) || 
-                                        item.store.kode_toko.toLowerCase().includes(f) ||
-                                        item.ulok.toLowerCase().includes(f);
+                    // Filter Teks (Pencarian) - BERDASARKAN KODE TOKO & DIBUAT AMAN DARI NULL
+                    const kodeToko = (item.store.kode_toko || "").toLowerCase();
+                    const namaToko = (item.store.nama_toko || "").toLowerCase();
+                    const noUlok = (item.ulok || "").toLowerCase();
+                    
+                    const matchSearch = kodeToko.includes(f) || namaToko.includes(f) || noUlok.includes(f);
                     
                     // Filter Dropdown Cabang
                     const itemCabang = (item.store.cabang || item.store.nama_cabang || item.store.kota || "").toUpperCase();
                     const matchCabang = currentCabang ? itemCabang === currentCabang : true;
+                    
                     return matchSearch && matchCabang;
                 });
 
-                // 2. Gabungkan Cabang dari API dengan Cabang dari Grup (Memaksa render jika ada group)
+                // 2. Gabungkan Cabang dari API dengan Cabang dari Grup
                 const apiCabangs = combinedList.map(item => (item.store.cabang || item.store.nama_cabang || item.store.kota || "").toUpperCase());
                 const finalCabangs = [...new Set([...groupBranches, ...apiCabangs])].filter(Boolean);
                 
@@ -1042,7 +1052,7 @@ const Render = {
                                     <button class="btn btn-secondary job-item" data-idx="${idx}" style="height:auto; min-height:110px; flex-direction:column; align-items:flex-start; text-align:left; padding:16px; border-left:5px solid var(--secondary-yellow); position:relative; overflow:hidden;">
                                         
                                         <div style="font-size:1.1rem; font-weight:700; color:var(--neutral-700); margin-bottom:4px;">
-                                            ${item.store.nama_toko}
+                                            ${item.store.nama_toko || item.store.kode_toko || "Nama Toko Tidak Tersedia"}
                                         </div>
                                         
                                         <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:12px;">
