@@ -2,14 +2,6 @@
 const API_BASE_URL = "https://opnamebnm-mgbe.onrender.com"; 
 const INACTIVITY_LIMIT_MS = 60 * 60 * 1000; // 1 Jam
 
-const BRANCH_GROUPS = {
-    "LOMBOK": ["LOMBOK", "SUMBAWA"],
-    "MEDAN": ["MEDAN", "ACEH"],
-    "LAMPUNG": ["LAMPUNG", "LAMPUNG_KOTABUMI"],
-    "PALEMBANG": ["PALEMBANG", "BENGKULU", "BANGKA", "BELITUNG"],
-    "SIDOARJO": ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"]
-};
-
 // Format Rupiah
 const formatRupiah = (number) => {
     const numericValue = Number(number) || 0;
@@ -968,68 +960,18 @@ const Render = {
             });
 
             combinedList.sort((a, b) => {
-                const kodeA = (a.store.kode_toko || "").toUpperCase();
-                const kodeB = (b.store.kode_toko || "").toUpperCase();
-                const kodeCompare = kodeA.localeCompare(kodeB);
-                
-                if (kodeCompare !== 0) return kodeCompare;
-                
-                const ulokA = (a.ulok || "").toUpperCase();
-                const ulokB = (b.ulok || "").toUpperCase();
-                return ulokA.localeCompare(ulokB);
+                const nameCompare = a.store.nama_toko.localeCompare(b.store.nama_toko);
+                if (nameCompare !== 0) return nameCompare;
+                return a.ulok.localeCompare(b.ulok);
             });
 
-            // --- FILTER STATE ---
-            let currentSearch = "";
-            let currentCabang = "";
-
-            // 1. Ambil list cabang dari BRANCH_GROUPS sesuai user yang login
-            const userCabang = (sessionStorage.getItem("loggedInUserCabang") || AppState.user.cabang || "").toUpperCase();
-            let groupBranches = [];
-            
-            if (BRANCH_GROUPS[userCabang]) {
-                groupBranches = BRANCH_GROUPS[userCabang]; // User adalah Head Cabang
-            } else {
-                for (const [head, subs] of Object.entries(BRANCH_GROUPS)) {
-                    if (subs.includes(userCabang)) {
-                        groupBranches = subs; // User adalah Sub-cabang
-                        break;
-                    }
-                }
-            }
-
-            const renderList = () => {
-                const f = currentSearch.toLowerCase();
-                
-                const filtered = combinedList.filter(item => {
-                    // Filter Teks (Pencarian) - BERDASARKAN KODE TOKO & DIBUAT AMAN DARI NULL
-                    const kodeToko = (item.store.kode_toko || "").toLowerCase();
-                    const namaToko = (item.store.nama_toko || "").toLowerCase();
-                    const noUlok = (item.ulok || "").toLowerCase();
-                    
-                    const matchSearch = kodeToko.includes(f) || namaToko.includes(f) || noUlok.includes(f);
-                    
-                    // Filter Dropdown Cabang
-                    const itemCabang = (item.store.cabang || item.store.nama_cabang || item.store.kota || "").toUpperCase();
-                    const matchCabang = currentCabang ? itemCabang === currentCabang : true;
-                    
-                    return matchSearch && matchCabang;
-                });
-
-                // 2. Gabungkan Cabang dari API dengan Cabang dari Grup
-                const apiCabangs = combinedList.map(item => (item.store.cabang || item.store.nama_cabang || item.store.kota || "").toUpperCase());
-                const finalCabangs = [...new Set([...groupBranches, ...apiCabangs])].filter(Boolean);
-                
-                let cabangFilterHtml = '';
-                // 3. Tampilkan UI filter jika ada daftar cabang di finalCabangs
-                if (finalCabangs.length > 0) {
-                    cabangFilterHtml = `
-                        <select id="cabang-filter" class="form-select" style="min-width: 180px; flex: 1;">
-                            <option value="">Semua Cabang</option>
-                            ${finalCabangs.map(c => `<option value="${c}" ${currentCabang === c ? 'selected' : ''}>${c}</option>`).join('')}
-                        </select>
-                    `;
-                }
+            const renderList = (filter = "") => {
+                const f = filter.toLowerCase();
+                const filtered = combinedList.filter(item => 
+                    item.store.nama_toko.toLowerCase().includes(f) || 
+                    item.store.kode_toko.toLowerCase().includes(f) ||
+                    item.ulok.toLowerCase().includes(f)
+                );
 
                 let html = `
                     <div class="container" style="padding-top:20px;">
@@ -1042,9 +984,8 @@ const Render = {
                                 </div>
                             </div>
                             
-                            <div class="d-flex gap-2" style="margin-bottom:24px; flex-wrap: wrap;">
-                                <input type="text" id="store-search" class="form-input" style="flex: 2; min-width: 200px;" placeholder="🔍 Cari Toko atau No. ULOK..." value="${currentSearch}">
-                                ${cabangFilterHtml}
+                            <div style="margin-bottom:24px;">
+                                <input type="text" id="store-search" class="form-input" placeholder="🔍 Cari Toko atau No. ULOK..." value="${filter}">
                             </div>
                             
                             <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:16px;">
@@ -1052,7 +993,7 @@ const Render = {
                                     <button class="btn btn-secondary job-item" data-idx="${idx}" style="height:auto; min-height:110px; flex-direction:column; align-items:flex-start; text-align:left; padding:16px; border-left:5px solid var(--secondary-yellow); position:relative; overflow:hidden;">
                                         
                                         <div style="font-size:1.1rem; font-weight:700; color:var(--neutral-700); margin-bottom:4px;">
-                                            ${item.store.nama_toko || item.store.kode_toko || "Nama Toko Tidak Tersedia"}
+                                            ${item.store.nama_toko}
                                         </div>
                                         
                                         <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:12px;">
@@ -1081,19 +1022,9 @@ const Render = {
                 
                 const searchInput = document.getElementById('store-search');
                 searchInput.oninput = (e) => { 
-                    currentSearch = e.target.value;
-                    renderList(); 
+                    renderList(e.target.value); 
                     document.getElementById('store-search').focus(); 
                 };
-
-                const cabangSelect = document.getElementById('cabang-filter');
-                if (cabangSelect) {
-                    cabangSelect.onchange = (e) => {
-                        currentCabang = e.target.value;
-                        renderList();
-                        document.getElementById('cabang-filter').focus();
-                    };
-                }
 
                 container.querySelectorAll('.job-item').forEach((btn, index) => {
                     btn.onclick = () => {
