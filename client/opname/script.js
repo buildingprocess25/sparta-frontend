@@ -977,8 +977,23 @@ const Render = {
             let currentSearch = "";
             let currentCabang = "";
 
-            const renderList = (filter = "") => {
-                const f = filter.toLowerCase();
+            // 1. Ambil list cabang dari BRANCH_GROUPS sesuai user yang login
+            const userCabang = (sessionStorage.getItem("loggedInUserCabang") || AppState.user.cabang || "").toUpperCase();
+            let groupBranches = [];
+            
+            if (BRANCH_GROUPS[userCabang]) {
+                groupBranches = BRANCH_GROUPS[userCabang]; // User adalah Head Cabang
+            } else {
+                for (const [head, subs] of Object.entries(BRANCH_GROUPS)) {
+                    if (subs.includes(userCabang)) {
+                        groupBranches = subs; // User adalah Sub-cabang
+                        break;
+                    }
+                }
+            }
+
+            const renderList = () => {
+                const f = currentSearch.toLowerCase();
                 const filtered = combinedList.filter(item => {
                     // Filter Teks (Pencarian)
                     const matchSearch = item.store.nama_toko.toLowerCase().includes(f) || 
@@ -991,14 +1006,17 @@ const Render = {
                     return matchSearch && matchCabang;
                 });
 
-                const availableCabangs = [...new Set(combinedList.map(item => (item.store.cabang || item.store.nama_cabang || item.store.kota || "").toUpperCase()))].filter(Boolean);
+                // 2. Gabungkan Cabang dari API dengan Cabang dari Grup (Memaksa render jika ada group)
+                const apiCabangs = combinedList.map(item => (item.store.cabang || item.store.nama_cabang || item.store.kota || "").toUpperCase());
+                const finalCabangs = [...new Set([...groupBranches, ...apiCabangs])].filter(Boolean);
                 
                 let cabangFilterHtml = '';
-                if (availableCabangs.length > 1) {
+                // 3. Tampilkan UI filter jika ada daftar cabang di finalCabangs
+                if (finalCabangs.length > 0) {
                     cabangFilterHtml = `
                         <select id="cabang-filter" class="form-select" style="min-width: 180px; flex: 1;">
                             <option value="">Semua Cabang</option>
-                            ${availableCabangs.map(c => `<option value="${c}" ${currentCabang === c ? 'selected' : ''}>${c}</option>`).join('')}
+                            ${finalCabangs.map(c => `<option value="${c}" ${currentCabang === c ? 'selected' : ''}>${c}</option>`).join('')}
                         </select>
                     `;
                 }
