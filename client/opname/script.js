@@ -2,6 +2,14 @@
 const API_BASE_URL = "https://opnamebnm-mgbe.onrender.com"; 
 const INACTIVITY_LIMIT_MS = 60 * 60 * 1000; // 1 Jam
 
+const BRANCH_GROUPS = {
+    "LOMBOK": ["LOMBOK", "SUMBAWA"],
+    "MEDAN": ["MEDAN", "ACEH"],
+    "LAMPUNG": ["LAMPUNG", "LAMPUNG_KOTABUMI"],
+    "PALEMBANG": ["PALEMBANG", "BENGKULU", "BANGKA", "BELITUNG"],
+    "SIDOARJO": ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"]
+};
+
 // Format Rupiah
 const formatRupiah = (number) => {
     const numericValue = Number(number) || 0;
@@ -965,13 +973,35 @@ const Render = {
                 return a.ulok.localeCompare(b.ulok);
             });
 
+            // --- FILTER STATE ---
+            let currentSearch = "";
+            let currentCabang = "";
+
             const renderList = (filter = "") => {
                 const f = filter.toLowerCase();
-                const filtered = combinedList.filter(item => 
-                    item.store.nama_toko.toLowerCase().includes(f) || 
-                    item.store.kode_toko.toLowerCase().includes(f) ||
-                    item.ulok.toLowerCase().includes(f)
-                );
+                const filtered = combinedList.filter(item => {
+                    // Filter Teks (Pencarian)
+                    const matchSearch = item.store.nama_toko.toLowerCase().includes(f) || 
+                                        item.store.kode_toko.toLowerCase().includes(f) ||
+                                        item.ulok.toLowerCase().includes(f);
+                    
+                    // Filter Dropdown Cabang
+                    const itemCabang = (item.store.cabang || item.store.nama_cabang || item.store.kota || "").toUpperCase();
+                    const matchCabang = currentCabang ? itemCabang === currentCabang : true;
+                    return matchSearch && matchCabang;
+                });
+
+                const availableCabangs = [...new Set(combinedList.map(item => (item.store.cabang || item.store.nama_cabang || item.store.kota || "").toUpperCase()))].filter(Boolean);
+                
+                let cabangFilterHtml = '';
+                if (availableCabangs.length > 1) {
+                    cabangFilterHtml = `
+                        <select id="cabang-filter" class="form-select" style="min-width: 180px; flex: 1;">
+                            <option value="">Semua Cabang</option>
+                            ${availableCabangs.map(c => `<option value="${c}" ${currentCabang === c ? 'selected' : ''}>${c}</option>`).join('')}
+                        </select>
+                    `;
+                }
 
                 let html = `
                     <div class="container" style="padding-top:20px;">
@@ -1022,9 +1052,19 @@ const Render = {
                 
                 const searchInput = document.getElementById('store-search');
                 searchInput.oninput = (e) => { 
-                    renderList(e.target.value); 
+                    currentSearch = e.target.value;
+                    renderList(); 
                     document.getElementById('store-search').focus(); 
                 };
+
+                const cabangSelect = document.getElementById('cabang-filter');
+                if (cabangSelect) {
+                    cabangSelect.onchange = (e) => {
+                        currentCabang = e.target.value;
+                        renderList();
+                        document.getElementById('cabang-filter').focus();
+                    };
+                }
 
                 container.querySelectorAll('.job-item').forEach((btn, index) => {
                     btn.onclick = () => {
