@@ -443,6 +443,7 @@ const PDFGenerator = {
         }
         
         // 3. Data submissions
+        // 3. Data submissions
         const dataOpname = submissions && submissions.length > 0 ? submissions[0] : {};
 
         // Fallback data nama PIC/Kontraktor
@@ -452,6 +453,26 @@ const PDFGenerator = {
         }
         if (!picKontraktorData.kontraktor_username || picKontraktorData.kontraktor_username === "N/A") {
             if (dataOpname?.kontraktor_username) picKontraktorData.kontraktor_username = String(dataOpname.kontraktor_username).trim();
+        }
+
+        // 4. Fetch Tanggal Opname Final
+        let tanggalOpnameFinal = null;
+        try {
+            const checkUrl = `https://sparta-backend-5hdj.onrender.com/api/check_status_item_opname?no_ulok=${encodeURIComponent(selectedUlok)}&lingkup_pekerjaan=${encodeURIComponent(selectedLingkup)}`;
+            const statusRes = await fetch(checkUrl);
+            if (statusRes.ok) {
+                const statusData = await statusRes.json();
+                if (statusData.tanggal_opname_final) {
+                    const dateObj = new Date(statusData.tanggal_opname_final);
+                    if (!isNaN(dateObj)) {
+                        tanggalOpnameFinal = dateObj.toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" });
+                    } else {
+                        tanggalOpnameFinal = statusData.tanggal_opname_final;
+                    }
+                }
+            }
+        } catch (err) {
+            console.warn("Gagal mengambil tanggal opname final:", err);
         }
 
         // ==========================================
@@ -473,7 +494,13 @@ const PDFGenerator = {
         doc.text(`LINGKUP PEKERJAAN : ${lingkupFix}`, margin, lastY); lastY += 6;
         doc.text(`NAMA TOKO : ${finalNamaToko}`, margin, lastY); lastY += 6;
         doc.text(`ALAMAT : ${finalAlamat}`, margin, lastY); lastY += 6;
-        doc.text(`TANGGAL OPNAME : ${currentDate}`, margin, lastY); lastY += 6;
+        
+        doc.text(`TANGGAL CETAK : ${currentDate}`, margin, lastY); lastY += 6;
+        
+        if (tanggalOpnameFinal) {
+            doc.text(`TANGGAL OPNAME FINAL : ${tanggalOpnameFinal}`, margin, lastY); lastY += 6;
+        }
+
         doc.text(`NAMA PIC : ${picLine}`, margin, lastY); lastY += 6;
         doc.text(`NAMA KONTRAKTOR : ${picKontraktorData.kontraktor_username || "N/A"}`, margin, lastY); 
         lastY += 12;
