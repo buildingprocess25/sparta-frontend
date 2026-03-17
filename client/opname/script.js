@@ -1014,8 +1014,9 @@ const Render = {
                                 </div>
                             </div>
                             
-                            <div style="margin-bottom:24px;">
-                                <input type="text" id="store-search" class="form-input" placeholder="🔍 Cari Toko atau No. ULOK..." value="${filter}">
+                            <div class="d-flex gap-2" style="margin-bottom:24px; flex-wrap: wrap;">
+                                <input type="text" id="store-search" class="form-input" style="flex: 2; min-width: 200px;" placeholder="🔍 Cari Toko atau No. ULOK..." value="${currentSearch}">
+                                ${cabangFilterHtml}
                             </div>
                             
                             <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:16px;">
