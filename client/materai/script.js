@@ -207,7 +207,7 @@ function renderDashboard(container) {
         <div class="menu-card" onclick="navigate('/buat-dokumen')">
             <div class="menu-icon">📝</div>
             <div class="menu-title">Buat Dokumen</div>
-            <div class="menu-desc">Unggah RAB & SPH Termaterai</div>
+            <div class="menu-desc">Unggah RAB & Dokumen SPH</div>
         </div>
         <div class="menu-card" onclick="navigate('/hasil-dokumen')">
             <div class="menu-icon">📂</div>
@@ -255,7 +255,7 @@ function renderCreateDocument(container) {
             </div>
 
             <div style="margin-bottom: 20px;">
-                <label>Upload File Termaterai (PDF)</label>
+                <label>Upload File SPH (PDF)</label>
                 <input type="file" id="fileRab" accept=".pdf,application/pdf" required />
                 <small style="display: block; margin-top: 6px; color: #666;">Pastikan dokumen sudah digabung dan termeterai.</small>
             </div>
