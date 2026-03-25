@@ -1,5 +1,5 @@
 /* ======================== CONSTANTS & UTILS ======================== */
-const API_BASE_URL = "https://opnamebnm-mgbe.onrender.com"; 
+const API_BASE_URL = "https://opnamebnm-mgbe.onrender.com";
 const INACTIVITY_LIMIT_MS = 60 * 60 * 1000; // 1 Jam
 
 // Format Rupiah
@@ -15,20 +15,20 @@ const formatRupiah = (number) => {
 
 const calculateLatePenalty = (days) => {
     if (!days || days <= 0) return 0;
-    
+
     let totalDenda = 0;
-    
+
     // Tier 1: Hari 1 - 5 (1 Juta/hari)
     const tier1Days = Math.min(days, 5);
     totalDenda += tier1Days * 1000000;
-    
+
     // Tier 2: Hari 6 - 15 (500 Ribu/hari)
     if (days > 5) {
         const remainingDays = days - 5;
         const tier2Days = Math.min(remainingDays, 10); // Max 10 hari (sampai hari ke-15)
         totalDenda += tier2Days * 500000;
     }
-    
+
     // Max denda total otomatis 10.000.000 berdasarkan logika di atas (5jt + 5jt)
     return totalDenda;
 };
@@ -78,7 +78,7 @@ const Auth = {
             } catch {
                 sessionStorage.removeItem("user");
             }
-        } 
+        }
         else if (mainAuthEmail && mainAuthCabang) {
             console.log("Mendeteksi sesi Sparta Utama. Mencoba login otomatis ke Opname...");
             try {
@@ -103,7 +103,7 @@ const Auth = {
             const now = new Date();
             const wibTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Jakarta" }));
             const hour = wibTime.getHours();
-            
+
             if (hour < 6 || hour >= 24) {
                 const currentTime = wibTime.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
                 throw new Error(`Sesi habis. Login 06.00–24.00 WIB. (Saat ini: ${currentTime})`);
@@ -140,10 +140,10 @@ const Auth = {
     startIdleTimer: () => {
         clearTimeout(AppState.idleTimer);
         AppState.idleTimer = setTimeout(() => Auth.logout(), INACTIVITY_LIMIT_MS);
-        window.onclick = () => { 
-            if(AppState.user) { 
-                clearTimeout(AppState.idleTimer); 
-                AppState.idleTimer = setTimeout(() => Auth.logout(), INACTIVITY_LIMIT_MS); 
+        window.onclick = () => {
+            if (AppState.user) {
+                clearTimeout(AppState.idleTimer);
+                AppState.idleTimer = setTimeout(() => Auth.logout(), INACTIVITY_LIMIT_MS);
             }
         };
     }
@@ -255,7 +255,7 @@ const toBase64 = async (url) => {
 
         const response = await fetch(url);
         if (!response.ok) throw new Error(`Status: ${response.status}`);
-        
+
         const blob = await response.blob();
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -302,7 +302,7 @@ const PDFGenerator = {
     generateFinalOpnamePDF: async (submissions, selectedStore, selectedUlok, selectedLingkup, user) => {
         if (!window.jspdf) { alert("Library PDF belum dimuat."); return; }
         const { jsPDF } = window.jspdf;
-        
+
         console.log("Memulai pembuatan PDF Full Version...");
         const doc = new jsPDF();
         const currentDate = new Date().toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" });
@@ -312,7 +312,7 @@ const PDFGenerator = {
 
         // --- PRELOAD LOGO ---
         let logoData = null;
-        try { logoData = await toBase64(LOGO_URL_FALLBACK); } catch(e) {}
+        try { logoData = await toBase64(LOGO_URL_FALLBACK); } catch (e) { }
 
         // --- HELPER: Print Header ---
         const printHeader = () => {
@@ -326,11 +326,11 @@ const PDFGenerator = {
 
             doc.setTextColor(0, 0, 0);
             doc.setFontSize(9).setFont("helvetica", "bold");
-            doc.text(COMPANY_NAME, margin, currentY); 
-            
+            doc.text(COMPANY_NAME, margin, currentY);
+
             currentY += 5;
             doc.setFont("helvetica", "normal");
-            doc.text("BUILDING & MAINTENANCE DEPT", margin, currentY); 
+            doc.text("BUILDING & MAINTENANCE DEPT", margin, currentY);
 
             const cabangTxt = selectedStore.cabang || selectedStore.nama_cabang || selectedStore.kota || "";
             if (cabangTxt) {
@@ -339,11 +339,11 @@ const PDFGenerator = {
             }
 
             currentY += 6;
-            doc.setDrawColor(0); 
+            doc.setDrawColor(0);
             doc.setLineWidth(0.5);
             doc.line(margin, currentY, pageWidth - margin, currentY);
-            
-            return currentY + 8; 
+
+            return currentY + 8;
         };
 
         // --- HELPER: Footer ---
@@ -386,32 +386,32 @@ const PDFGenerator = {
                 columnStyles: { 0: { fontStyle: "bold", cellWidth: 35, halign: "left" } },
                 didParseCell: (data) => {
                     if (data.row.index === 3) {
-                        data.cell.styles.fillColor = [144, 238, 144]; 
+                        data.cell.styles.fillColor = [144, 238, 144];
                         data.cell.styles.fontStyle = "bold";
                     }
                 }
             });
-            
+
             return { finalY: doc.lastAutoTable.finalY + 15, grandTotal: grandTotal };
         };
 
         const lingkupFix = (selectedLingkup || "").toUpperCase();
-        
+
         // --- FETCH DATA ---
         // 1. Data Utama
         let rabData = await fetchRabData(selectedStore.kode_toko, selectedUlok, lingkupFix);
-        
+
         if (user.role === 'kontraktor') {
             const currentIdent = user.email || sessionStorage.getItem("loggedInUserEmail") || user.username;
-            
+
             rabData = rabData.filter(rabItem => {
                 if (rabItem.kontraktor_username || rabItem.kontraktor_email || rabItem.email) {
-                    return rabItem.kontraktor_username === user.username || 
+                    return rabItem.kontraktor_username === user.username ||
                         rabItem.kontraktor_email === currentIdent ||
                         rabItem.email === currentIdent;
                 }
-                return submissions.some(sub => 
-                    sub.jenis_pekerjaan === rabItem.jenis_pekerjaan && 
+                return submissions.some(sub =>
+                    sub.jenis_pekerjaan === rabItem.jenis_pekerjaan &&
                     sub.kategori_pekerjaan === rabItem.kategori_pekerjaan
                 );
             });
@@ -423,7 +423,7 @@ const PDFGenerator = {
         let penaltyData = { days: 0, amount: 0, isLate: false };
         try {
             let penaltyUrl = `${API_BASE_URL}/api/cek_keterlambatan?no_ulok=${encodeURIComponent(selectedUlok)}&lingkup_pekerjaan=${encodeURIComponent(selectedLingkup)}`;
-            
+
             if (user.role === 'kontraktor') {
                 const currentIdent = user.email || sessionStorage.getItem("loggedInUserEmail") || user.username;
                 penaltyUrl += `&kontraktor=${encodeURIComponent(currentIdent)}`;
@@ -441,7 +441,7 @@ const PDFGenerator = {
         } catch (err) {
             console.warn("Gagal mengambil data denda untuk PDF:", err);
         }
-        
+
         // 3. Data submissions
         // 3. Data submissions
         const dataOpname = submissions && submissions.length > 0 ? submissions[0] : {};
@@ -485,7 +485,7 @@ const PDFGenerator = {
         lastY += 15;
 
         doc.setFont("helvetica", "normal").setFontSize(10);
-        
+
         const finalNamaToko = dataOpname.nama_toko || selectedStore.nama_toko || "-";
         const finalAlamat = dataOpname.alamat || selectedStore.alamat || "-";
         const picLine = picList && picList.length > 0 ? picList.join(", ") : (picKontraktorData.name || picKontraktorData.pic_username || "N/A");
@@ -494,15 +494,15 @@ const PDFGenerator = {
         doc.text(`LINGKUP PEKERJAAN : ${lingkupFix}`, margin, lastY); lastY += 6;
         doc.text(`NAMA TOKO : ${finalNamaToko}`, margin, lastY); lastY += 6;
         doc.text(`ALAMAT : ${finalAlamat}`, margin, lastY); lastY += 6;
-        
+
         doc.text(`TANGGAL CETAK : ${currentDate}`, margin, lastY); lastY += 6;
-        
+
         if (tanggalOpnameFinal) {
             doc.text(`TANGGAL OPNAME FINAL : ${tanggalOpnameFinal}`, margin, lastY); lastY += 6;
         }
 
         doc.text(`NAMA PIC : ${picLine}`, margin, lastY); lastY += 6;
-        doc.text(`NAMA KONTRAKTOR : ${picKontraktorData.kontraktor_username || "N/A"}`, margin, lastY); 
+        doc.text(`NAMA KONTRAKTOR : ${picKontraktorData.kontraktor_username || "N/A"}`, margin, lastY);
         lastY += 12;
 
         const rabPure = rabData.filter(item => !item.is_il);
@@ -529,7 +529,7 @@ const PDFGenerator = {
         } else {
             for (const categoryName of Object.keys(rabCategories)) {
                 if (lastY + 40 > pageHeight - 20) { addFooter(doc.getNumberOfPages()); doc.addPage(); lastY = margin + 10; }
-                
+
                 doc.setFontSize(11).setFont("helvetica", "bold");
                 doc.text(`${categoryNumber}. ${categoryName}`, margin, lastY);
                 lastY += 10; categoryNumber++;
@@ -551,7 +551,7 @@ const PDFGenerator = {
                     body: categoryTableBody, startY: lastY, margin: { left: margin, right: margin }, theme: "grid",
                     styles: { fontSize: 8, cellPadding: 2, lineWidth: 0.1 }, headStyles: { fillColor: [205, 234, 242], textColor: [0, 0, 0], fontSize: 8, fontStyle: "bold", halign: "center" },
                     columnStyles: { 0: { cellWidth: 8, halign: "center" }, 1: { cellWidth: 40 }, 8: { fontStyle: "bold", halign: "right" } },
-                    didParseCell: (data) => { if(data.section === 'body' && data.row.index === data.table.body.length - 1) { data.cell.styles.fillColor = [242, 242, 242]; if(data.column.index >= 5) data.cell.styles.fontStyle = 'bold'; } if(data.column.index > 2) data.cell.styles.halign = 'right'; }
+                    didParseCell: (data) => { if (data.section === 'body' && data.row.index === data.table.body.length - 1) { data.cell.styles.fillColor = [242, 242, 242]; if (data.column.index >= 5) data.cell.styles.fontStyle = 'bold'; } if (data.column.index > 2) data.cell.styles.halign = 'right'; }
                 });
                 lastY = doc.lastAutoTable.finalY + 10;
             }
@@ -594,7 +594,7 @@ const PDFGenerator = {
                     body: categoryTableBody, startY: lastY, margin: { left: margin, right: margin }, theme: "grid",
                     styles: { fontSize: 8, cellPadding: 2, lineWidth: 0.1 }, headStyles: { fillColor: [255, 245, 157], textColor: [0, 0, 0], fontSize: 8, fontStyle: "bold", halign: "center" },
                     columnStyles: { 0: { cellWidth: 8, halign: "center" }, 1: { cellWidth: 40 }, 8: { fontStyle: "bold", halign: "right" } },
-                    didParseCell: (data) => { if(data.section === 'body' && data.row.index === data.table.body.length - 1) { data.cell.styles.fillColor = [255, 249, 196]; if(data.column.index >= 5) data.cell.styles.fontStyle = 'bold'; } if(data.column.index > 2) data.cell.styles.halign = 'right'; }
+                    didParseCell: (data) => { if (data.section === 'body' && data.row.index === data.table.body.length - 1) { data.cell.styles.fillColor = [255, 249, 196]; if (data.column.index >= 5) data.cell.styles.fontStyle = 'bold'; } if (data.column.index > 2) data.cell.styles.halign = 'right'; }
                 });
                 lastY = doc.lastAutoTable.finalY + 10;
             }
@@ -609,21 +609,21 @@ const PDFGenerator = {
         // ==========================================
         if (submissions && submissions.length > 0) {
             const groupsByType = { "PEKERJAAN TAMBAH": [], "PEKERJAAN KURANG": [] };
-            
+
             submissions.forEach(it => {
                 const vAkhir = toNumberVol_PDF(it.volume_akhir);
-                
+
                 let rawVolAwal = it.vol_rab;
                 if (rawVolAwal === undefined || rawVolAwal === null || rawVolAwal === "") {
                     rawVolAwal = it.volume_awal;
                 }
-                const vAwal = toNumberVol_PDF(rawVolAwal); 
-                
+                const vAwal = toNumberVol_PDF(rawVolAwal);
+
                 let sel = vAkhir - vAwal;
                 sel = Math.round((sel + Number.EPSILON) * 100) / 100;
 
                 if (sel !== 0) {
-                    it.selisih = String(sel).replace('.', ','); 
+                    it.selisih = String(sel).replace('.', ',');
                     const type = sel < 0 ? "PEKERJAAN KURANG" : "PEKERJAAN TAMBAH";
                     groupsByType[type].push(it);
                 }
@@ -633,7 +633,7 @@ const PDFGenerator = {
                 if (itemsArr.length === 0) continue;
                 addFooter(doc.getNumberOfPages()); doc.addPage(); lastY = margin + 10;
                 doc.setFontSize(12).setFont("helvetica", "bold"); doc.text(sectionName, margin, lastY);
-                doc.setDrawColor(180, 180, 180); doc.line(margin, lastY+2, pageWidth-margin, lastY+2);
+                doc.setDrawColor(180, 180, 180); doc.line(margin, lastY + 2, pageWidth - margin, lastY + 2);
                 lastY += 10;
 
                 const catGroups = groupDataByCategory(itemsArr);
@@ -648,9 +648,9 @@ const PDFGenerator = {
                         const hMat = toNumberID_PDF(item.harga_material);
                         const hUpah = toNumberID_PDF(item.harga_upah);
                         const deltaNominal = sel * (hMat + hUpah);
-                        
+
                         const namaPekerjaan = item.jenis_pekerjaan + (item.is_il ? " (IL)" : "");
-                        
+
                         let displayVolAwal = item.vol_rab;
                         if (displayVolAwal === undefined || displayVolAwal === null || displayVolAwal === "") {
                             displayVolAwal = "0";
@@ -662,15 +662,15 @@ const PDFGenerator = {
                     doc.autoTable({
                         head: [["NO.", "JENIS PEKERJAAN", "VOL AWAL", "SATUAN", "VOL AKHIR", "SELISIH", "NILAI SELISIH (Rp)"]],
                         body: rows, startY: lastY, margin: { left: margin, right: margin }, theme: "grid",
-                        styles: { fontSize: 8, cellPadding: 3, lineWidth: 0.1 }, headStyles: { fillColor: [205, 234, 242], textColor: [0,0,0], fontSize: 8.5, fontStyle: "bold", halign: "center" },
+                        styles: { fontSize: 8, cellPadding: 3, lineWidth: 0.1 }, headStyles: { fillColor: [205, 234, 242], textColor: [0, 0, 0], fontSize: 8.5, fontStyle: "bold", halign: "center" },
                         columnStyles: { 6: { halign: "right", fontStyle: "bold" }, 2: { halign: "center" }, 4: { halign: "center" }, 5: { halign: "center", fontStyle: "bold" } },
-                        didParseCell: (data) => { 
-                            if(data.section === 'body') { 
-                                const originalItem = kItems[data.row.index]; 
-                                if (originalItem && originalItem.is_il) { 
+                        didParseCell: (data) => {
+                            if (data.section === 'body') {
+                                const originalItem = kItems[data.row.index];
+                                if (originalItem && originalItem.is_il) {
                                     data.cell.styles.fillColor = [255, 249, 196]; // Highlight Kuning untuk IL
-                                } 
-                            } 
+                                }
+                            }
                         }
                     });
                     lastY = doc.lastAutoTable.finalY + 10;
@@ -679,7 +679,7 @@ const PDFGenerator = {
                 const totalRealBlock = itemsArr.reduce((sum, item) => {
                     return sum + (toNumberVol_PDF(item.selisih) * (toNumberID_PDF(item.harga_material) + toNumberID_PDF(item.harga_upah)));
                 }, 0);
-                
+
                 if (lastY + 40 > pageHeight - 20) { addFooter(doc.getNumberOfPages()); doc.addPage(); lastY = margin + 10; }
                 const summaryBlock = printSummaryBox("TOTAL " + sectionName, totalRealBlock, lastY);
                 lastY = summaryBlock.finalY;
@@ -705,7 +705,7 @@ const PDFGenerator = {
         const ppnKurang = totalKurangBulat * ppnRatePdf;
         const totalTambahPPN = totalTambahBulat + ppnTambah;
         const totalKurangPPN = totalKurangBulat + ppnKurang;
-        
+
         const totalSetelahPPNRAB = grandTotalRAB + grandTotalIL;
         const deltaPPN = totalTambahPPN + totalKurangPPN;
         const totalOpnameGross = totalSetelahPPNRAB + deltaPPN;
@@ -713,7 +713,7 @@ const PDFGenerator = {
 
         doc.setFontSize(12).setFont("helvetica", "bold");
         doc.text("STATUS PEKERJAAN", margin, lastY);
-        doc.line(margin, lastY+2, pageWidth-margin, lastY+2);
+        doc.line(margin, lastY + 2, pageWidth - margin, lastY + 2);
         lastY += 10;
 
         const deltaNominal = totalOpnameGross - totalSetelahPPNRAB;
@@ -732,7 +732,7 @@ const PDFGenerator = {
 
         if (penaltyData.isLate && penaltyData.amount > 0) {
             statusTableBody.push(
-                [{ content: `Denda Keterlambatan (${penaltyData.days} Hari)`, styles: { textColor: [220, 38, 38], fontStyle: "bold" } }, 
+                [{ content: `Denda Keterlambatan (${penaltyData.days} Hari)`, styles: { textColor: [220, 38, 38], fontStyle: "bold" } },
                 { content: `- ${formatRupiah(penaltyData.amount)}`, styles: { textColor: [220, 38, 38], fontStyle: "bold" } }]
             );
             statusTableBody.push(
@@ -762,19 +762,19 @@ const PDFGenerator = {
         const itemsWithPhotos = (submissions || []).filter(item => item.foto_url);
         if (itemsWithPhotos.length > 0) {
             addFooter(doc.getNumberOfPages()); doc.addPage(); let pageNum = doc.getNumberOfPages();
-            
+
             let photoY = margin + 10;
             doc.setFontSize(12).setFont("helvetica", "bold");
             doc.text("LAMPIRAN FOTO BUKTI", pageWidth / 2, photoY + 5, { align: "center" });
             doc.line(margin, photoY + 8, pageWidth - margin, photoY + 8);
-            
-            photoY += 15; 
+
+            photoY += 15;
             let columnIndex = 0;
             const columnWidth = (pageWidth - margin * 3) / 2;
             const leftColumnX = margin; const rightColumnX = margin + columnWidth + margin;
 
             const base64Photos = await Promise.all(itemsWithPhotos.map(it => toBase64(it.foto_url)));
-            
+
             itemsWithPhotos.forEach((item, index) => {
                 const imgData = base64Photos[index];
                 if (imgData) {
@@ -790,7 +790,7 @@ const PDFGenerator = {
 
                     const currentX = columnIndex === 0 ? leftColumnX : rightColumnX;
                     doc.setFontSize(9).setFont("helvetica", "bold");
-                    const judulFoto = `${index+1}. ${item.jenis_pekerjaan}` + (item.is_il ? " (IL)" : "");
+                    const judulFoto = `${index + 1}. ${item.jenis_pekerjaan}` + (item.is_il ? " (IL)" : "");
                     const titleLines = wrapText(doc, judulFoto, maxWidth);
                     let titleY = photoY;
                     titleLines.forEach(line => { doc.text(line, currentX, titleY); titleY += 5; });
@@ -833,7 +833,7 @@ const Render = {
         if (!AppState.user) {
             // Karena tidak ada form login lokal, redirect ke dashboard utama
             alert("Sesi Anda telah berakhir atau belum login. Silakan login kembali melalui Dashboard Utama.");
-            window.location.href = "../../auth/index.html"; 
+            window.location.href = "../../auth/index.html";
             return;
         }
 
@@ -861,7 +861,7 @@ const Render = {
     header: () => {
         const header = document.createElement('header');
         header.className = 'app-header';
-        
+
         header.innerHTML = `
             <img src="../../assets/Alfamart-Emblem.png" alt="Alfamart" class="header-logo" onerror="this.style.display='none'; this.parentElement.insertAdjacentHTML('afterbegin', '<b style=\\'position:absolute;left:20px;color:white\\'>ALFAMART</b>')">
             <div style="text-align:center;">
@@ -946,7 +946,7 @@ const Render = {
 
         let url = "";
         const u = AppState.user;
-        
+
         if ((type === 'opname' || type === 'final-opname') && u.role === 'pic') {
             url = `${API_BASE_URL}/api/toko?username=${u.username}`;
         } else if (u.role === 'kontraktor') {
@@ -956,7 +956,7 @@ const Render = {
         try {
             const res = await fetch(url);
             const stores = await res.json();
-            
+
             if (!Array.isArray(stores)) throw new Error("Gagal mengambil data toko.");
 
             const combinedList = [];
@@ -980,8 +980,8 @@ const Render = {
 
             const renderList = (filter = "") => {
                 const f = filter.toLowerCase();
-                const filtered = combinedList.filter(item => 
-                    item.store.nama_toko.toLowerCase().includes(f) || 
+                const filtered = combinedList.filter(item =>
+                    item.store.nama_toko.toLowerCase().includes(f) ||
                     item.store.kode_toko.toLowerCase().includes(f) ||
                     item.ulok.toLowerCase().includes(f)
                 );
@@ -1032,11 +1032,11 @@ const Render = {
                 container.innerHTML = html;
 
                 container.querySelector('#btn-back-store').onclick = () => { AppState.activeView = 'dashboard'; Render.app(); };
-                
+
                 const searchInput = document.getElementById('store-search');
-                searchInput.oninput = (e) => { 
-                    renderList(e.target.value); 
-                    document.getElementById('store-search').focus(); 
+                searchInput.oninput = (e) => {
+                    renderList(e.target.value);
+                    document.getElementById('store-search').focus();
                 };
 
                 container.querySelectorAll('.job-item').forEach((btn, index) => {
@@ -1044,13 +1044,13 @@ const Render = {
                         const selectedItem = filtered[index];
                         AppState.selectedStore = selectedItem.store;
                         AppState.selectedUlok = selectedItem.ulok;
-                        AppState.selectedLingkup = null; 
+                        AppState.selectedLingkup = null;
 
                         if (type === 'opname') AppState.activeView = 'opname';
                         else if (type === 'final-opname') AppState.activeView = 'final-opname-detail';
                         else if (type === 'approval') AppState.activeView = 'approval-detail';
                         else if (type === 'history') AppState.activeView = 'history-detail-kontraktor';
-                        
+
                         Render.app();
                     };
                 });
@@ -1095,32 +1095,32 @@ const Render = {
                     </div>
                 </div>
             `;
-            
+
             container.querySelector('#btn-sipil').onclick = () => { AppState.selectedLingkup = 'SIPIL'; Render.opnameForm(container); };
             container.querySelector('#btn-me').onclick = () => { AppState.selectedLingkup = 'ME'; Render.opnameForm(container); };
-            
-            container.querySelector('#btn-cancel-lingkup').onclick = () => { 
+
+            container.querySelector('#btn-cancel-lingkup').onclick = () => {
                 AppState.selectedStore = null;
                 AppState.selectedUlok = null;
-                AppState.activeView = 'store-selection-pic'; 
-                Render.app(); 
+                AppState.activeView = 'store-selection-pic';
+                Render.app();
             };
             return;
         }
 
         container.innerHTML = '<div class="loading-screen"><h3>Memuat Data...</h3></div>';
-        
+
         try {
             // 1. Fetch Data Opname Item
             const base = `${API_BASE_URL}/api/opname?kode_toko=${encodeURIComponent(AppState.selectedStore.kode_toko)}&no_ulok=${encodeURIComponent(AppState.selectedUlok)}&lingkup=${encodeURIComponent(AppState.selectedLingkup)}`;
             const res = await fetch(base);
             let data = await res.json();
-            
+
             // 2. Fetch Data Keterlambatan
             let penaltyData = { terlambat: false, hari_terlambat: 0, denda_nominal: 0 };
             try {
                 let penaltyUrl = `${API_BASE_URL}/api/cek_keterlambatan?no_ulok=${encodeURIComponent(AppState.selectedUlok)}&lingkup_pekerjaan=${encodeURIComponent(AppState.selectedLingkup)}`;
-                
+
                 if (AppState.user.role === 'kontraktor') {
                     const currentIdent = AppState.user.email || sessionStorage.getItem("loggedInUserEmail") || AppState.user.username;
                     penaltyUrl += `&kontraktor=${encodeURIComponent(currentIdent)}`;
@@ -1128,13 +1128,13 @@ const Render = {
 
                 const penaltyRes = await fetch(penaltyUrl);
                 const penaltyJson = await penaltyRes.json();
-                
+
                 if (penaltyJson.terlambat) {
                     const nominal = calculateLatePenalty(penaltyJson.hari_terlambat);
-                    penaltyData = { 
-                        terlambat: true, 
-                        hari_terlambat: penaltyJson.hari_terlambat, 
-                        denda_nominal: nominal 
+                    penaltyData = {
+                        terlambat: true,
+                        hari_terlambat: penaltyJson.hari_terlambat,
+                        denda_nominal: nominal
                     };
                 }
             } catch (err) {
@@ -1146,28 +1146,28 @@ const Render = {
                 const volAkhirNum = toNumInput(task.volume_akhir);
                 const hargaMaterial = toNumID(task.harga_material);
                 const hargaUpah = toNumID(task.harga_upah);
-                
+
                 const selisihNum = volAkhirNum - volRab;
                 const total_harga = selisihNum * (hargaMaterial + hargaUpah);
-                
+
                 const alreadySubmitted = task.isSubmitted === true || !!task.item_id || ["PENDING", "APPROVED", "REJECTED"].includes(String(task.approval_status || "").toUpperCase());
-                
+
                 // --- LOGIKA PEMBERSIH CATATAN ---
                 let rawCatatan = task.catatan || "";
                 // Hapus teks di dalam kurung siku [...] seperti [REJECT 18/2/2026...]
                 let cleanCatatan = rawCatatan.replace(/\[.*?\]/g, "").trim();
-                
-                return { 
-                    ...task, 
-                    id: index + 1, 
-                    harga_material: hargaMaterial, 
-                    harga_upah: hargaUpah, 
-                    isSubmitted: alreadySubmitted, 
-                    volume_akhir: alreadySubmitted ? String(volAkhirNum) : "", 
-                    selisih: (Math.round((selisihNum + Number.EPSILON) * 100) / 100).toFixed(2), 
+
+                return {
+                    ...task,
+                    id: index + 1,
+                    harga_material: hargaMaterial,
+                    harga_upah: hargaUpah,
+                    isSubmitted: alreadySubmitted,
+                    volume_akhir: alreadySubmitted ? String(volAkhirNum) : "",
+                    selisih: (Math.round((selisihNum + Number.EPSILON) * 100) / 100).toFixed(2),
                     total_harga,
                     // Gunakan catatan yang sudah dibersihkan
-                    catatan: cleanCatatan, 
+                    catatan: cleanCatatan,
                     approval_status: task.approval_status || (alreadySubmitted ? "Pending" : ""),
                     desain: task.desain || "-",
                     kualitas: task.kualitas || "-",
@@ -1210,7 +1210,7 @@ const Render = {
                 const userCabang = sessionStorage.getItem("loggedInUserCabang") || "";
                 const isBatam = cabangTxt.toUpperCase() === "BATAM" || userCabang.toUpperCase() === "BATAM";
                 const ppnRate = isBatam ? 0 : 0.11;
-                
+
                 // Hitung total awal
                 const totalVal = Math.round(items.reduce((sum, i) => {
                     const vol = i.volume_akhir !== "" ? Number(String(i.volume_akhir).replace(',', '.')) || 0 : Number(String(i.vol_rab).replace(',', '.')) || 0;
@@ -1219,16 +1219,16 @@ const Render = {
 
                 // Pembulatan (kelipatan 10.000 ke bawah)
                 const totalPembulatan = Math.floor(totalVal / 10000) * 10000;
-                
+
                 // PPN dinamis (0% atau 11%)
                 const ppn = Math.round(totalPembulatan * ppnRate);
                 const denda = penaltyData.denda_nominal || 0;
-                
+
                 // Grand Total = (Pembulatan + PPN) - Denda
                 const grandTotal = (totalPembulatan + ppn) - denda;
 
-                let btnColor = '#6c757d'; 
-                if (isFinalized) btnColor = '#28a745'; 
+                let btnColor = '#6c757d';
+                if (isFinalized) btnColor = '#28a745';
                 else if (canFinalize) btnColor = '#007bff';
 
                 // Link IL
@@ -1237,8 +1237,8 @@ const Render = {
                 const email = sessionStorage.getItem("loggedInUserEmail") || "";
                 const cabang = sessionStorage.getItem("loggedInUserCabang") || "";
                 let ilParams = [`ulok=${currentUlok}`, `toko=${currentToko}`];
-                if(email && cabang) {
-                    try { ilParams.push(`user=${btoa(JSON.stringify({ email, cabang }))}`); } catch(e){}
+                if (email && cabang) {
+                    try { ilParams.push(`user=${btoa(JSON.stringify({ email, cabang }))}`); } catch (e) { }
                 }
                 let ilLink = `../il/index.html?${ilParams.join('&')}`;
 
@@ -1269,24 +1269,24 @@ const Render = {
                                 </thead>
                                 <tbody>
                                     ${items.map(item => {
-                                        let rowBg = '';
-                                        if (item.is_il) rowBg = '#fff9c4'; 
-                                        else if (item.isSubmitted) rowBg = '#f0fff0';
-                                        
-                                        const selisihVal = parseFloat(item.selisih) || 0;
-                                        let selisihColor = 'black';
-                                        if (selisihVal < 0) selisihColor = '#dc2626';
-                                        else if (selisihVal > 0) selisihColor = '#166534';
+                    let rowBg = '';
+                    if (item.is_il) rowBg = '#fff9c4';
+                    else if (item.isSubmitted) rowBg = '#f0fff0';
 
-                                        const isDisabled = item.isSubmitted ? 'disabled' : '';
-                                        const valDesain = item.desain || '-';
-                                        const valKualitas = item.kualitas || '-';
-                                        const valSpec = item.spesifikasi || '-';
-                                        const status = String(item.approval_status || '').toLowerCase();
-                                        const isRejected = status === 'rejected';
-                                        const canFix = isRejected;
+                    const selisihVal = parseFloat(item.selisih) || 0;
+                    let selisihColor = 'black';
+                    if (selisihVal < 0) selisihColor = '#dc2626';
+                    else if (selisihVal > 0) selisihColor = '#166534';
 
-                                        return `
+                    const isDisabled = item.isSubmitted ? 'disabled' : '';
+                    const valDesain = item.desain || '-';
+                    const valKualitas = item.kualitas || '-';
+                    const valSpec = item.spesifikasi || '-';
+                    const status = String(item.approval_status || '').toLowerCase();
+                    const isRejected = status === 'rejected';
+                    const canFix = isRejected;
+
+                    return `
                                         <tr style="border-bottom:1px solid #ddd; background:${rowBg}">
                                             <td style="padding:10px; font-weight:600; color:#475569;">${item.kategori_pekerjaan}</td>
                                             <td style="padding:10px;">
@@ -1340,12 +1340,12 @@ const Render = {
                                             </td>
 
                                             <td class="text-center">
-                                                ${item.foto_url ? 
-                                                    `<a href="${item.foto_url}" target="_blank" class="btn btn-outline" style="padding:4px 8px; font-size:12px;">Lihat</a>` : 
-                                                    `<label class="btn btn-outline" style="padding:4px 8px; font-size:12px; cursor:pointer;">
+                                                ${item.foto_url ?
+                            `<a href="${item.foto_url}" target="_blank" class="btn btn-outline" style="padding:4px 8px; font-size:12px;">Lihat</a>` :
+                            `<label class="btn btn-outline" style="padding:4px 8px; font-size:12px; cursor:pointer;">
                                                         Upload <input type="file" class="file-input" data-id="${item.id}" accept="image/*" style="display:none;" ${isDisabled}>
                                                     </label>`
-                                                }
+                        }
                                             </td>
                                             
                                             <td style="padding: 8px;">
@@ -1373,22 +1373,22 @@ const Render = {
                                             </td>
 
                                             <td class="text-center">
-                                                ${!item.isSubmitted ? 
-                                                    // KONDISI 1: Belum Submit -> Muncul Tombol Simpan
-                                                    `<button class="btn btn-primary save-btn" 
+                                                ${!item.isSubmitted ?
+                            // KONDISI 1: Belum Submit -> Muncul Tombol Simpan
+                            `<button class="btn btn-primary save-btn" 
                                                         data-id="${item.id}" 
-                                                        style="font-size:12px; padding:6px 12px;">Simpan</button>` 
-                                                    : 
-                                                    (status === 'rejected' ? 
-                                                        // KONDISI 2: Rejected -> Muncul Tombol Perbaiki
-                                                        `<button class="btn btn-secondary perbaiki-btn" 
+                                                        style="font-size:12px; padding:6px 12px;">Simpan</button>`
+                            :
+                            (status === 'rejected' ?
+                                // KONDISI 2: Rejected -> Muncul Tombol Perbaiki
+                                `<button class="btn btn-secondary perbaiki-btn" 
                                                             data-id="${item.id}" 
-                                                            style="font-size:12px; padding:6px 10px;">Perbaiki</button>` 
-                                                        : 
-                                                        // KONDISI 3: Pending / Approved -> Hilangkan Tombol (Tampil strip)
-                                                        `<span style="color:#94a3b8;">-</span>`
-                                                    )
-                                                }
+                                                            style="font-size:12px; padding:6px 10px;">Perbaiki</button>`
+                                :
+                                // KONDISI 3: Pending / Approved -> Hilangkan Tombol (Tampil strip)
+                                `<span style="color:#94a3b8;">-</span>`
+                            )
+                        }
                                             </td>
                                         </tr>
                                     `}).join('')}
@@ -1404,21 +1404,21 @@ const Render = {
                         <div class="summary-box">
                             <div class="summary-row">
                                 <span class="summary-label">Total Estimasi</span> 
-                                <span class="summary-value" id="summary-total" style="color:${totalVal<0?'#dc2626':'inherit'}">
+                                <span class="summary-value" id="summary-total" style="color:${totalVal < 0 ? '#dc2626' : 'inherit'}">
                                     ${formatRupiah(totalVal)}
                                 </span>
                             </div>
                             
                             <div class="summary-row">
                                 <span class="summary-label">Pembulatan</span> 
-                                <span class="summary-value" id="summary-pembulatan" style="color:${totalPembulatan<0?'#dc2626':'inherit'}">
+                                <span class="summary-value" id="summary-pembulatan" style="color:${totalPembulatan < 0 ? '#dc2626' : 'inherit'}">
                                     ${formatRupiah(totalPembulatan)}
                                 </span>
                             </div>
                             
                             <div class="summary-row">
                                 <span class="summary-label">PPN (${isBatam ? '0' : '11'}%)</span> 
-                                <span class="summary-value" id="summary-ppn" style="color:${ppn<0?'#dc2626':'inherit'}">
+                                <span class="summary-value" id="summary-ppn" style="color:${ppn < 0 ? '#dc2626' : 'inherit'}">
                                     ${formatRupiah(ppn)}
                                 </span>
                             </div>
@@ -1436,7 +1436,7 @@ const Render = {
 
                             <div class="summary-row grand-total">
                                 <span class="grand-total-label">Grand Total</span> 
-                                <span class="grand-total-value" id="summary-grand" style="color:${grandTotal<0?'#dc2626':'var(--primary)'}">
+                                <span class="grand-total-value" id="summary-grand" style="color:${grandTotal < 0 ? '#dc2626' : 'var(--primary)'}">
                                     ${formatRupiah(grandTotal)}
                                 </span>
                             </div>
@@ -1451,9 +1451,9 @@ const Render = {
                         </div>
                     </div>
                 </div>`;
-                
+
                 container.innerHTML = html;
-                
+
                 // --- EVENT LISTENERS ---
                 container.querySelector('#btn-back-main').onclick = () => { AppState.selectedLingkup = null; Render.opnameForm(container); };
 
@@ -1461,13 +1461,13 @@ const Render = {
                     input.oninput = (e) => {
                         const id = parseInt(e.target.dataset.id);
                         const item = AppState.opnameItems.find(i => i.id === id);
-                        
+
                         // Update Data
                         item.volume_akhir = e.target.value;
                         const vAkhir = toNumInput(item.volume_akhir);
                         const vRab = toNumInput(item.vol_rab);
                         const selisihNum = vAkhir - vRab;
-                        
+
                         item.selisih = selisihNum.toFixed(2);
                         item.total_harga = selisihNum * (item.harga_material + item.harga_upah);
 
@@ -1490,7 +1490,7 @@ const Render = {
                         }, 0));
                         const newPembulatan = Math.floor(newTotalVal / 10000) * 10000;
                         const newPpn = Math.round(newPembulatan * ppnRate);
-                        const penaltyVal = penaltyData.denda_nominal || 0; 
+                        const penaltyVal = penaltyData.denda_nominal || 0;
                         const newGrandTotal = (newPembulatan + newPpn) - penaltyVal;
 
                         // Update Summary DOM
@@ -1520,15 +1520,15 @@ const Render = {
 
                 container.querySelectorAll('.file-input').forEach(inp => {
                     inp.onchange = async (e) => {
-                        const f = e.target.files[0]; if(!f) return;
+                        const f = e.target.files[0]; if (!f) return;
                         const id = parseInt(e.target.dataset.id);
                         const fd = new FormData(); fd.append("file", f);
                         try {
-                            const r = await fetch(`${API_BASE_URL}/api/upload`, { method:"POST", body:fd });
+                            const r = await fetch(`${API_BASE_URL}/api/upload`, { method: "POST", body: fd });
                             const d = await r.json();
-                            AppState.opnameItems.find(i=>i.id===id).foto_url = d.link;
-                            renderTable(); 
-                        } catch(err) { alert("Upload gagal"); }
+                            AppState.opnameItems.find(i => i.id === id).foto_url = d.link;
+                            renderTable();
+                        } catch (err) { alert("Upload gagal"); }
                     }
                 });
 
@@ -1537,10 +1537,10 @@ const Render = {
                     sel.addEventListener('change', (e) => {
                         const id = parseInt(e.target.getAttribute('data-id')); // Ambil ID item
                         const val = e.target.value; // Ambil nilai yang dipilih (Sesuai/Tidak Sesuai)
-                        
+
                         // Cari item yang sesuai di memori (AppState) dan update datanya
                         const item = AppState.opnameItems.find(i => i.id === id);
-                        if(item) {
+                        if (item) {
                             item.desain = val; // Simpan ke memori
                             console.log(`Item ${id} Desain diubah menjadi: ${val}`); // Cek di console
                         }
@@ -1553,7 +1553,7 @@ const Render = {
                         const id = parseInt(e.target.getAttribute('data-id'));
                         const val = e.target.value;
                         const item = AppState.opnameItems.find(i => i.id === id);
-                        if(item) item.kualitas = val;
+                        if (item) item.kualitas = val;
                     });
                 });
 
@@ -1563,7 +1563,7 @@ const Render = {
                         const id = parseInt(e.target.getAttribute('data-id'));
                         const val = e.target.value;
                         const item = AppState.opnameItems.find(i => i.id === id);
-                        if(item) item.spesifikasi = val;
+                        if (item) item.spesifikasi = val;
                     });
                 });
 
@@ -1571,9 +1571,9 @@ const Render = {
                     btn.onclick = async () => {
                         /* Logic Simpan Sama */
                         const id = parseInt(btn.dataset.id);
-                        const item = AppState.opnameItems.find(i=>i.id===id);
-                        if(!item.volume_akhir) { alert("Isi volume akhir!"); return; }
-                        btn.innerText="..."; btn.disabled=true;
+                        const item = AppState.opnameItems.find(i => i.id === id);
+                        if (!item.volume_akhir) { alert("Isi volume akhir!"); return; }
+                        btn.innerText = "..."; btn.disabled = true;
                         try {
                             const payload = {
                                 kode_toko: AppState.selectedStore.kode_toko,
@@ -1597,10 +1597,10 @@ const Render = {
                                 spesifikasi: item.spesifikasi || '-',
                                 catatan: item.catatan || '-'
                             };
-                            await fetch(`${API_BASE_URL}/api/opname/item/submit`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)});
-                            item.isSubmitted=true; item.approval_status="Pending";
+                            await fetch(`${API_BASE_URL}/api/opname/item/submit`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+                            item.isSubmitted = true; item.approval_status = "Pending";
                             renderTable();
-                        } catch(e) { alert(e.message); btn.disabled=false; btn.innerText="Simpan"; }
+                        } catch (e) { alert(e.message); btn.disabled = false; btn.innerText = "Simpan"; }
                     }
                 });
 
@@ -1616,26 +1616,26 @@ const Render = {
                 });
 
                 // Final Button
-                if(canFinalize && !isFinalized) {
+                if (canFinalize && !isFinalized) {
                     const bf = container.querySelector('#btn-final');
                     bf.onclick = async () => {
-                        if(!confirm("Yakin finalisasi? Tidak bisa dibatalkan.")) return;
-                        bf.innerText="Processing..."; bf.disabled=true;
+                        if (!confirm("Yakin finalisasi? Tidak bisa dibatalkan.")) return;
+                        bf.innerText = "Processing..."; bf.disabled = true;
                         try {
                             const r = await fetch(`https://sparta-backend-5hdj.onrender.com/api/opname_locked`, {
-                                method:"POST", headers:{"Content-Type":"application/json"},
-                                body:JSON.stringify({ status:"locked", ulok:AppState.selectedUlok, lingkup_pekerjaan:AppState.selectedLingkup })
+                                method: "POST", headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ status: "locked", ulok: AppState.selectedUlok, lingkup_pekerjaan: AppState.selectedLingkup })
                             });
                             const d = await r.json();
-                            if(r.ok) { alert("Berhasil!"); isFinalized=true; canFinalize=false; Render.opnameForm(container); }
-                            else { alert(d.message); bf.disabled=false; bf.innerText="Opname Final"; }
-                        } catch(e) { alert(e.message); bf.disabled=false; }
+                            if (r.ok) { alert("Berhasil!"); isFinalized = true; canFinalize = false; Render.opnameForm(container); }
+                            else { alert(d.message); bf.disabled = false; bf.innerText = "Opname Final"; }
+                        } catch (e) { alert(e.message); bf.disabled = false; }
                     }
                 }
             };
             renderTable();
 
-        } catch(e) { container.innerHTML=`<div class="alert-error">${e.message}</div>`; }
+        } catch (e) { container.innerHTML = `<div class="alert-error">${e.message}</div>`; }
     },
 
     finalOpnameView: async (container) => {
@@ -1664,8 +1664,8 @@ const Render = {
             `;
             container.querySelector('#btn-sipil-final').onclick = () => { AppState.selectedLingkup = 'SIPIL'; Render.finalOpnameView(container); };
             container.querySelector('#btn-me-final').onclick = () => { AppState.selectedLingkup = 'ME'; Render.finalOpnameView(container); };
-            
-            container.querySelector('#btn-cancel-lingkup-final').onclick = () => { 
+
+            container.querySelector('#btn-cancel-lingkup-final').onclick = () => {
                 AppState.selectedStore = null;
                 AppState.selectedUlok = null;
                 if (AppState.user.role === 'pic') {
@@ -1679,7 +1679,7 @@ const Render = {
         }
 
         container.innerHTML = '<div class="container text-center" style="padding-top:40px;"><div class="card"><h3>Memuat Data Opname Final...</h3></div></div>';
-        
+
         try {
             let url = `${API_BASE_URL}/api/opname/final?kode_toko=${encodeURIComponent(AppState.selectedStore.kode_toko)}&no_ulok=${encodeURIComponent(AppState.selectedUlok)}&lingkup=${encodeURIComponent(AppState.selectedLingkup)}`;
             if (AppState.user.role === 'kontraktor') {
@@ -1694,7 +1694,7 @@ const Render = {
             if (AppState.user.role === 'kontraktor') {
                 const currentUsername = AppState.user.username;
                 const currentEmail = AppState.user.email || sessionStorage.getItem("loggedInUserEmail");
-                
+
                 // submissions = submissions.filter(item => 
                 //     item.kontraktor_username === currentUsername || 
                 //     item.kontraktor_name === currentUsername ||
@@ -1724,11 +1724,11 @@ const Render = {
                 const hargaMaterial = toNumID(task.harga_material);
                 const hargaUpah = toNumID(task.harga_upah);
                 const total_harga = volAkhirNum * (hargaMaterial + hargaUpah);
-                
-                return { 
-                    ...task, 
-                    total_harga, 
-                    vol_akhir_num: volAkhirNum, 
+
+                return {
+                    ...task,
+                    total_harga,
+                    vol_akhir_num: volAkhirNum,
                     harga_satuan: hargaMaterial + hargaUpah,
                     // Pastikan field ini ada
                     desain: task.desain || '-',
@@ -1784,9 +1784,9 @@ const Render = {
                                 </thead>
                                 <tbody>
                                     ${items.map((item, idx) => {
-                                        const rowBg = item.is_il ? '#fff9c4' : 'transparent';
-                                        
-                                        return `
+                const rowBg = item.is_il ? '#fff9c4' : 'transparent';
+
+                return `
                                         <tr style="border-bottom:1px solid #eee; background-color:${rowBg};">
                                             <td style="padding:12px; font-weight:600; color:#64748b;">
                                                 ${item.kategori_pekerjaan}
@@ -1859,7 +1859,7 @@ const Render = {
             container.innerHTML = html;
 
             container.querySelector('#btn-back-final-view').onclick = () => { AppState.selectedLingkup = null; Render.finalOpnameView(container); };
-            
+
             container.querySelector('#btn-download-pdf').onclick = () => {
                 const btn = document.getElementById('btn-download-pdf');
                 btn.innerText = "Memproses PDF...";
@@ -1875,7 +1875,7 @@ const Render = {
             container.innerHTML = `<div class="container"><div class="alert-error">Error memuat data final: ${e.message}</div><button class="btn btn-back" onclick="Render.app()">Kembali</button></div>`;
         }
     },
-    
+
     approvalDetail: async (container) => {
         if (!AppState.selectedUlok) {
             AppState.activeView = 'store-selection-kontraktor';
@@ -1898,21 +1898,21 @@ const Render = {
                     </div>
                 </div>
             `;
-            
+
             container.querySelector('#btn-sipil').onclick = () => { AppState.selectedLingkup = 'SIPIL'; Render.approvalDetail(container); };
             container.querySelector('#btn-me').onclick = () => { AppState.selectedLingkup = 'ME'; Render.approvalDetail(container); };
-            
-            container.querySelector('#btn-cancel-lingkup').onclick = () => { 
+
+            container.querySelector('#btn-cancel-lingkup').onclick = () => {
                 AppState.selectedStore = null;
                 AppState.selectedUlok = null;
-                AppState.activeView = 'store-selection-kontraktor'; 
-                Render.app(); 
+                AppState.activeView = 'store-selection-kontraktor';
+                Render.app();
             };
             return;
         }
 
         container.innerHTML = '<div class="container text-center" style="padding-top:40px;"><div class="card"><h3>Memuat Data Opname Pending...</h3></div></div>';
-        
+
         try {
             let url = `${API_BASE_URL}/api/opname/pending?kode_toko=${AppState.selectedStore.kode_toko}&no_ulok=${AppState.selectedUlok}&lingkup=${AppState.selectedLingkup}`;
             if (AppState.user.role === 'kontraktor') {
@@ -1927,7 +1927,7 @@ const Render = {
             if (AppState.user.role === 'kontraktor') {
                 const currentUsername = AppState.user.username;
                 const currentEmail = AppState.user.email || sessionStorage.getItem("loggedInUserEmail");
-                
+
                 // pendingItems = pendingItems.filter(item => 
                 //     item.kontraktor_username === currentUsername || 
                 //     item.kontraktor_name === currentUsername ||
@@ -1935,7 +1935,7 @@ const Render = {
                 //     item.email === currentEmail
                 // );
             }
-            
+
             const renderApprovalTable = () => {
                 let html = `
                 <div class="container" style="padding-top:20px; max-width: 100vw; padding-left: 16px; padding-right: 16px;">
@@ -1969,9 +1969,9 @@ const Render = {
                                     </tr>
                                 </thead>
                                 <tbody id="approval-tbody">
-                                    ${pendingItems.length === 0 ? 
-                                        '<tr><td colspan="11" class="text-center" style="padding:20px;">Tidak ada opname yang menunggu persetujuan.</td></tr>' : 
-                                        pendingItems.map(item => `
+                                    ${pendingItems.length === 0 ?
+                        '<tr><td colspan="11" class="text-center" style="padding:20px;">Tidak ada opname yang menunggu persetujuan.</td></tr>' :
+                        pendingItems.map(item => `
                                         <tr id="row-${item.item_id}" style="border-bottom:1px solid #ddd;">
                                             <td>${item.kategori_pekerjaan}</td>
                                             <td>${item.jenis_pekerjaan}</td>
@@ -2014,18 +2014,18 @@ const Render = {
                         </div>
                     </div>
                 </div>`;
-                
+
                 container.innerHTML = html;
 
-                container.querySelector('#btn-back-lingkup').onclick = () => { 
-                    AppState.selectedLingkup = null; 
-                    Render.approvalDetail(container); 
+                container.querySelector('#btn-back-lingkup').onclick = () => {
+                    AppState.selectedLingkup = null;
+                    Render.approvalDetail(container);
                 };
 
                 const showMsg = (msg, isError = false) => {
                     const el = document.getElementById('approval-message');
                     el.style.display = 'block';
-                    el.className = isError ? 'alert-error' : 'badge-success'; 
+                    el.className = isError ? 'alert-error' : 'badge-success';
                     el.style.backgroundColor = isError ? '#ffe5e5' : '#dcfce7';
                     el.style.color = isError ? '#cc0000' : '#166534';
                     el.innerText = msg;
@@ -2054,7 +2054,7 @@ const Render = {
                                 headers: { "Content-Type": "application/json" },
                                 body: JSON.stringify(payload1)
                             });
-                            
+
                             if (!res1.ok) {
                                 const errData = await res1.json();
                                 throw new Error(errData.message || "Gagal approve item");
@@ -2082,7 +2082,7 @@ const Render = {
                             showMsg("Berhasil di-approve!");
                             row.remove();
 
-                            if(document.querySelectorAll('#approval-tbody tr').length === 0) {
+                            if (document.querySelectorAll('#approval-tbody tr').length === 0) {
                                 document.getElementById('approval-tbody').innerHTML = '<tr><td colspan="8" class="text-center" style="padding:20px;">Semua data telah diproses.</td></tr>';
                             }
 
@@ -2100,7 +2100,7 @@ const Render = {
                         const row = document.getElementById(`row-${itemId}`);
                         const btnApprove = row.querySelector('.btn-approve');
 
-                        if(!confirm("Yakin ingin menolak (REJECT) item ini?")) return;
+                        if (!confirm("Yakin ingin menolak (REJECT) item ini?")) return;
 
                         btn.disabled = true; btn.innerText = '...'; btnApprove.disabled = true;
 
@@ -2125,7 +2125,7 @@ const Render = {
                             showMsg("Berhasil di-reject!");
                             row.remove();
 
-                            if(document.querySelectorAll('#approval-tbody tr').length === 0) {
+                            if (document.querySelectorAll('#approval-tbody tr').length === 0) {
                                 document.getElementById('approval-tbody').innerHTML = '<tr><td colspan="8" class="text-center" style="padding:20px;">Semua data telah diproses.</td></tr>';
                             }
 
