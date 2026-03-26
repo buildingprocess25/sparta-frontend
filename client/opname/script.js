@@ -959,10 +959,33 @@ const Render = {
 
             if (!Array.isArray(stores)) throw new Error("Gagal mengambil data toko.");
 
+            // Deduplikasi: gabungkan toko dengan kode_toko + nama_toko yang sama (case-insensitive)
+            const storeMap = new Map();
+            stores.forEach(store => {
+                const key = `${(store.kode_toko || "").toUpperCase()}||${(store.nama_toko || "").toUpperCase()}`;
+                if (storeMap.has(key)) {
+                    const existing = storeMap.get(key);
+                    // Gabungkan no_uloks tanpa duplikat
+                    if (store.no_uloks && Array.isArray(store.no_uloks)) {
+                        store.no_uloks.forEach(ulok => {
+                            if (!existing.no_uloks.includes(ulok)) {
+                                existing.no_uloks.push(ulok);
+                            }
+                        });
+                    }
+                } else {
+                    storeMap.set(key, {
+                        ...store,
+                        no_uloks: Array.isArray(store.no_uloks) ? [...store.no_uloks] : []
+                    });
+                }
+            });
+            const uniqueStores = Array.from(storeMap.values());
+
             const combinedList = [];
 
-            stores.forEach(store => {
-                if (store.no_uloks && Array.isArray(store.no_uloks) && store.no_uloks.length > 0) {
+            uniqueStores.forEach(store => {
+                if (store.no_uloks && store.no_uloks.length > 0) {
                     store.no_uloks.forEach(ulokNo => {
                         combinedList.push({
                             store: store,
