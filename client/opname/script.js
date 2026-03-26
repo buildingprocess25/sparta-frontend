@@ -950,7 +950,7 @@ const Render = {
         if ((type === 'opname' || type === 'final-opname') && u.role === 'pic') {
             url = `${API_BASE_URL}/api/toko?username=${encodeURIComponent(u.username || "")}`;
         } else if (u.role === 'kontraktor') {
-            const uname = u.kontraktor_username || u.username || "";
+            const uname = u.email || sessionStorage.getItem("loggedInUserEmail") || u.kontraktor_username || u.username || "";
             url = `${API_BASE_URL}/api/toko_kontraktor?username=${encodeURIComponent(uname)}`;
         }
 
