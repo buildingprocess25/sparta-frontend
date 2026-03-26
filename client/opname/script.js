@@ -1706,16 +1706,8 @@ const Render = {
                 console.warn("Gagal memvalidasi lingkup via RAB", err);
             }
 
-            if (AppState.user.role === 'kontraktor') {
-                const currentUsername = AppState.user.username;
-                const currentEmail = AppState.user.email || sessionStorage.getItem("loggedInUserEmail");
-
-                submissions = submissions.filter(item => {
-                    const matchUser = currentUsername && (item.kontraktor_username === currentUsername || item.kontraktor_name === currentUsername);
-                    const matchEmail = currentEmail && (item.kontraktor_email === currentEmail || item.email === currentEmail);
-                    return matchUser || matchEmail;
-                });
-            }
+            // Filter kontraktor sudah dilakukan server-side via parameter &kontraktor= di URL (baris 1685-1688)
+            // Tidak perlu filter client-side tambahan
 
             if (submissions.length === 0) {
                 container.innerHTML = `
@@ -1956,16 +1948,8 @@ const Render = {
                 console.warn("Gagal memvalidasi lingkup via RAB", err);
             }
 
-            if (AppState.user.role === 'kontraktor') {
-                const currentUsername = AppState.user.username;
-                const currentEmail = AppState.user.email || sessionStorage.getItem("loggedInUserEmail");
-
-                pendingItems = pendingItems.filter(item => {
-                    const matchUser = currentUsername && (item.kontraktor_username === currentUsername || item.kontraktor_name === currentUsername);
-                    const matchEmail = currentEmail && (item.kontraktor_email === currentEmail || item.email === currentEmail);
-                    return matchUser || matchEmail;
-                });
-            }
+            // Filter kontraktor sudah dilakukan server-side via parameter &kontraktor= di URL (baris 1933-1936)
+            // Tidak perlu filter client-side tambahan
 
             const renderApprovalTable = () => {
                 let html = `
