@@ -29,20 +29,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const cabangElem = document.getElementById("cabang");
         const selectedCabang = cabangElem ? cabangElem.value : "";
         
-        ulokSelect.innerHTML = '<option value="">-- Pilih Nomor Ulok --</option>';
+        ulokSelect.innerHTML = ''; // Akan diisi di bawah
 
-        allUlokOptions
-        .filter((o) => {
+        const filteredOptions = allUlokOptions.filter((o) => {
             const matchText = !ft || o.value.toLowerCase().includes(ft) || o.text.toLowerCase().includes(ft);
-            const matchCabang = !selectedCabang || o.cabang === selectedCabang;
+            const matchCabang = !selectedCabang || (o.cabang && o.cabang.toUpperCase() === selectedCabang.toUpperCase());
             return matchText && matchCabang;
-        })
-        .forEach((o) => {
-            const opt = document.createElement("option");
-            opt.value = o.value;
-            opt.textContent = o.text;
-            ulokSelect.appendChild(opt);
         });
+
+        if (filteredOptions.length > 0) {
+            ulokSelect.innerHTML = '<option value="">-- Pilih Nomor Ulok --</option>';
+            filteredOptions.forEach((o) => {
+                const opt = document.createElement("option");
+                opt.value = o.value;
+                opt.textContent = o.text;
+                ulokSelect.appendChild(opt);
+            });
+        } else {
+            ulokSelect.innerHTML = '<option value="">-- Tidak ada RAB yang disetujui --</option>';
+        }
     }
 
     const cabangSelect = document.getElementById("cabang");
@@ -515,9 +520,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (selectedCabang) {
             setCabangCode(selectedCabang);
-            showMessage(`Memuat kontraktor untuk cabang ${selectedCabang}...`, "info");
-            await fetchKontraktor(selectedCabang);
-            showMessage("", "none");
+            // Jangan fetch kontraktor dulu, tunggu user pilih RAB/ULOK
+            kontraktorSelect.innerHTML = '<option value="">-- Pilih RAB terlebih dahulu --</option>';
         } else {
             setCabangCode("");
             kontraktorSelect.innerHTML = '<option value="">-- Pilih Cabang terlebih dahulu --</option>';
