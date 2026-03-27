@@ -118,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const BRANCH_GROUPS = {
         "LOMBOK": ["LOMBOK", "SUMBAWA"],
         "MEDAN": ["MEDAN", "ACEH"],
-        "LAMPUNG": ["LAMPUNG", "LAMPUNG_KOTABUMI"],
+        "LAMPUNG": ["LAMPUNG", "KOTABUMI"],
         "PALEMBANG": ["PALEMBANG", "BENGKULU", "BANGKA", "BELITUNG"],
         "SIDOARJO": ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"]
     };
