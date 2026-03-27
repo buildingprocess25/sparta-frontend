@@ -26,15 +26,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // Render opsi ke <select> sesuai teks pencarian
     function renderUlokOptions(filterText = "") {
         const ft = filterText.trim().toLowerCase();
+        const cabangElem = document.getElementById("cabang");
+        const selectedCabang = cabangElem ? cabangElem.value : "";
+        
         ulokSelect.innerHTML = '<option value="">-- Pilih Nomor Ulok --</option>';
 
         allUlokOptions
-        .filter(
-            (o) =>
-            !ft ||
-            o.value.toLowerCase().includes(ft) ||
-            o.text.toLowerCase().includes(ft)
-        )
+        .filter((o) => {
+            const matchText = !ft || o.value.toLowerCase().includes(ft) || o.text.toLowerCase().includes(ft);
+            const matchCabang = !selectedCabang || o.cabang === selectedCabang;
+            return matchText && matchCabang;
+        })
         .forEach((o) => {
             const opt = document.createElement("option");
             opt.value = o.value;
@@ -59,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
         CIANJUR: "2JZ1", BALARAJA: "TZ01", SIDOARJO: "UZ01", MEDAN: "WZ01", BOGOR: "XZ01", JEMBER: "YZ01",
         BALI: "QZ01", PALEMBANG: "PZ01", KLATEN: "OZ01", MAKASSAR: "RZ01", PLUMBON: "VZ01", PEKANBARU: "1AZ1",
         JAMBI: "1DZ1", "HEAD OFFICE": "Z001", "BANDUNG RAYA": "BZ01", BEKASI: "CZ01", CILACAP: "IZ01",
-        CILEUNGSI: "JZ01", SEMARANG: "HZ01", CIKOKOL: "KZ01", LAMPUNG: "LZ01", KOTABUMI: "LZ01", MALANG: "MZ01", MANADO: "1YZ1",
+        CILEUNGSI: "JZ01", SEMARANG: "HZ01", CIKOKOL: "KZ01", LAMPUNG: "LZ01", MALANG: "MZ01", MANADO: "1YZ1",
         BATAM: "2DZ1", MADIUN: "2MZ1",
     };
 
@@ -134,6 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return {
                 value: `${rab["Nomor Ulok"]} (${lingkup})`,
                 text: `${rab["Nomor Ulok"]} (${lingkup}) - ${rab["Proyek"]}`,
+                cabang: rab.Cabang
             };
             });
             renderUlokOptions(); // render awal (tanpa filter)
@@ -495,52 +498,21 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Listener bawaan kamu tetap di bawahnya
-    ulokSelect.addEventListener("change", async () => {
-        const selectedValue = ulokSelect.value;
-        const selectedUlok = selectedValue.split(" (")[0];
-        const selectedLingkup = selectedValue.includes("(")
-        ? selectedValue.split("(")[1].replace(")", "")
-        : null;
 
-        const selectedRab = approvedRabData.find(
-        (rab) =>
-            rab["Nomor Ulok"] === selectedUlok &&
-            rab["Lingkup_Pekerjaan"] === selectedLingkup
-        );
-
-        if (selectedRab) {
-        const namaToko =
-            selectedRab["Nama_Toko"] || selectedRab["nama_toko"] || "N/A";
-
-        document.getElementById("detail_proyek").textContent =
-            selectedRab.Proyek || "N/A";
-
-        // TAMBAHAN: Isi data Nama Toko
-        detailNamaTokoSpan.textContent = namaToko;
-        namaTokoInput.value = namaToko; // Simpan di input hidden
-
-        document.getElementById("detail_lingkup").textContent =
-            selectedRab.Lingkup_Pekerjaan || "N/A";
-        document.getElementById("detail_total").textContent = formatRupiah(
-            selectedRab["Grand Total Final"] || 0
-        );
-
-        rabDetailsDiv.style.display = "block";
-        fetchKontraktor(selectedRab.Cabang);
-        setCabangCode(selectedRab.Cabang);
-        } else {
-        rabDetailsDiv.style.display = "none";
-        kontraktorSelect.innerHTML =
-            '<option value="">-- Pilih RAB terlebih dahulu --</option>';
-        const userCabang = sessionStorage.getItem("loggedInUserCabang");
-        setCabangCode(userCabang);
-        }
-    });
 
     cabangSelect.addEventListener("change", async (e) => {
         const selectedCabang = e.target.value;
         
+        // Render ulang ulok options berdasarkan cabang yang dipilih
+        if (ulokSearch) {
+            renderUlokOptions(ulokSearch.value);
+        } else {
+            renderUlokOptions();
+        }
+
+        // Trigger change pada ulokSelect untuk reset detail form terkait
+        ulokSelect.dispatchEvent(new Event("change"));
+
         if (selectedCabang) {
             setCabangCode(selectedCabang);
             showMessage(`Memuat kontraktor untuk cabang ${selectedCabang}...`, "info");
