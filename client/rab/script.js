@@ -839,8 +839,11 @@ async function init() {
     const cabSelect = document.getElementById("cabang");
 
     // Logic for User Cabang Role
-    if (userCabang === 'CIKOKOL') {
-        const opt = document.createElement('option'); opt.value = "KZ01"; opt.textContent = "CIKOKOL (KZ01)"; locSelect.appendChild(opt);
+    if (userCabang === 'CIKOKOL' || userCabang === 'BINTAN') {
+        const displayText = userCabang === 'CIKOKOL' ? "CIKOKOL (KZ01)" : "BINTAN (KZ01)";
+        const opt = document.createElement('option'); opt.value = "KZ01"; opt.textContent = displayText; locSelect.appendChild(opt);
+        locSelect.value = "KZ01";
+        locSelect.disabled = true;
     } else {
         const ulokCode = CONFIG.BRANCH_TO_ULOK[userCabang];
         if (ulokCode) {
