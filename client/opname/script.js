@@ -362,8 +362,8 @@ const PDFGenerator = {
         // --- CEK CABANG BATAM UNTUK PDF ---
         const cabangPdfTxt = selectedStore.cabang || selectedStore.nama_cabang || selectedStore.kota || "";
         const userPdfCabang = sessionStorage.getItem("loggedInUserCabang") || "";
-        const isBatamPdf = cabangPdfTxt.toUpperCase() === "BATAM" || userPdfCabang.toUpperCase() === "BATAM";
-        const ppnRatePdf = isBatamPdf ? 0 : 0.11;
+        const isNoPPNPdf = ["BATAM", "BINTAN"].includes(cabangPdfTxt.toUpperCase()) || ["BATAM", "BINTAN"].includes(userPdfCabang.toUpperCase());
+        const ppnRatePdf = isNoPPNPdf ? 0 : 0.11;
 
         // --- HELPER: Print Summary Box ---
         const printSummaryBox = (label, totalReal, startY) => {
@@ -375,7 +375,7 @@ const PDFGenerator = {
                 body: [
                     [label, formatRupiah(totalReal)],
                     ["PEMBULATAN", formatRupiah(totalPembulatan)],
-                    [`PPN ${isBatamPdf ? '0' : '11'}%`, formatRupiah(ppn)],
+                    [`PPN ${isNoPPNPdf ? '0' : '11'}%`, formatRupiah(ppn)],
                     [`GRAND TOTAL ${label.replace("TOTAL ", "")}`, formatRupiah(grandTotal)]
                 ],
                 startY: startY,

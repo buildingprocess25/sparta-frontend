@@ -74,6 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let approvedRabData = [];
 
     const branchGroups = {
+        CIKOKOL: ["CIKOKOL", "BINTAN"],
         LOMBOK: ["LOMBOK", "SUMBAWA"],
         MEDAN: ["MEDAN", "ACEH"],
         LAMPUNG: ["LAMPUNG", "KOTABUMI"],

@@ -22,6 +22,7 @@ const CONFIG = {
         "INSTALASI", "FIXTURE", "PEKERJAAN TAMBAHAN", "PEKERJAAN SBO"
     ],
     BRANCH_GROUPS: {
+        "CIKOKOL": ["CIKOKOL", "BINTAN"],
         "LOMBOK": ["LOMBOK", "SUMBAWA"],
         "MEDAN": ["MEDAN", "ACEH"],
         "LAMPUNG": ["LAMPUNG", "KOTABUMI"],
@@ -38,7 +39,7 @@ const CONFIG = {
         "HEAD OFFICE": "Z001", "BANDUNGRAYA": "BZ01", "BEKASI": "CZ01",
         "CILACAP": "IZ01", "CILEUNGSI": "JZ01", "SEMARANG": "HZ01", "CIKOKOL": "KZ01",
         "LAMPUNG": "LZ01", "MALANG": "MZ01", "MANADO": "1YZ1", "BATAM": "2DZ1",
-        "MADIUN": "2MZ1", "CIKOKOL BINTAN": "KZ01"
+        "MADIUN": "2MZ1", "BINTAN": "KZ01"
     }
 };
 
@@ -150,8 +151,8 @@ const Calculator = {
         // --- CEK CABANG UNTUK PPN ---
         const cabangSelect = document.getElementById("cabang");
         const cabangName = cabangSelect ? cabangSelect.value.toUpperCase() : "";
-        const isBatam = cabangName === "BATAM";
-        const ppnRate = isBatam ? 0 : 0.11;
+        const isNoPPN = ["BATAM", "BINTAN"].includes(cabangName);
+        const ppnRate = isNoPPN ? 0 : 0.11;
         const pembulatan = Math.floor(total / 10000) * 10000;
         const ppn = pembulatan * ppnRate;
         const finalTotal = pembulatan + ppn;
@@ -162,7 +163,7 @@ const Calculator = {
             elements.ppn.textContent = Formatter.toRupiah(ppn);
             const ppnLabel = elements.ppn.previousElementSibling;
             if (ppnLabel) {
-                ppnLabel.textContent = isBatam ? "PPN (0%):" : "PPN (11%):";
+                ppnLabel.textContent = isNoPPN ? "PPN (0%):" : "PPN (11%):";
             }
         }
         
