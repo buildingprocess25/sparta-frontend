@@ -613,12 +613,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const waktuMulaiInput = document.getElementById("waktu_mulai");
         if (waktuMulaiInput) {
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0'); // Ditambah 0 di depan jika 1 digit
-            const day = String(today.getDate()).padStart(2, '0');
-            
-            waktuMulaiInput.min = `${year}-${month}-${day}`;
+            // BANJARMASIN boleh backdate (pilih tanggal sebelum hari ini)
+            if (userCabang && userCabang.toUpperCase() !== 'BANJARMASIN') {
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const day = String(today.getDate()).padStart(2, '0');
+                
+                waktuMulaiInput.min = `${year}-${month}-${day}`;
+            }
         }
 
         checkSessionTime();
