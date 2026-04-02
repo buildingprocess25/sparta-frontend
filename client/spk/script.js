@@ -613,8 +613,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const waktuMulaiInput = document.getElementById("waktu_mulai");
         if (waktuMulaiInput) {
+            const cabangUpper = (userCabang || '').trim().toUpperCase();
+            console.log('Cabang user untuk validasi tanggal:', cabangUpper);
+            
             // BANJARMASIN boleh backdate (pilih tanggal sebelum hari ini)
-            if (userCabang && userCabang.toUpperCase() !== 'BANJARMASIN') {
+            if (cabangUpper === 'BANJARMASIN') {
+                waktuMulaiInput.removeAttribute('min');
+            } else {
                 const today = new Date();
                 const year = today.getFullYear();
                 const month = String(today.getMonth() + 1).padStart(2, '0');
