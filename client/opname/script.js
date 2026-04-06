@@ -1018,6 +1018,33 @@ const Render = {
                 return ulokA.localeCompare(ulokB);
             });
 
+            container.innerHTML = `
+                <div class="container" style="padding-top:20px;">
+                    <div class="card">
+                        <div class="d-flex align-center gap-2" style="margin-bottom:24px; border-bottom:1px solid #eee; padding-bottom:16px;">
+                            <button id="btn-back-store" class="btn btn-back">← Dashboard</button>
+                            <div>
+                                <h2 style="color:var(--primary); margin:0;">Pilih Pekerjaan</h2>
+                                <span style="font-size:0.9rem; color:#666;">Daftar Toko & ULOK (Sesuai RAB)</span>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-bottom:24px;">
+                            <input type="text" id="store-search" class="form-input" placeholder="🔍 Cari Toko atau No. ULOK..." value="">
+                        </div>
+                        
+                        <div id="store-list-container"></div>
+                    </div>
+                </div>
+            `;
+
+            container.querySelector('#btn-back-store').onclick = () => { AppState.activeView = 'dashboard'; Render.app(); };
+
+            const searchInput = document.getElementById('store-search');
+            searchInput.oninput = (e) => {
+                renderList(e.target.value);
+            };
+
             const renderList = (filter = "") => {
                 const f = filter.toLowerCase();
                 const filtered = combinedList.filter(item =>
@@ -1026,60 +1053,39 @@ const Render = {
                     (item.ulok || "").toLowerCase().includes(f)
                 );
 
+                const listContainer = document.getElementById('store-list-container');
+                if (!listContainer) return;
+
                 let html = `
-                    <div class="container" style="padding-top:20px;">
-                        <div class="card">
-                            <div class="d-flex align-center gap-2" style="margin-bottom:24px; border-bottom:1px solid #eee; padding-bottom:16px;">
-                                <button id="btn-back-store" class="btn btn-back">← Dashboard</button>
-                                <div>
-                                    <h2 style="color:var(--primary); margin:0;">Pilih Pekerjaan</h2>
-                                    <span style="font-size:0.9rem; color:#666;">Daftar Toko & ULOK (Sesuai RAB)</span>
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:16px;">
+                        ${filtered.map((item, idx) => `
+                            <button class="btn btn-secondary job-item" data-idx="${idx}" style="height:auto; min-height:110px; flex-direction:column; align-items:flex-start; text-align:left; padding:16px; border-left:5px solid var(--secondary-yellow); position:relative; overflow:hidden;">
+                                
+                                <div style="font-size:1.1rem; font-weight:700; color:var(--neutral-700); margin-bottom:4px;">
+                                    ${item.store.nama_toko}
                                 </div>
-                            </div>
-                            
-                            <div style="margin-bottom:24px;">
-                                <input type="text" id="store-search" class="form-input" placeholder="🔍 Cari Toko atau No. ULOK..." value="${filter}">
-                            </div>
-                            
-                            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:16px;">
-                                ${filtered.map((item, idx) => `
-                                    <button class="btn btn-secondary job-item" data-idx="${idx}" style="height:auto; min-height:110px; flex-direction:column; align-items:flex-start; text-align:left; padding:16px; border-left:5px solid var(--secondary-yellow); position:relative; overflow:hidden;">
-                                        
-                                        <div style="font-size:1.1rem; font-weight:700; color:var(--neutral-700); margin-bottom:4px;">
-                                            ${item.store.nama_toko}
-                                        </div>
-                                        
-                                        <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:12px;">
-                                            Kode: <strong>${item.store.kode_toko}</strong>
-                                        </div>
+                                
+                                <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:12px;">
+                                    Kode: <strong>${item.store.kode_toko}</strong>
+                                </div>
 
-                                        <div class="badge badge-success" style="font-size:0.85rem; padding:6px 10px; background-color:#e0f2fe; color:#0284c7; border:1px solid #bae6fd;">
-                                            📄 ULOK: ${item.ulok}
-                                        </div>
-                                    </button>
-                                `).join('')}
-                            </div>
-                            
-                            ${filtered.length === 0 ? `
-                                <div class="text-center" style="padding:40px; color:#666;">
-                                    <div style="font-size:30px; margin-bottom:10px;">📭</div>
-                                    <p>Tidak ada data pekerjaan yang sesuai.</p>
+                                <div class="badge badge-success" style="font-size:0.85rem; padding:6px 10px; background-color:#e0f2fe; color:#0284c7; border:1px solid #bae6fd;">
+                                    📄 ULOK: ${item.ulok}
                                 </div>
-                            ` : ''}
-                        </div>
+                            </button>
+                        `).join('')}
                     </div>
+                    
+                    ${filtered.length === 0 ? `
+                        <div class="text-center" style="padding:40px; color:#666;">
+                            <div style="font-size:30px; margin-bottom:10px;">📭</div>
+                            <p>Tidak ada data pekerjaan yang sesuai.</p>
+                        </div>
+                    ` : ''}
                 `;
-                container.innerHTML = html;
+                listContainer.innerHTML = html;
 
-                container.querySelector('#btn-back-store').onclick = () => { AppState.activeView = 'dashboard'; Render.app(); };
-
-                const searchInput = document.getElementById('store-search');
-                searchInput.oninput = (e) => {
-                    renderList(e.target.value);
-                    document.getElementById('store-search').focus();
-                };
-
-                container.querySelectorAll('.job-item').forEach((btn, index) => {
+                listContainer.querySelectorAll('.job-item').forEach((btn, index) => {
                     btn.onclick = () => {
                         const selectedItem = filtered[index];
                         AppState.selectedStore = selectedItem.store;
