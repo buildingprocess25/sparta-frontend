@@ -402,17 +402,28 @@ const PDFGenerator = {
         let rabData = await fetchRabData(selectedStore.kode_toko, selectedUlok, lingkupFix);
 
         if (user.role === 'kontraktor') {
-            const currentIdent = user.email || sessionStorage.getItem("loggedInUserEmail") || user.username;
+            const currentIdent = (user.email || sessionStorage.getItem("loggedInUserEmail") || user.username || "").toLowerCase();
+            const currentUname = (user.username || "").toLowerCase();
 
             rabData = rabData.filter(rabItem => {
-                if (rabItem.kontraktor_username || rabItem.kontraktor_email || rabItem.email) {
-                    return rabItem.kontraktor_username === user.username ||
-                        rabItem.kontraktor_email === currentIdent ||
-                        rabItem.email === currentIdent;
+                const kUname = (rabItem.kontraktor_username || "").toLowerCase();
+                const kEmail = (rabItem.kontraktor_email || "").toLowerCase();
+                const rEmail = (rabItem.email || "").toLowerCase();
+                
+                let isMatch = false;
+                if (kUname || kEmail || rEmail) {
+                    if ((kUname && kUname === currentUname) ||
+                        (kEmail && kEmail === currentIdent) ||
+                        (rEmail && rEmail === currentIdent)) {
+                        isMatch = true;
+                    }
                 }
+                
+                if (isMatch) return true;
+
                 return submissions.some(sub =>
-                    sub.jenis_pekerjaan === rabItem.jenis_pekerjaan &&
-                    sub.kategori_pekerjaan === rabItem.kategori_pekerjaan
+                    (sub.jenis_pekerjaan || "").trim().toLowerCase() === (rabItem.jenis_pekerjaan || "").trim().toLowerCase() &&
+                    (sub.kategori_pekerjaan || "").trim().toLowerCase() === (rabItem.kategori_pekerjaan || "").trim().toLowerCase()
                 );
             });
         }
