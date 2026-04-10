@@ -836,6 +836,11 @@ async function initializePage() {
     const paramUlok = urlParams.get('ulok');
     const paramToko = urlParams.get('toko');
 
+    console.log("=== DEBUG IL ULOK PARSING ===");
+    console.log("Raw URL search:", window.location.search);
+    console.log("paramUlok:", paramUlok);
+    console.log("paramToko:", paramToko);
+
     if (paramUlok) {
         // 1. Auto-fill Nama Toko
         if (paramToko) {
@@ -856,6 +861,7 @@ async function initializePage() {
         // Cek apakah format menggunakan Strip (-) contoh: Z001-2512-4444
         if (paramUlok.includes("-")) {
             const parts = paramUlok.split("-"); // Menjadi array: ["Z001", "2512", "4444"]
+            console.log("Format STRIP, parts:", parts);
             
             if (parts.length >= 3) {
                 kodeCabang = parts[0].trim(); // Ambil Depan: Z001
@@ -876,6 +882,7 @@ async function initializePage() {
         } 
         // Fallback: Jika format lama tanpa strip (Z00125124444 atau Z0012512C0B4R)
         else if (paramUlok.length >= 12) {
+            console.log("Format TANPA STRIP, length:", paramUlok.length);
             kodeCabang = paramUlok.substring(0, 4);
             tanggal = paramUlok.substring(4, 8);
             
@@ -885,11 +892,18 @@ async function initializePage() {
             } else {
                 manual = paramUlok.substring(8, 12).replace(/[^0-9]/g, '');
             }
+        } else {
+            console.log("Format TIDAK DIKENALI, length:", paramUlok.length);
         }
+
+        console.log("Parsed => kodeCabang:", kodeCabang, "tanggal:", tanggal, "manual:", manual, "isRenov:", isRenov);
 
         // 3. Masukkan Data ke Input Form
         if (kodeCabang) {
-            if (DOM.lokasiCabang.querySelector(`option[value="${kodeCabang}"]`)) {
+            const existingOption = DOM.lokasiCabang.querySelector(`option[value="${kodeCabang}"]`);
+            console.log("Option exists for kodeCabang?", !!existingOption, "| lokasiCabang disabled?", DOM.lokasiCabang.disabled);
+            
+            if (existingOption) {
                 DOM.lokasiCabang.value = kodeCabang;
                 $(DOM.lokasiCabang).val(kodeCabang).trigger('change'); // Penting untuk Select2
             } else {
@@ -916,6 +930,14 @@ async function initializePage() {
             }
             DOM.toggleRenovasi.disabled = true;
             updateNomorUlok();
+            
+            console.log("After filling => lokasiCabang:", DOM.lokasiCabang.value, 
+                        "lokasiTanggal:", DOM.lokasiTanggal.value,
+                        "lokasiManual:", DOM.lokasiManual.value,
+                        "toggleRenovasi.checked:", DOM.toggleRenovasi.checked,
+                        "lokasi (hidden):", DOM.lokasi.value);
+        } else {
+            console.log("kodeCabang is empty, skipping form fill");
         }
     }
 
