@@ -858,9 +858,11 @@ async function initializePage() {
         let manual = "";
         let isRenov = false;
 
-        // Cek apakah format menggunakan Strip (-) contoh: Z001-2512-4444
+        // Cek apakah format menggunakan Strip (-) 
+        // Format 3 bagian: Z001-2512-4444 atau Z001-2512-D4D4R
+        // Format 4 bagian (renovasi): Z001-2512-D4D4-R
         if (paramUlok.includes("-")) {
-            const parts = paramUlok.split("-"); // Menjadi array: ["Z001", "2512", "4444"]
+            const parts = paramUlok.split("-"); // Menjadi array
             console.log("Format STRIP, parts:", parts);
             
             if (parts.length >= 3) {
@@ -869,14 +871,20 @@ async function initializePage() {
                 // Ambil Tengah: 2512 (Hapus non-angka)
                 tanggal = parts[1].replace(/[^0-9]/g, ''); 
                 
-                // Ambil Belakang: 4444 (Cek Renovasi)
-                let rawManual = parts[2].trim(); 
-                if (rawManual.toUpperCase().endsWith("R")) {
+                // Cek apakah format 4 bagian dengan "R" sebagai bagian ke-4 (renovasi)
+                if (parts.length >= 4 && parts[3].trim().toUpperCase() === "R") {
                     isRenov = true;
-                    // Hapus huruf R, biarkan alphanumeric untuk format renovasi (misal C0B4)
-                    manual = rawManual.slice(0, -1).replace(/[^a-zA-Z0-9]/g, '').toUpperCase(); 
+                    // Bagian ke-3 adalah manual (alphanumeric, misal D4D4)
+                    manual = parts[2].trim().replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
                 } else {
-                    manual = rawManual.replace(/[^0-9]/g, '');
+                    // Format 3 bagian: cek apakah bagian ke-3 diakhiri "R"
+                    let rawManual = parts[2].trim(); 
+                    if (rawManual.toUpperCase().endsWith("R")) {
+                        isRenov = true;
+                        manual = rawManual.slice(0, -1).replace(/[^a-zA-Z0-9]/g, '').toUpperCase(); 
+                    } else {
+                        manual = rawManual.replace(/[^0-9]/g, '');
+                    }
                 }
             }
         } 
