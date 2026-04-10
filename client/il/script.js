@@ -745,6 +745,14 @@ async function initializePage() {
         resetButton: document.querySelector("button[type='reset']"),
     };
 
+    // --- TAMBAHAN: Elemen Dropdown Proyek ---
+    const proyekSelect = document.getElementById('proyek');
+    const renovasiOption = proyekSelect ? proyekSelect.querySelector('option[value="Renovasi"]') : null;
+
+    if (renovasiOption && !DOM.toggleRenovasi.checked) {
+        renovasiOption.disabled = false;
+    }
+
     DOM.toggleRenovasi.addEventListener('change', () => {
         const isRenov = DOM.toggleRenovasi.checked;
         DOM.separatorRenov.style.display = isRenov ? 'inline' : 'none';
@@ -752,6 +760,26 @@ async function initializePage() {
         DOM.lokasiManual.placeholder = isRenov ? "C0B4" : "0001";
         if (!isRenov) DOM.lokasiManual.value = DOM.lokasiManual.value.replace(/[^0-9]/g, '');
         updateNomorUlok();
+
+        if (proyekSelect && renovasiOption) {
+            if (isRenov) {
+                renovasiOption.disabled = false;
+                proyekSelect.value = "Renovasi";
+                
+                Array.from(proyekSelect.options).forEach(opt => {
+                    if (opt.value !== "Renovasi" && opt.value !== "") opt.disabled = true;
+                });
+            } else {
+                renovasiOption.disabled = true;
+                if (proyekSelect.value === "Renovasi") {
+                    proyekSelect.value = "";
+                }
+                
+                Array.from(proyekSelect.options).forEach(opt => {
+                    if (opt.value !== "Renovasi") opt.disabled = false;
+                });
+            }
+        }
     });
 
     DOM.lokasiManual.addEventListener('input', function () {
