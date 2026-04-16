@@ -703,7 +703,7 @@ header.app-header h1 {
     position: relative;
     width: 90%;
     max-width: 480px;
-    aspect-ratio: 9 / 16;
+    aspect-ratio: 16 / 9;
     background: black;
     display: flex;
     flex-direction: column;
