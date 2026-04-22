@@ -2,11 +2,6 @@
 const API_BASE_URL = "https://opnamebnm-mgbe.onrender.com";
 const INACTIVITY_LIMIT_MS = 60 * 60 * 1000; // 1 Jam
 
-const isHeadOffice = () => {
-    const userCabang = AppState.user?.cabang || sessionStorage.getItem("loggedInUserCabang") || "";
-    return userCabang.toUpperCase() === "HEAD OFFICE";
-};
-
 // Format Rupiah
 const formatRupiah = (number) => {
     const numericValue = Number(number) || 0;
@@ -913,14 +908,7 @@ const Render = {
         const role = AppState.user.role;
         let buttons = '';
 
-        if (isHO) {
-            buttons = `
-                <button onclick="AppState.activeView='final-opname-selection'; Render.app()" class="btn btn-success d-flex flex-column align-center justify-center" style="height:140px; font-size:1.1rem; gap:12px;">
-                    <span style="font-size:36px">👁️</span> 
-                    <span>Monitoring Opname (Read-Only)</span>
-                </button>
-            `;
-        }else if (role === 'pic') {
+        if (role === 'pic') {
             buttons = `
                 <button onclick="AppState.activeView='store-selection-pic'; Render.app()" class="btn btn-primary d-flex flex-column align-center justify-center" style="height:140px; font-size:1.1rem; gap:12px;">
                     <span style="font-size:36px">📝</span> 
@@ -970,10 +958,7 @@ const Render = {
         let url = "";
         const u = AppState.user;
 
-        if (isHO) {
-            // Instruct backend to return cross-branch data
-            url = `${API_BASE_URL}/api/toko?is_ho=true`; 
-        } else if ((type === 'opname' || type === 'final-opname') && u.role === 'pic') {
+        if ((type === 'opname' || type === 'final-opname') && u.role === 'pic') {
             url = `${API_BASE_URL}/api/toko?username=${encodeURIComponent(u.username || "")}`;
         } else if (u.role === 'kontraktor') {
             const uname = u.email || sessionStorage.getItem("loggedInUserEmail") || u.kontraktor_username || u.username || "";
