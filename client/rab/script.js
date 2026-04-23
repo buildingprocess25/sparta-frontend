@@ -675,17 +675,58 @@ const API = {
     checkStatus: async (email, cabang) => {
         try {
             UI.showMessage("Memuat data status...");
-            const res = await fetch(`${CONFIG.API_URL}/api/check_status?email=${encodeURIComponent(email)}&cabang=${encodeURIComponent(cabang)}`);
-            const result = await res.json();
-            
-            if (result.active_codes) {
-                State.pendingStoreCodes = result.active_codes.pending || [];
-                State.approvedStoreCodes = result.active_codes.approved || [];
+
+            const statusEndpoints = [
+                `${CONFIG.API_URL}/api/check_status?email=${encodeURIComponent(email)}&cabang=${encodeURIComponent(cabang)}`,
+                `${CONFIG.API_URL}/api/check_status_rab_2?email=${encodeURIComponent(email)}&cabang=${encodeURIComponent(cabang)}`
+            ];
+
+            const responses = await Promise.allSettled(
+                statusEndpoints.map(url => fetch(url))
+            );
+
+            const parsedResults = [];
+            for (const res of responses) {
+                if (res.status !== 'fulfilled') continue;
+                if (!res.value.ok) continue;
+                try {
+                    const json = await res.value.json();
+                    parsedResults.push(json);
+                } catch (parseErr) {
+                    console.warn('Gagal parse response status endpoint:', parseErr);
+                }
             }
-            
-            if (result.rejected_submissions?.length > 0) {
-                State.rejectedSubmissionsList = result.rejected_submissions;
-                const codes = State.rejectedSubmissionsList.map(i => i['Nomor Ulok']).join(', ');
+
+            if (parsedResults.length === 0) {
+                throw new Error('Semua endpoint status gagal diakses.');
+            }
+
+            const normalizeUlok = (value) => String(value || '').replace(/-/g, '').trim().toUpperCase();
+            const normalizeScope = (value) => String(value || '').trim().toUpperCase();
+
+            const pendingSet = new Set();
+            const approvedSet = new Set();
+            const rejectedMap = new Map();
+
+            parsedResults.forEach(result => {
+                (result?.active_codes?.pending || []).forEach(code => pendingSet.add(String(code || '').trim()));
+                (result?.active_codes?.approved || []).forEach(code => approvedSet.add(String(code || '').trim()));
+
+                (result?.rejected_submissions || []).forEach(item => {
+                    const ulok = normalizeUlok(item?.['Nomor Ulok']);
+                    const scope = normalizeScope(item?.['Lingkup_Pekerjaan'] || item?.['Lingkup Pekerjaan']);
+                    if (!ulok) return;
+                    const key = `${ulok}_${scope}`;
+                    if (!rejectedMap.has(key)) rejectedMap.set(key, item);
+                });
+            });
+
+            State.pendingStoreCodes = Array.from(pendingSet);
+            State.approvedStoreCodes = Array.from(approvedSet);
+            State.rejectedSubmissionsList = Array.from(rejectedMap.values());
+
+            if (State.rejectedSubmissionsList.length > 0) {
+                const codes = State.rejectedSubmissionsList.map(i => i['Nomor Ulok']).filter(Boolean).join(', ');
                 UI.showMessage(`Ditemukan pengajuan ditolak: <strong>${codes}</strong>.`, "warning");
             } else {
                 document.getElementById("message").style.display = 'none';
