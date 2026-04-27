@@ -616,8 +616,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const cabangUpper = (userCabang || '').trim().toUpperCase();
             console.log('Cabang user untuk validasi tanggal:', cabangUpper);
             
-            // GORONTALO boleh backdate (pilih tanggal sebelum hari ini)
-            if (['LOMBOK', 'SUMBAWA', 'LUWU', 'BANJARMASIN'].includes(cabangUpper)) {
+            // boleh backdate (pilih tanggal sebelum hari ini)
+            if (['LOMBOK', 'SUMBAWA', 'LUWU', 'BANJARMASIN', 'REMBANG'].includes(cabangUpper)) {
                 waktuMulaiInput.removeAttribute('min');
             } else {
                 const today = new Date();
