@@ -166,7 +166,7 @@ body {
 
 /* --- ICONS --- */
 /* Icon tunggal */
-.menu-item > img {
+.menu-item > img, .menu-item > svg {
     display: block;
     margin-bottom: 2rem;
     height: 90px; /* Ukuran icon diperbesar sedikit agar seimbang dengan card */
@@ -184,13 +184,13 @@ body {
     margin-bottom: 2rem;
 }
 
-.card-icons img {
+.card-icons img, .card-icons svg {
     height: 75px; /* Disesuaikan agar pas berdua */
     width: auto;
     transition: transform 0.3s ease;
 }
 
-.menu-item:hover img {
+.menu-item:hover img, .menu-item:hover svg {
     transform: scale(1.1);
 }
 
@@ -378,12 +378,12 @@ body {
     }
 
     /* Kecilkan ikon di dalam menu */
-    .menu-item > img {
+    .menu-item > img, .menu-item > svg {
         height: 70px; 
         margin-bottom: 1rem;
     }
 
-    .card-icons img {
+    .card-icons img, .card-icons svg {
         height: 60px; /* Icon kembar (Login) dikecilkan */
         gap: 10px;
     }
