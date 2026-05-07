@@ -37,240 +37,140 @@ body {
     color: white; border-bottom: 1px solid rgba(0,0,0,0.1); 
     position: relative; z-index: 30; box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
 }
-.btn-toggle-menu {
-    position: absolute; left: 1.5rem;
-    background: rgba(255,255,255,0.15); border: none; color: white;
-    padding: 8px; border-radius: 8px; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: var(--transition-smooth); backdrop-filter: blur(4px);
-}
-.btn-toggle-menu:hover { background: rgba(255,255,255,0.3); transform: scale(1.05); }
 
-.header-logo { height: 50px; position: absolute; left: 70px; }
-.building-logo { height: 50px; position: absolute; left: 180px; }
+.header-logo { height: 50px; position: absolute; left: 1.5rem; }
+.building-logo { height: 50px; position: absolute; left: 110px; }
 .main-header h1 { font-size: 1.5rem; font-weight: 700; margin: 0; text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 .btn-logout-form { position: absolute; right: 1.5rem; background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.4); color: white; padding: 0.5rem 1rem; border-radius: 50px; font-weight: 600; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: var(--transition-smooth); }
 .btn-logout-form:hover { background: #ffffff; color: #b91c1c; transform: scale(1.05); }
 
-/* ================= LAYOUT APLIKASI (SIDEBAR + MAIN) ================= */
+/* ================= LAYOUT APLIKASI ================= */
 .app-container {
     display: flex;
     flex: 1;
     height: calc(100vh - var(--header-height));
+    overflow-y: auto;
+    padding: 2rem;
+}
+
+.main-content {
+    flex: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* ================= MENU GRID ================= */
+.menu-grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    width: 100%;
+    margin-top: 1rem;
+}
+
+.menu-card {
+    background: white;
+    border-radius: 20px;
+    padding: 2rem;
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    transition: var(--transition-smooth);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--card-shadow);
+    position: relative;
     overflow: hidden;
 }
 
-/* SIDEBAR (FITUR) */
-.sidebar {
-    width: 280px;
-    background-color: white;
-    border-right: 1px solid var(--border-color);
-    box-shadow: 4px 0 10px rgba(0,0,0,0.02);
-    display: flex;
-    flex-direction: column;
-    transition: var(--transition-smooth);
-    overflow-y: auto;
-    flex-shrink: 0;
-    z-index: 20;
-}
-
-/* Sidebar saat dilipat (Desktop Default) */
-.sidebar.collapsed {
-    width: 0;
+.menu-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, #dc2626, #b91c1c);
     opacity: 0;
-    border-right: none;
-}
-
-.sidebar-header {
-    padding: 1.25rem 1.5rem 0.5rem 1.5rem;
-    border-bottom: 2px solid var(--border-color);
-    margin-bottom: 1rem;
-}
-.sidebar-header h2 { font-size: 1.1rem; font-weight: 700; margin: 0; color: var(--text-color); }
-
-.side-menu-container {
-    display: flex; flex-direction: column; gap: 0.5rem; padding: 0 1rem 1.5rem 1rem;
-}
-.menu-item { display: flex; align-items: center; padding: 0.75rem 1rem; border-radius: 8px; text-decoration: none; color: inherit; border: 1px solid transparent; transition: var(--transition-smooth); }
-.menu-item:hover { background-color: #fef2f2; border-color: #fca5a5; transform: translateX(5px); }
-.menu-text h3 { font-size: 0.85rem; font-weight: 700; margin: 0 0 0.2rem 0; }
-.menu-text p { font-size: 0.7rem; color: var(--subtle-text-color); margin: 0; line-height: 1.2; }
-
-/* MAIN CONTENT (MONITORING) */
-.main-content {
-    flex: 1;
-    padding: 1.5rem;
-    overflow-y: auto;
     transition: var(--transition-smooth);
+}
+
+.menu-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    border-color: #fca5a5;
+}
+
+.menu-card:hover::before {
+    opacity: 1;
+}
+
+.menu-icon-wrapper {
+    width: 60px;
+    height: 60px;
+    background: #fef2f2;
+    border-radius: 15px;
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #dc2626;
+    transition: var(--transition-smooth);
 }
 
-.flex-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1rem; }
-.flex-header h2 { font-size: 1.25rem; font-weight: 700; margin: 0; }
-.controls { background: rgba(255, 255, 255, 0.8); padding: 8px; border-radius: var(--radius); display: flex; gap: 8px; border: 1px solid var(--border-color); box-shadow: var(--card-shadow); }
-.filter-select { padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.8rem; cursor: pointer; outline: none; }
-.btn-apply-filter { background: var(--secondary-color); color: white; border: none; border-radius: 6px; padding: 6px 12px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: var(--transition-smooth); }
-.btn-apply-filter:hover { background: var(--secondary-hover); }
-
-/* ================= STATS GRID ================= */
-.stats-grid { 
-    display: grid; 
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
-    gap: 12px; 
+.menu-card:hover .menu-icon-wrapper {
+    background: #dc2626;
+    color: white;
+    transform: scale(1.1) rotate(5deg);
 }
 
-#card-total-proyek-wrapper, #card-perlu-perhatian-wrapper {
-    grid-column: 1 / -1;
-} 
-
-#mini-perhatian-stats {
-    grid-template-columns: repeat(5, 1fr);
+.menu-text h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1e293b;
 }
 
-.stat-card { 
-    background: #fff; 
-    padding: 12px 16px;
-    border-radius: var(--radius); 
-    box-shadow: var(--card-shadow); 
-    display: flex; 
-    align-items: center; 
-    gap: 12px; 
-    border-left: 4px solid transparent; 
-    transition: var(--transition-smooth); 
-    position: relative; overflow: hidden; 
+.menu-text p {
+    margin: 0.5rem 0 0 0;
+    font-size: 0.9rem;
+    color: #64748b;
+    line-height: 1.5;
 }
 
-#card-total-proyek-wrapper { border-left-color: #3b82f6; } 
-#card-perlu-perhatian-wrapper { border-left-color: #ef4444; } 
-#card-total-penawaran-wrapper { border-left-color: #4338ca; } 
-#card-total-spk-wrapper { border-left-color: #f97316; } 
-#card-total-jhk-wrapper { border-left-color: #10b981; } 
-#card-avg-keterlambatan-wrapper { border-left-color: #ef4444; } 
-#card-total-denda-wrapper { border-left-color: #991b1b; } 
-#card-avg-cost-m2-wrapper { border-left-color: #8b5cf6; } 
-#card-nilai-toko-wrapper { border-left-color: #f59e0b; }
-#card-nilai-kontraktor-wrapper { border-left-color: #0ea5e9; }
-#card-avg-beanspot-wrapper { border-left-color: #db2777; }
-
-.stat-card[style*="cursor: pointer"]:hover { transform: translateY(-3px) scale(1.02); box-shadow: var(--card-shadow-hover); }
-.stat-card[style*="cursor: pointer"]:active { transform: translateY(0) scale(0.98); }
-
-.stat-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.stat-content { display: flex; flex-direction: column; }
-.stat-label { font-size: 0.75rem; color: #718096; margin-bottom: 2px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;}
-.stat-value { font-size: 1.25rem; font-weight: 800; color: #1a202c; line-height: 1.1; }
-.stat-sub { font-size: 0.65rem; color: #a0aec0; margin-top: 2px; font-weight: 500; }
-
-.mini-project-stats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; border-left: 1px dashed var(--border-color); padding-left: 12px; flex-grow: 1; align-content: center; }
-.mini-stat-item { background: var(--background-color); padding: 4px; border-radius: 6px; text-align: center; border: 1px solid var(--border-color); transition: var(--transition-smooth); }
-.mini-stat-item:hover { background: #eff6ff; border-color: #bfdbfe; transform: translateY(-2px); }
-.mini-stat-label { display: block; font-size: 9px; color: #64748b; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.mini-stat-value { display: block; font-size: 12px; font-weight: 700; color: var(--secondary-color); }
-
-/* ================= MODAL & DRILL-DOWN ================= */
-.modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); z-index: 1000; align-items: center; justify-content: center; }
-.modal-content { background: white; padding: 24px; border-radius: 16px; width: 90%; max-width: 600px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
-.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.modal-header h2 { margin: 0; font-size: 1.25rem; color: #1e293b; }
-.btn-close { background: #f1f5f9; border: none; font-size: 20px; cursor: pointer; width: 32px; height: 32px; border-radius: 50%; }
-.btn-close:hover { background: #fee2e2; color: #ef4444; }
-.modal-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.modal-stat-item { cursor: pointer; padding: 12px; background: #f8fafc; border-radius: 10px; display: flex; justify-content: space-between; border: 1px solid #e2e8f0; transition: var(--transition-smooth); }
-.modal-stat-item:hover { background: #eff6ff; border-color: #bfdbfe; transform: translateX(3px); }
-.modal-stat-label { font-size: 12px; color: #64748b; font-weight: 500; }
-.modal-stat-value { font-size: 16px; font-weight: 700; color: #1e293b; }
-
-.btn-back-modal { background: none; border: none; color: var(--secondary-color); cursor: pointer; font-weight: 600; padding: 0; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
-.store-list-container, .store-detail-container { max-height: 350px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 5px; }
-.store-item { cursor: pointer; padding: 12px; background: #fff; border: 1px solid var(--border-color); border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
-.store-item:hover { border-color: #93c5fd; }
-.store-info strong { display: block; font-size: 13px; margin-bottom: 2px; }
-.store-info span { font-size: 11px; color: #718096; }
-.store-badge { font-size: 11px; padding: 4px 8px; background: #f1f5f9; border-radius: 6px; font-weight: 600; }
-
-.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; background: #f8fafc; padding: 16px; border-radius: 10px; border: 1px solid var(--border-color); }
-.detail-item { display: flex; flex-direction: column; gap: 2px; padding-bottom: 8px; border-bottom: 1px dashed #cbd5e0; }
-.detail-label { font-size: 11px; color: #64748b; font-weight: 500; }
-.detail-value { font-size: 13px; color: #1e293b; font-weight: 700; }
-
-
-/* =========================================
-   MOBILE RESPONSIVE (SLIDING SIDEBAR OVERLAY)
-   ========================================= */
-@media (max-width: 992px) {
-    .header-logo, .building-logo { display: none !important; }
-    .mini-project-stats { grid-template-columns: repeat(3, 1fr); padding-left: 0; border-left: none; border-top: 1px dashed #e2e8f0; margin-top: 10px; padding-top: 10px; }
-    #card-total-proyek-wrapper, #card-perlu-perhatian-wrapper {
-        flex-direction: column !important; align-items: stretch !important;
-    }
-    #mini-perhatian-stats { grid-template-columns: repeat(3, 1fr); }
+.menu-card-arrow {
+    position: absolute;
+    bottom: 2rem;
+    right: 2rem;
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: var(--transition-smooth);
+    color: #dc2626;
 }
 
+.menu-card:hover .menu-card-arrow {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* ================= RESPONSIVE ================= */
 @media (max-width: 768px) {
-    /* 1. Kunci struktur body & container agar layarnya solid */
-    body { overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
-    .app-container { flex-direction: row; height: calc(100vh - var(--header-height)); position: relative; overflow: hidden; }
-    
-    /* 2. Format Header Menjadi Ringkas di HP */
-    .main-header { 
-        flex-direction: row; 
-        height: var(--header-height); 
-        justify-content: center; 
-        padding: 0 1rem; 
-    }
-    .main-header h1 { font-size: 1.25rem; margin: 0; padding-left: 1.5rem; }
-    
-    /* Atur Ulang Tombol di Header Mobile */
-    .btn-toggle-menu { left: 1rem; top: 50%; transform: translateY(-50%); margin: 0; z-index: 1010; }
-    .btn-toggle-menu:hover { transform: translateY(-50%) scale(1.05); }
-    
-    .btn-logout-form { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); padding: 6px 12px; font-size: 0.8rem; margin: 0; width: auto; background: rgba(255, 255, 255, 0.15);}
-    .btn-logout-form:hover { transform: translateY(-50%) scale(1.05); }
-
-    /* 3. UBAH SIDEBAR MENJADI OVERLAY KIRI (MELAYANG) */
-    .sidebar { 
-        position: absolute; 
-        top: 0; 
-        left: 0; 
-        width: 260px; 
-        height: 100%; 
-        border-right: 1px solid var(--border-color); 
-        border-bottom: none;
-        z-index: 1000;
-        background-color: white;
-        box-shadow: 4px 0 15px rgba(0,0,0,0.15);
-        transform: translateX(0); /* Sidebar Tampil */
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    .app-container {
+        padding: 1rem;
     }
     
-    /* Timpa logic Desktop: Saat ditutup, geser keluar layar (jangan width 0 atau display none) */
-    .sidebar.collapsed { 
-        display: flex; 
-        width: 260px; 
-        opacity: 1; 
-        transform: translateX(-105%); /* Tersembunyi di kiri */
-    } 
-    
-    /* 4. Area Monitoring Aman Dibelakang Sidebar */
-    .main-content { 
-        width: 100%; 
-        padding: 1rem; 
-        overflow-y: auto; 
+    .header-logo, .building-logo {
+        display: none !important;
     }
     
-    /* Penyesuaian Komponen di Dalam Monitoring */
-    .flex-header { flex-direction: column; align-items: stretch; gap: 10px; }
-    .controls { width: 100%; flex-direction: column; gap: 8px; }
-    .filter-select, .btn-apply-filter { width: 100%; }
-    
-    .stats-grid { grid-template-columns: 1fr; }
-    #card-total-proyek-wrapper, #card-perlu-perhatian-wrapper {
-        grid-column: span 1;
+    .menu-grid-container {
+        grid-template-columns: 1fr;
     }
-}
-
-@media screen and (max-width: 480px) {
-    .detail-grid { grid-template-columns: 1fr; gap: 12px; }
-    .detail-item:nth-last-child(2) { border-bottom: 1px dashed #cbd5e0; padding-bottom: 12px; }
-}
+    
+    .menu-card {
+        padding: 1.5rem;
+    }
+}

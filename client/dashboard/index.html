@@ -10,12 +10,8 @@
 </head>
 <body>
     <header class="main-header">
-        <button id="sidebar-toggle" class="btn-toggle-menu" title="Toggle Menu">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-        </button>
-        
         <img src="../../assets/Alfamart-Emblem.png" alt="Alfamart Logo" class="header-logo"/>
-        <h1>Dashboard</h1>
+        <h1>SPARTA</h1>
         <img src="../../assets/Building-Logo.png" alt="Building & Maintenance Logo" class="building-logo"/>
         
         <button id="logout-button-form" class="btn-logout-form">
@@ -29,190 +25,11 @@
     </header>
     
     <div class="app-container">
-        
-        <aside class="sidebar" id="app-sidebar">
-            <div class="sidebar-header">
-                <h2>Fitur Akses</h2>
-            </div>
-            <nav class="side-menu-container" id="menu-container"></nav>
-        </aside>
-
-        <main class="main-content" id="monitoring-section" style="display: none;">
-            <div class="pane-header flex-header">
-                <h2>Live Monitoring</h2>
-                
-                <div class="controls filter-box">
-                    <select id="filterCabang" class="filter-select">
-                        <option value="ALL">Semua Cabang</option>
-                    </select>
-                    <select id="filterProyek" class="filter-select">
-                        <option value="ALL">Semua Proyek</option>
-                    </select>
-                    <select id="filterTahun" class="filter-select">
-                        <option value="ALL">Semua Tahun</option>
-                    </select>
-                    <button id="btnApplyFilter" class="btn-apply-filter">Terapkan Filter</button>
-                </div>
-            </div>
-
-            <div class="stats-grid">
-                <div class="stat-card" id="card-total-proyek-wrapper" style="cursor: pointer; flex-direction: row; align-items: center; justify-content: space-between; gap: 15px;">
-                    <div style="display: flex; align-items: center; gap: 15px; flex-shrink: 0;">
-                        <div class="stat-icon" style="background: #eff6ff; color: #2563eb;">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-                        </div>
-                        <div class="stat-content">
-                            <div class="stat-label">Total Proyek</div>
-                            <div class="stat-value" id="card-total-proyek">0</div>
-                            <div class="stat-sub">Toko Terdaftar</div>
-                        </div>
-                    </div>
-                    <div id="mini-project-stats" class="mini-project-stats"></div>
-                </div>
-
-                <div class="stat-card" id="card-perlu-perhatian-wrapper" style="cursor: pointer; flex-direction: row; align-items: center; justify-content: space-between; gap: 15px;">
-                    <div style="display: flex; align-items: center; gap: 15px; flex-shrink: 0;">
-                        <div class="stat-icon" style="background: #fef2f2; color: #ef4444;">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                        </div>
-                        <div class="stat-content">
-                            <div class="stat-label">Perlu Perhatian</div>
-                            <div class="stat-value" id="card-perlu-perhatian" style="color: #ef4444;">0</div>
-                            <div class="stat-sub">Toko Melebihi SLA</div>
-                        </div>
-                    </div>
-                    <div id="mini-perhatian-stats" class="mini-project-stats"></div>
-                </div>
-
-                <div class="stat-card" id="card-total-penawaran-wrapper" style="cursor: pointer;">
-                    <div class="stat-icon" style="background: #e0e7ff; color: #4338ca;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                    </div>
-                    <div class="stat-content">
-                        <div class="stat-label">Total Nilai Penawaran</div>
-                        <div class="stat-value" id="card-total-penawaran">Rp 0</div>
-                    </div>
-                </div>
-
-                <div class="stat-card" id="card-total-spk-wrapper" style="cursor: pointer;">
-                    <div class="stat-icon" style="background: #fff7ed; color: #c05621;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-                    </div>
-                    <div class="stat-content">
-                        <div class="stat-label">Total Nilai SPK</div>
-                        <div class="stat-value" id="card-total-spk">Rp 0</div>
-                    </div>
-                </div>
-
-                <div class="stat-card" id="card-total-jhk-wrapper" style="cursor: pointer;">
-                    <div class="stat-icon" style="background: #f0fff4; color: #2f855a;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                    </div>
-                    <div class="stat-content">
-                        <div class="stat-label">Rata-rata JHK Pekerjaan</div>
-                        <div class="stat-value" id="card-jhk">0 Hari</div>
-                        <div class="stat-sub">Durasi SPK + Tambah SPK + Keterlambatan</div>
-                    </div>
-                </div>
-
-                <div class="stat-card" id="card-avg-keterlambatan-wrapper" style="cursor: pointer;">
-                    <div class="stat-icon" style="background: #fff5f5; color: #e53e3e;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                    </div>
-                    <div class="stat-content">
-                        <div class="stat-label">Rata-rata Keterlambatan</div>
-                        <div class="stat-value" id="card-avg-keterlambatan">0 Hari</div>
-                        <div class="stat-sub">Per Proyek</div>
-                    </div>
-                </div>
-
-                <div class="stat-card" id="card-total-denda-wrapper" style="cursor: pointer;">
-                    <div class="stat-icon" style="background: #fee2e2; color: #b91c1c;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                    </div>
-                    <div class="stat-content">
-                        <div class="stat-label">Total Denda</div>
-                        <div class="stat-value" id="card-total-denda">Rp 0</div>
-                        <div class="stat-sub">Keterlambatan Proyek</div>
-                    </div>
-                </div>
-
-                <div class="stat-card" id="card-avg-cost-m2-wrapper" style="cursor: pointer;">
-                    <div class="stat-icon" style="background: #faf5ff; color: #805ad5;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
-                    </div>
-                    <div class="stat-content">
-                        <div class="stat-label">Rata-rata Cost/m²</div>
-                        <div class="stat-value" id="card-avg-cost-m2">Rp 0</div>
-                        <div class="stat-sub">Terbangun | Bangunan | Terbuka</div>
-                    </div>
-                </div>
-
-                <div class="stat-card" id="card-nilai-toko-wrapper" style="cursor: pointer;">
-                    <div class="stat-icon" style="background: #fef3c7; color: #d97706;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
-                    </div>
-                    <div class="stat-content">
-                        <div class="stat-label">Rata-rata Nilai Toko</div>
-                        <div class="stat-value" id="card-nilai-toko">0</div>
-                        <div class="stat-sub">Nilai Toko</div>
-                    </div>
-                </div>
-
-                <div class="stat-card" id="card-nilai-kontraktor-wrapper" style="cursor: pointer;">
-                    <div class="stat-icon" style="background: #e0f2fe; color: #0284c7;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>
-                    </div>
-                    <div class="stat-content">
-                        <div class="stat-label">Rata-rata Nilai Kontraktor</div>
-                        <div class="stat-value" id="card-nilai-kontraktor">0</div>
-                        <div class="stat-sub">Nilai Kontraktor</div>
-                    </div>
-                </div>
-
-                <div class="stat-card" id="card-avg-beanspot-wrapper" style="cursor: pointer;">
-                    <div class="stat-icon" style="background: #fdf2f8; color: #db2777;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg>
-                    </div>
-                    <div class="stat-content">
-                        <div class="stat-label">Rata-rata Nilai Beanspot</div>
-                        <div class="stat-value" id="card-avg-beanspot">Rp 0</div>
-                        <div class="stat-sub">Cost /Store</div>
-                    </div>
-                </div>
+        <main class="main-content">
+            <div class="menu-grid-container" id="menu-container">
+                <!-- Menu cards will be rendered here via JavaScript -->
             </div>
         </main>
-
-        <div id="projectModal" class="modal-overlay">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2 id="modalMainTitle">Detail Status Proyek</h2>
-                    <button id="closeModal" class="btn-close">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div id="modalSummaryView">
-                        <div id="modalStatsGrid" class="modal-stats-grid"></div>
-                    </div>
-                    <div id="modalListView" style="display: none;">
-                        <button id="btnBackToSummary" class="btn-back-modal">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-                            Kembali ke Ringkasan
-                        </button>
-                        <h3 id="listStatusTitle" style="margin-top: 0; margin-bottom: 15px; font-size: 16px; color: #1e293b;">Daftar Toko</h3>
-                        <div id="storeListContainer" class="store-list-container"></div>
-                    </div>
-                    <div id="modalStoreDetailView" style="display: none;">
-                        <button id="btnBackToList" class="btn-back-modal">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-                            Kembali ke Daftar Toko
-                        </button>
-                        <h3 id="detailStoreTitle" style="margin-top: 0; margin-bottom: 15px; font-size: 16px; color: #1e293b;">Detail Toko</h3>
-                        <div id="storeDetailContainer" class="store-detail-container"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
     </div>
 
     <script src="script.js"></script>
