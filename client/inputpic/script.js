@@ -365,7 +365,7 @@ window.closePopup = closePopup;
 function checkSessionTime() {
     try {
         const startHour = 6;
-        const endHour = 18;
+        const endHour = 22;
         const now = new Date();
         const options = { timeZone: "Asia/Jakarta", hour: '2-digit', hour12: false };
         const currentHour = parseInt(new Intl.DateTimeFormat('en-US', options).format(now));
