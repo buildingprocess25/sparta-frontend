@@ -97,6 +97,10 @@ header h1 {
     transition: border-color 0.2s;
 }
 
+.form-container select[multiple] {
+    min-height: 150px;
+}
+
 .form-container input:focus,
 .form-container select:focus {
     outline: none;
