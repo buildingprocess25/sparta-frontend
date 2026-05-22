@@ -635,7 +635,9 @@ async function handleFormSubmit() {
         const checkData = await checkResp.json();
 
         if (checkResp.ok && checkData?.status === 'success' && checkData?.data?.exists) {
-            Utils.toggleMessage(`Nomor Ulok sudah terdaftar pada RAB 2 (Lingkup: <strong>${checkData.data.lingkup}</strong>). Jika ingin revisi, lanjutkan pengisian lalu kirim.`, 'warning');
+            const totalPengajuan = checkData.data.total_pengajuan || 1;
+            const lingkupInfo = checkData.data.lingkup ? ` Lingkup terakhir: <strong>${checkData.data.lingkup}</strong>.` : "";
+            Utils.toggleMessage(`Nomor Ulok ini sudah memiliki ${totalPengajuan} pengajuan Instruksi Lapangan.${lingkupInfo} Pengajuan IL baru tetap diperbolehkan.`, 'info');
         }
     } catch (err) {
         console.error('Gagal cek ULOK RAB 2:', err);

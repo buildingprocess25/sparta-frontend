@@ -30,12 +30,6 @@ let currentRabUrl = "";
 let currentSpkUrl = "";
 
 // ================== BAGIAN 2: FUNGSI UTAMA & UTILITAS ==================
-function getSelectedPicData() {
-    return Array.from(picSelect.selectedOptions)
-        .filter((option) => option.value)
-        .map((option) => JSON.parse(option.value));
-}
-
 function initializePage(userData) {
     const loggedInCabang = (userData.cabang || "").toUpperCase();
     const cabangSelect = document.getElementById("cabang");
@@ -224,11 +218,11 @@ cabangInput.addEventListener("change", async function () {
         showError("Gagal memuat daftar kode ulok.");
     }
 
-    picSelect.innerHTML = '<option value="" disabled>-- Memuat PIC --</option>';
+    picSelect.innerHTML = '<option value="">-- Memuat PIC --</option>';
     try {
         const response = await fetch(`${SCRIPT_URL}?form=input-pic&cabang=${encodeURIComponent(cabang)}`);
         const result = await response.json();
-        picSelect.innerHTML = '<option value="" disabled>-- Pilih PIC Building Support --</option>';
+        picSelect.innerHTML = '<option value="">-- Pilih PIC Building Support --</option>';
         if (result.status === "success" && result.picList.length > 0) {
             result.picList.forEach((pic) => {
                 const option = document.createElement("option");
@@ -279,14 +273,7 @@ form.addEventListener("submit", async function (e) {
     hideMessages();
 
     try {
-        const selectedPics = getSelectedPicData();
-        if (selectedPics.length === 0) {
-            const msg = "Pilih minimal satu PIC Building Support.";
-            showError(msg);
-            showPopup(msg);
-            return;
-        }
-
+        const picData = JSON.parse(form.pic_building_support.value);
         const jsonData = {
             form: "input-pic",
             cabang: form.cabang.value,
@@ -294,9 +281,8 @@ form.addEventListener("submit", async function (e) {
             nama_toko: form.nama_toko.value,
             kategori_lokasi: form.kategori_lokasi.value,
             tanggal_spk: form.tanggal_spk.value,
-            pic_building_support: selectedPics.map((pic) => pic.email),
-            pic_nama: selectedPics.map((pic) => pic.nama),
-            pic_assignments: selectedPics,
+            pic_building_support: picData.email,
+            pic_nama: picData.nama,
             spk_url: currentSpkUrl,
             rab_url: currentRabUrl,
         };
