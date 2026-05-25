@@ -497,8 +497,13 @@ const PDFGenerator = {
 
         doc.setFont("helvetica", "normal").setFontSize(10);
 
-        const finalNamaToko = dataOpname.nama_toko || selectedStore.nama_toko || "-";
-        const finalAlamat = dataOpname.alamat || selectedStore.alamat || "-";
+        const rabMeta = rabData.find(item =>
+            String(item.no_ulok || "").trim().toUpperCase() === String(selectedUlok || "").trim().toUpperCase() &&
+            (!lingkupFix || String(item.lingkup_pekerjaan || "").trim().toUpperCase() === lingkupFix) &&
+            (item.nama_toko || item.alamat)
+        ) || rabData.find(item => item.nama_toko || item.alamat) || {};
+        const finalNamaToko = rabMeta.nama_toko || dataOpname.nama_toko || selectedStore.nama_toko || "-";
+        const finalAlamat = rabMeta.alamat || dataOpname.alamat || selectedStore.alamat || "-";
         const picLine = picList && picList.length > 0 ? picList.join(", ") : (picKontraktorData.name || picKontraktorData.pic_username || "N/A");
 
         doc.text(`NOMOR ULOK : ${selectedUlok || "-"}`, margin, lastY); lastY += 6;
@@ -1638,6 +1643,7 @@ const Render = {
                             const payload = {
                                 kode_toko: AppState.selectedStore.kode_toko,
                                 nama_toko: AppState.selectedStore.nama_toko,
+                                alamat: AppState.selectedStore.alamat || item.alamat || "",
                                 pic_username: AppState.user.username,
                                 no_ulok: AppState.selectedUlok,
                                 kategori_pekerjaan: item.kategori_pekerjaan,
