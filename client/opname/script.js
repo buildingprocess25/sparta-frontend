@@ -1651,13 +1651,20 @@ const Render = {
                                 harga_upah: item.harga_upah,
                                 total_harga_akhir: item.total_harga,
                                 lingkup_pekerjaan: AppState.selectedLingkup,
+                                rab_key: item.rab_key,
                                 is_il: item.is_il,
                                 desain: item.desain || '-',
                                 kualitas: item.kualitas || '-',
                                 spesifikasi: item.spesifikasi || '-',
                                 catatan: item.catatan || '-'
                             };
-                            await fetch(`${API_BASE_URL}/api/opname/item/submit`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+                            const saveRes = await fetch(`${API_BASE_URL}/api/opname/item/submit`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+                            const saveData = await saveRes.json().catch(() => ({}));
+                            if (!saveRes.ok) {
+                                throw new Error(saveData.message || saveData.error || "Gagal menyimpan item opname");
+                            }
+                            item.item_id = saveData.item_id || item.item_id;
+                            item.submissionTime = saveData.tanggal_submit || item.submissionTime;
                             item.isSubmitted = true; item.approval_status = "Pending";
                             renderTable();
                         } catch (e) { alert(e.message); btn.disabled = false; btn.innerText = "Simpan"; }
