@@ -364,7 +364,7 @@ window.closePopup = closePopup;
 function checkSessionTime() {
     try {
         const startHour = 6;
-        const endHour = 22;
+        const endHour = 24;
         const now = new Date();
         const options = { timeZone: "Asia/Jakarta", hour: '2-digit', hour12: false };
         const currentHour = parseInt(new Intl.DateTimeFormat('en-US', options).format(now));
@@ -373,7 +373,7 @@ function checkSessionTime() {
             const isAuthenticated = sessionStorage.getItem("authenticated");
             if (isAuthenticated === "true") {
                 sessionStorage.clear(); // Hapus sesi hanya jika waktu habis
-                alert("Sesi Anda telah berakhir karena di luar jam operasional (06:00 - 18:00 WIB).");
+                alert("Sesi Anda telah berakhir karena di luar jam operasional (06:00 - 24:00 WIB).");
                 window.location.href = "../auth/index.html";
             }
         }

@@ -726,10 +726,10 @@ function checkSessionTime() {
         const now = new Date();
         const currentHour = parseInt(new Intl.DateTimeFormat('en-US', { timeZone: "Asia/Jakarta", hour: '2-digit', hour12: false }).format(now));
 
-        if (currentHour < 6 || currentHour >= 23) {
+        if (currentHour < 6 || currentHour >= 24) {
             if (sessionStorage.getItem("authenticated")) {
                 sessionStorage.clear();
-                alert("Sesi Anda telah berakhir karena di luar jam operasional (06:00 - 18:00 WIB).");
+                alert("Sesi Anda telah berakhir karena di luar jam operasional (06:00 - 24:00 WIB).");
                 window.location.href = CONFIG.REDIRECT_ON_EXPIRY; 
             }
         }

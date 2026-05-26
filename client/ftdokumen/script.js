@@ -246,11 +246,11 @@ function checkTimeLimit() {
     const wib = new Date(utc + 7 * 60 * 60000);
     const hour = wib.getHours();
 
-    if (hour < 6 || hour >= 18) {
+    if (hour < 6 || hour >= 24) {
         const timeStr = `${hour.toString().padStart(2, "0")}:${wib.getMinutes().toString().padStart(2, "0")}`;
         if (STATE.user) {
             if (getEl("warning-modal") && getEl("warning-modal").classList.contains("hidden")) {
-                showWarningModal(`Sesi Anda telah berakhir.\nAplikasi hanya dapat diakses pada jam operasional 06.00–18.00 WIB.\nSekarang pukul ${timeStr} WIB.`, () => doLogout());
+                showWarningModal(`Sesi Anda telah berakhir.\nAplikasi hanya dapat diakses pada jam operasional 06.00-24.00 WIB.\nSekarang pukul ${timeStr} WIB.`, () => doLogout());
             }
         }
     }

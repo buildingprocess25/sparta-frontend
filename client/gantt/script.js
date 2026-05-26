@@ -1719,9 +1719,9 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(() => {
         const now = new Date();
         const hr = parseInt(new Intl.DateTimeFormat('en-US', { timeZone: "Asia/Jakarta", hour: '2-digit', hour12: false }).format(now));
-        if (hr < 6 || hr >= 20) {
+        if (hr < 6 || hr >= 24) {
             sessionStorage.clear();
-            alert("Sesi berakhir (06:00 - 20:00 WIB).");
+            alert("Sesi berakhir (06:00 - 24:00 WIB).");
             window.location.href = "/";
         }
     }, 300000);

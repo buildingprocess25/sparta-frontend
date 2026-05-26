@@ -335,7 +335,7 @@ document.addEventListener("DOMContentLoaded", function() {
 function checkSessionTime() {
     try {
         const startHour = 6;
-        const endHour = 18;
+        const endHour = 24;
 
         const now = new Date();
         const options = {
@@ -352,7 +352,7 @@ function checkSessionTime() {
             if (isAuthenticated === "true") {
                 // Clear session dan tendang
                 sessionStorage.clear();
-                alert("Sesi Anda telah berakhir karena di luar jam operasional (06:00 - 18:00 WIB).");
+                alert("Sesi Anda telah berakhir karena di luar jam operasional (06:00 - 24:00 WIB).");
                 window.location.href = LOGIN_PAGE_URL;
             }
         }
