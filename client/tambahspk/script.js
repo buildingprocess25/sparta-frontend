@@ -1,4 +1,4 @@
-const API_PROXY_URL = "https://pengawasan-tambahspk.onrender.com/api/form";
+const API_PROXY_URL = "https://sparta-backend-5hdj.onrender.com/api/form";
 // Arahkan ke halaman login baru di folder auth
 const LOGIN_PAGE_URL = "../auth/index.html"; 
 
