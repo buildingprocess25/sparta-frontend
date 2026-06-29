@@ -127,7 +127,7 @@ body {
 
 @media (min-width: 1024px) {
     .menu-container {
-        grid-template-columns: repeat(4, 1fr); 
+        grid-template-columns: repeat(3, 1fr); 
     }
 }
 
@@ -176,46 +176,14 @@ body {
     max-width: 250px; /* Membatasi lebar teks agar tidak terlalu melebar */
 }
 
-/* --- V1 NOTICE & CARD SPECIFICS --- */
-.v1-notice {
-    margin-top: 1.25rem;
-    padding: 0.5rem 0.75rem;
-    background-color: #fefce8;
-    color: #854d0e;
-    font-size: 0.8rem;
-    font-weight: 600;
-    border-radius: 8px;
-    border: 1px solid #fef08a;
-    text-align: center;
-    line-height: 1.4;
-}
-
 /* --- CARD SPECIFICS (COLORS & BORDERS) --- */
-
-/* V1 - Grey */
-.v1-card {
-    border-left: 5px solid #94a3b8;
-    background: linear-gradient(to right, rgba(148, 163, 184, 0.05) 0%, #ffffff 100%);
-}
-
-.v1-card:hover {
-    border-left-width: 8px;
-    border-color: #64748b !important;
-    background: linear-gradient(to right, rgba(148, 163, 184, 0.1) 0%, #ffffff 100%);
-}
-
-.v1-card:hover .v1-notice {
-    background-color: #f1f5f9;
-    border-style: solid;
-}
-
-/* V2 - Red */
-.v2-card {
+/* Building - Red */
+.building-card {
     border-left: 5px solid var(--secondary-color);
     background: linear-gradient(to right, rgba(229, 62, 62, 0.03) 0%, #ffffff 100%);
 }
 
-.v2-card:hover {
+.building-card:hover {
     border-left-width: 8px;
     background: linear-gradient(to right, rgba(229, 62, 62, 0.08) 0%, #ffffff 100%);
 }

@@ -1,4 +1,4 @@
-# <img src="client/assets/Alfamart-Emblem.png" height="40"> SPARTA Building v1
+# <img src="client/assets/Alfamart-Emblem.png" height="40"> SPARTA Building
 
 **System for Property Administration, Reporting, Tracking & Approval - Building & Maintenance**
 
